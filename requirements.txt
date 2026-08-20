@@ -1,2 +1,10 @@
-Django>=5.0,<7.0
-django-unfold
+Django==5.2.15
+channels==4.2.0
+channels-redis==4.2.0
+daphne==4.1.2
+reportlab==4.3.0
+openpyxl==3.1.5
+python-dotenv==1.1.0
+Pillow==11.1.0
+django-unfold==0.2.6
+psycopg2-binary==2.9.10
