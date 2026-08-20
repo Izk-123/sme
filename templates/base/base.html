@@ -1,0 +1,531 @@
+{% load static %}
+<!doctype html>
+<html lang="en" data-theme="light">
+  <head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+
+    <!-- ==================== THEME SETUP (Prevents Flash) ==================== -->
+    <script>
+      (function () {
+        const saved = localStorage.getItem("sme-theme");
+        const theme =
+          saved ||
+          (window.matchMedia("(prefers-color-scheme: dark)").matches
+            ? "dark"
+            : "light");
+        document.documentElement.setAttribute("data-theme", theme);
+      })();
+    </script>
+
+    <title>{% block title %}SME Business OS{% endblock %}</title>
+    <meta content="" name="description" />
+    <meta content="" name="keywords" />
+
+    <!-- ==================== FAVICONS ==================== -->
+    <link
+      href="{% static 'img/favicon.png' %}"
+      rel="icon"
+      onerror="this.href='https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f4bc.png'"
+    />
+    <link
+      href="{% static 'img/apple-touch-icon.png' %}"
+      rel="apple-touch-icon"
+      onerror="this.href='https://via.placeholder.com/180?text=SME'"
+    />
+
+    <!-- ==================== GOOGLE FONTS ==================== -->
+    <link
+      href="https://fonts.googleapis.com/css?family=Open+Sans:300,300i,400,400i,600,600i,700,700i|Nunito:300,300i,400,400i,600,600i,700,700i|Poppins:300,300i,400,400i,500,500i,600,600i,700,700i"
+      rel="stylesheet"
+    />
+
+    <!-- ==================== VENDOR CSS (CDN) ==================== -->
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdn.jsdelivr.net/npm/boxicons@2.1.4/css/boxicons.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.snow.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.bubble.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdn.jsdelivr.net/npm/simple-datatables@7.1.0/dist/style.css"
+      rel="stylesheet"
+    />
+
+    <!-- ==================== MAIN CSS FILE ==================== -->
+    <link href="{% static 'css/app.css' %}" rel="stylesheet" />
+  </head>
+
+  <body>
+    <!-- ========================= HEADER ========================= -->
+    <header id="header" class="header fixed-top d-flex align-items-center px-3">
+      <!-- Logo & Sidebar Toggle -->
+      <div class="d-flex align-items-center">
+        <a href="{% url 'home' %}" class="logo d-flex align-items-center me-3">
+          <img
+            src="{% static 'img/logo.png' %}"
+            alt=""
+            onerror="this.style.display='none'"
+          />
+          <span class="d-none d-lg-block">SME OS</span>
+        </a>
+        <i class="bi bi-list toggle-sidebar-btn me-2"></i>
+      </div>
+
+      <!-- Search Bar -->
+      <div
+        class="search-bar flex-grow-1 d-none d-md-block"
+        style="max-width: 450px"
+      >
+        <form
+          class="search-form d-flex align-items-center"
+          method="POST"
+          action="#"
+        >
+          <input
+            type="text"
+            name="query"
+            placeholder="Search"
+            title="Enter search keyword"
+          />
+          <button type="submit" title="Search">
+            <i class="bi bi-search"></i>
+          </button>
+        </form>
+      </div>
+
+      <!-- Navigation Menu -->
+      <nav class="header-nav ms-auto">
+        <ul class="d-flex align-items-center">
+          <!-- Theme Toggle -->
+          <li class="nav-item pe-2">
+            <a
+              class="nav-link nav-icon theme-toggle"
+              href="#"
+              id="themeToggle"
+              title="Toggle dark / light mode"
+            >
+              <i class="bi bi-moon-stars-fill theme-icon-dark"></i>
+              <i class="bi bi-sun-fill theme-icon-light"></i>
+            </a>
+          </li>
+
+          <!-- Search Toggle (Mobile) -->
+          <li class="nav-item d-block d-lg-none pe-2">
+            <a class="nav-link nav-icon search-bar-toggle" href="#">
+              <i class="bi bi-search"></i>
+            </a>
+          </li>
+
+          <!-- Notifications Dropdown -->
+          <li class="nav-item dropdown pe-2">
+            <a class="nav-link nav-icon" href="#" data-bs-toggle="dropdown">
+              <i class="bi bi-bell"></i>
+              <span class="badge bg-primary badge-number">0</span>
+            </a>
+            <ul
+              class="dropdown-menu dropdown-menu-end dropdown-menu-arrow notifications"
+            >
+              <li class="dropdown-header">
+                You have 0 new notifications
+                <a href="#"
+                  ><span class="badge rounded-pill bg-primary p-2 ms-2"
+                    >View all</span
+                  ></a
+                >
+              </li>
+              <li><hr class="dropdown-divider" /></li>
+              <li class="dropdown-footer">
+                <a href="#">Show all notifications</a>
+              </li>
+            </ul>
+          </li>
+
+          <!-- Messages Dropdown -->
+          <li class="nav-item dropdown pe-2">
+            <a class="nav-link nav-icon" href="#" data-bs-toggle="dropdown">
+              <i class="bi bi-chat-left-text"></i>
+              <span class="badge bg-success badge-number">0</span>
+            </a>
+            <ul
+              class="dropdown-menu dropdown-menu-end dropdown-menu-arrow messages"
+            >
+              <li class="dropdown-header">
+                You have 0 new messages
+                <a href="#"
+                  ><span class="badge rounded-pill bg-primary p-2 ms-2"
+                    >View all</span
+                  ></a
+                >
+              </li>
+              <li><hr class="dropdown-divider" /></li>
+              <li class="dropdown-footer">
+                <a href="#">Show all messages</a>
+              </li>
+            </ul>
+          </li>
+
+          <!-- User Profile -->
+          <li class="nav-item dropdown pe-3">
+            <a
+              class="nav-link nav-profile d-flex align-items-center pe-0"
+              href="{% url 'profile' %}"
+              data-bs-toggle="dropdown"
+            >
+              <img
+                src="{% if user.profile.profile_photo %}{{ user.profile.profile_photo.url }}{% else %}{% static 'img/profile-img.jpg' %}{% endif %}"
+                alt="Profile"
+                class="rounded-circle"
+                onerror="this.onerror=null;this.src='https://ui-avatars.com/api/?background=4154f1&color=fff&name={{ user.profile.display_name|default:user.username|urlencode }}';"
+              />
+              <span class="d-none d-md-block dropdown-toggle ps-2"
+                >{{ user.profile.display_name|default:user.username }}</span
+              >
+            </a>
+            <ul
+              class="dropdown-menu dropdown-menu-end dropdown-menu-arrow profile"
+            >
+              <li class="dropdown-header">
+                <h6>{{ user.profile.display_name|default:user.username }}</h6>
+                <span>
+                  {% if request.membership %}
+                    {{ request.membership.role.name }}
+                  {% endif %}
+                </span>
+              </li>
+              <li><hr class="dropdown-divider" /></li>
+              <li>
+                <a
+                  class="dropdown-item d-flex align-items-center"
+                  href="{% url 'profile' %}"
+                >
+                  <i class="bi bi-person"></i>
+                  <span>My Profile</span>
+                </a>
+              </li>
+              <li>
+                <a
+                  class="dropdown-item d-flex align-items-center"
+                  href="{% url 'settings' %}"
+                >
+                  <i class="bi bi-gear"></i>
+                  <span>Settings</span>
+                </a>
+              </li>
+              <li><hr class="dropdown-divider" /></li>
+              <li>
+                <a class="dropdown-item d-flex align-items-center" href="#">
+                  <i class="bi bi-question-circle"></i>
+                  <span>Need Help?</span>
+                </a>
+              </li>
+              <li><hr class="dropdown-divider" /></li>
+              <li>
+                <form
+                  method="post"
+                  action="{% url 'logout' %}"
+                  style="display: inline"
+                >
+                  {% csrf_token %}
+                  <button
+                    type="submit"
+                    class="dropdown-item d-flex align-items-center"
+                  >
+                    <i class="bi bi-box-arrow-right"></i>
+                    <span>Sign Out</span>
+                  </button>
+                </form>
+              </li>
+            </ul>
+          </li>
+        </ul>
+      </nav>
+    </header>
+    <!-- END HEADER -->
+
+    <!-- ========================= SIDEBAR ========================= -->
+    <aside id="sidebar" class="sidebar">
+      <ul class="sidebar-nav" id="sidebar-nav">
+        <!-- Dashboard -->
+        <li class="nav-item">
+          <a class="nav-link" href="{% url 'home' %}">
+            <i class="bi bi-grid"></i>
+            <span>Dashboard</span>
+          </a>
+        </li>
+
+        <!-- Modules -->
+        <li class="nav-item">
+          <a
+            class="nav-link collapsed"
+            data-bs-target="#components-nav"
+            data-bs-toggle="collapse"
+            href="#"
+          >
+            <i class="bi bi-menu-button-wide"></i><span>Modules</span>
+            <i class="bi bi-chevron-down ms-auto"></i>
+          </a>
+          <ul
+            id="components-nav"
+            class="nav-content collapse"
+            data-bs-parent="#sidebar-nav"
+          >
+            <li>
+              <a href="{% url 'sale_list' %}"
+                ><i class="bi bi-circle"></i><span>Sales</span></a
+              >
+            </li>
+            <li>
+              <a href="{% url 'inventory_list' %}"
+                ><i class="bi bi-circle"></i><span>Inventory</span></a
+              >
+            </li>
+            <li>
+              <a href="{% url 'expense_list' %}"
+                ><i class="bi bi-circle"></i><span>Expenses</span></a
+              >
+            </li>
+            <li>
+              <a href="{% url 'customer_list' %}"
+                ><i class="bi bi-circle"></i><span>Customers</span></a
+              >
+            </li>
+            <li>
+              <a href="{% url 'supplier_list' %}"
+                ><i class="bi bi-circle"></i><span>Suppliers</span></a
+              >
+            </li>
+          </ul>
+        </li>
+
+        <!-- Reports -->
+        <li class="nav-item">
+          <a
+            class="nav-link collapsed"
+            data-bs-target="#forms-nav"
+            data-bs-toggle="collapse"
+            href="#"
+          >
+            <i class="bi bi-journal-text"></i><span>Reports</span>
+            <i class="bi bi-chevron-down ms-auto"></i>
+          </a>
+          <ul
+            id="forms-nav"
+            class="nav-content collapse"
+            data-bs-parent="#sidebar-nav"
+          >
+            <li>
+              <a href="{% url 'reports_home' %}"
+                ><i class="bi bi-circle"></i><span>All Reports</span></a
+              >
+            </li>
+            <li>
+              <a href="{% url 'profit_loss' %}"
+                ><i class="bi bi-circle"></i><span>Profit & Loss</span></a
+              >
+            </li>
+            <li>
+              <a href="{% url 'sales_report' %}"
+                ><i class="bi bi-circle"></i><span>Sales Report</span></a
+              >
+            </li>
+            <li>
+              <a href="{% url 'expense_trends' %}"
+                ><i class="bi bi-circle"></i><span>Expense Trends</span></a
+              >
+            </li>
+            <li>
+              <a href="{% url 'report_business' %}"
+                ><i class="bi bi-circle"></i><span>Business Overview</span></a
+              >
+            </li>
+            <li>
+              <a href="{% url 'report_inventory_stock' %}"
+                ><i class="bi bi-circle"></i><span>Inventory Stock</span></a
+              >
+            </li>
+            <li>
+              <a href="{% url 'report_customer_debt' %}"
+                ><i class="bi bi-circle"></i><span>Customer Debt</span></a
+              >
+            </li>
+          </ul>
+        </li>
+
+        <!-- System -->
+        <li class="nav-heading">System</li>
+        <li class="nav-item">
+          <a class="nav-link collapsed" href="{% url 'team_list' %}">
+            <i class="bi bi-person"></i>
+            <span>Team</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link collapsed" href="{% url 'change_password' %}">
+            <i class="bi bi-key"></i>
+            <span>Security</span>
+          </a>
+        </li>
+      </ul>
+    </aside>
+    <!-- END SIDEBAR -->
+
+    <!-- ========================= MAIN CONTENT ========================= -->
+    <main id="main" class="main">
+      <div class="pagetitle">
+        <h1>{% block page_title %}Dashboard{% endblock %}</h1>
+        <nav>
+          <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'home' %}">Home</a></li>
+            {% block breadcrumb %}{% endblock %}
+          </ol>
+        </nav>
+      </div>
+
+      <section class="section dashboard">
+        <!-- Messages -->
+        {% if messages %}
+          {% for message in messages %}
+            <div
+              class="alert alert-{{ message.tags }} alert-dismissible fade show"
+              role="alert"
+            >
+              {{ message }}
+              <button
+                type="button"
+                class="btn-close"
+                data-bs-dismiss="alert"
+                aria-label="Close"
+              ></button>
+            </div>
+          {% endfor %}
+        {% endif %}
+        
+        <!-- Page Content -->
+        {% block content %}{% endblock %}
+      </section>
+    </main>
+    <!-- END MAIN -->
+
+    <!-- ========================= FOOTER ========================= -->
+    <footer id="footer" class="footer">
+      <div class="copyright">
+        &copy; Copyright <strong><span>SME Business OS</span></strong>. All Rights Reserved
+      </div>
+      <div class="credits">
+        Designed by <a href="http://pritechmw.com/">Pritech</a>
+      </div>
+    </footer>
+    <!-- END FOOTER -->
+
+    <!-- Back to Top Button -->
+    <a
+      href="#"
+      class="back-to-top d-flex align-items-center justify-content-center"
+      ><i class="bi bi-arrow-up-short"></i
+    ></a>
+
+    <!-- ========================= VENDOR JS (CDN) ========================= -->
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts@3.45.0/dist/apexcharts.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/simple-datatables@7.1.0/dist/umd/simple-datatables.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/tinymce@6.8.3/tinymce.min.js"></script>
+    <script src="{% static 'js/app.js' %}"></script>
+
+    <!-- ========================= HTMX ========================= -->
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <script>
+      document.addEventListener('htmx:configRequest', function(event) {
+        event.detail.headers['X-CSRFToken'] = '{{ csrf_token }}';
+      });
+    </script>
+
+    <!-- ========================= WEBSOCKET NOTIFICATIONS ========================= -->
+    <script>
+      const wsScheme = window.location.protocol === "https:" ? "wss" : "ws";
+      const wsPath = `${wsScheme}://${window.location.host}/ws/notifications/`;
+      const socket = new WebSocket(wsPath);
+
+      socket.onopen = function () {
+        console.log("Notification WebSocket connected.");
+      };
+
+      socket.onmessage = function (e) {
+        const data = JSON.parse(e.data);
+        if (data.type === "unread_count") {
+          const badge = document.querySelector(".header-nav .badge-number");
+          if (badge) badge.innerText = data.count;
+        } else if (data.type === "send_notification") {
+          // Create a toast notification
+          const toastHTML = `
+            <div class="toast align-items-center text-white bg-${data.notification_type} border-0" role="alert" aria-live="assertive" aria-atomic="true">
+              <div class="d-flex">
+                <div class="toast-body">
+                  <strong>${data.title}</strong><br>${data.message}
+                  ${data.action_url ? `<a href="${data.action_url}" class="text-white fw-bold">View</a>` : ""}
+                </div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close" onclick="dismissNotif(${data.notification_id})"></button>
+              </div>
+            </div>
+          `;
+          const toastContainer =
+            document.getElementById("toast-container") ||
+            (() => {
+              const container = document.createElement("div");
+              container.id = "toast-container";
+              container.className = "toast-container position-fixed top-0 end-0 p-3";
+              document.body.appendChild(container);
+              return container;
+            })();
+          const toastEl = document.createElement("div");
+          toastEl.innerHTML = toastHTML;
+          toastContainer.appendChild(toastEl.firstElementChild);
+
+          const toast = new bootstrap.Toast(toastContainer.lastElementChild);
+          toast.show();
+
+          // Update unread count
+          const badge = document.querySelector(".header-nav .badge-number");
+          if (badge) badge.innerText = parseInt(badge.innerText) + 1;
+        }
+      };
+
+      socket.onclose = function () {
+        console.error("Notification WebSocket closed unexpectedly.");
+      };
+
+      function dismissNotif(notifId) {
+        socket.send(
+          JSON.stringify({
+            action: "mark_read",
+            notification_id: notifId,
+          })
+        );
+      }
+    </script>
+
+    <!-- ========================= BARCODE SCANNING LIBRARY ========================= -->
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+  </body>
+</html>

@@ -1,0 +1,84 @@
+{% extends "base/base.html" %}
+{% block page_title %}Business Overview{% endblock %}
+{% block page_subtitle %}This month vs last month{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+    <!-- KPIs -->
+    <div class="col-md-3">
+        <div class="card h-100 border-0 shadow-sm">
+            <div class="card-body">
+                <h6 class="text-muted small">Total Sales</h6>
+                <h4 class="mb-0">MK{{ current.total_sales|floatformat:2 }}</h4>
+                <span class="badge {% if change.sales >= 0 %}bg-success{% else %}bg-danger{% endif %}">
+                    {{ change.sales }}% vs last month
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card h-100 border-0 shadow-sm">
+            <div class="card-body">
+                <h6 class="text-muted small">Expenses</h6>
+                <h4 class="mb-0">MK{{ current.total_expenses|floatformat:2 }}</h4>
+                <span class="badge {% if change.expenses <= 0 %}bg-success{% else %}bg-danger{% endif %}">
+                    {{ change.expenses }}% vs last month
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card h-100 border-0 shadow-sm">
+            <div class="card-body">
+                <h6 class="text-muted small">Gross Profit</h6>
+                <h4 class="mb-0 text-primary">MK{{ current.gross_profit|floatformat:2 }}</h4>
+                <span class="badge {% if change.profit >= 0 %}bg-success{% else %}bg-danger{% endif %}">
+                    {{ change.profit }}% vs last month
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card h-100 border-0 shadow-sm">
+            <div class="card-body">
+                <h6 class="text-muted small">Credit Outstanding</h6>
+                <h4 class="mb-0 text-warning">MK{{ current.customer_credit|floatformat:2 }}</h4>
+            </div>
+        </div>
+    </div>
+
+    <!-- AI Insight -->
+    <div class="col-12 mt-4">
+        <div class="card border-info">
+            <div class="card-body">
+                <div class="d-flex align-items-start">
+                    <i class="bi bi-robot fs-3 text-info me-3"></i>
+                    <div>
+                        <h6 class="card-title text-info">Business Insight</h6>
+                        <p class="card-text">
+                            Sales are <strong>{% if change.sales >= 0 %}up{% else %}down{% endif %} {{ change.sales }}%</strong> compared to last month.
+                            {% if change.sales > 0 and change.profit > change.sales %}
+                                Your profitability is growing faster than revenue—great cost control!
+                            {% elif change.sales > 0 and change.expenses > change.sales %}
+                                Caution: Expenses are growing faster than sales. Review variable costs.
+                            {% else %}
+                                Focus on boosting sales volume and reducing slow-moving stock.
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Export Buttons -->
+    <div class="col-12 text-center mt-2">
+        <a href="{% url 'export_business_pdf' %}" class="btn btn-danger btn-sm">
+            <i class="bi bi-filetype-pdf"></i> Export PDF
+        </a>
+    </div>
+</div>
+{% endblock %}

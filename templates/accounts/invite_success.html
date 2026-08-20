@@ -1,0 +1,32 @@
+{% extends "base/base.html" %}
+{% block page_title %}Invite Created{% endblock %}
+{% block page_subtitle %}Share this link with {{ invite_name|default:"your employee" }}{% endblock %}
+{% block content %}
+
+<div class="row justify-content-center">
+    <div class="col-lg-5 col-md-7">
+        <div class="card border-warning">
+            <div class="card-body">
+                <div class="alert alert-warning">
+                    <i class="bi bi-exclamation-triangle"></i> <strong>This link is shown only once here.</strong> Copy it now and send it to {{ invite_name|default:"your employee" }} - you won't see it again after you leave this page (it's still valid for 7 days either way).
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Invite link</label>
+                    <div class="input-group">
+                        <input type="text" class="form-control" id="inviteLinkField" value="{{ invite_link }}" readonly>
+                        <button class="btn btn-outline-secondary" type="button" onclick="navigator.clipboard.writeText(document.getElementById('inviteLinkField').value)">
+                            <i class="bi bi-clipboard"></i> Copy
+                        </button>
+                    </div>
+                </div>
+
+                <div class="d-grid gap-2">
+                    <a href="{% url 'team_list' %}" class="btn btn-primary">Back to Team</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

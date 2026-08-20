@@ -1,0 +1,20 @@
+{% load static %}
+<!DOCTYPE html>
+<html>
+<head><title>Barcode Label</title>
+<style>
+    body { font-family: sans-serif; }
+    .label { width: 100mm; padding: 10mm; border: 1px dashed #ccc; }
+    .barcode { font-family: 'Code39', monospace; font-size: 24pt; }
+    .price { font-size: 14pt; font-weight: bold; }
+</style>
+</head>
+<body>
+    <div class="label">
+        <div><strong>{{ product.name }}</strong></div>
+        <div class="barcode">{{ product.barcode }}</div>
+        <div class="price">MK{{ product.price }}</div>
+    </div>
+    <script>window.print();</script>
+</body>
+</html>

@@ -1,0 +1,91 @@
+{% extends "base/base.html" %}
+{% block page_title %}Expenses{% endblock %}
+{% block page_subtitle %}Manage your business expenses{% endblock %}
+{% block content %}
+
+<!-- Header & Actions -->
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h2 class="mb-0">Expenses</h2>
+        <small class="text-muted">{{ expenses|length }} expenses</small>
+    </div>
+    <a href="{% url 'expense_add' %}" class="btn btn-primary btn-sm">
+        <i class="bi bi-plus-lg"></i> Add Expense
+    </a>
+</div>
+
+<!-- Mobile layout (cards) -->
+<div class="d-md-none">
+    {% if expenses %}
+        <div class="list-group">
+            {% for expense in expenses %}
+                <div class="list-group-item d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="fw-bold">{{ expense.category.name|default:"—" }}</div>
+                        <small class="text-muted">{{ expense.date|date:"Y-m-d" }}</small>
+                        <br>
+                        <small class="text-muted">{{ expense.description|default:"—" }}</small>
+                    </div>
+                    <div class="text-end">
+                        <div class="fw-bold">MK{{ expense.amount|floatformat:0 }}</div>
+                        <form method="post" action="{% url 'expense_delete' expense.pk %}" style="display:inline;">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-outline-danger btn-sm" onclick="return confirm('Delete this expense?')">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <p class="text-muted small">No expenses recorded yet.</p>
+    {% endif %}
+</div>
+
+<!-- Desktop layout (DataTable) -->
+<div class="d-none d-md-block">
+    {% if expenses %}
+        <div class="card">
+            <div class="card-body">
+                <table class="table table-hover datatable">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Category</th>
+                            <th>Description</th>
+                            <th>Supplier</th>
+                            <th>Amount</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for expense in expenses %}
+                            <tr>
+                                <td>{{ expense.date|date:"Y-m-d" }}</td>
+                                <td>{{ expense.category.name|default:"—" }}</td>
+                                <td>{{ expense.description|default:"—" }}</td>
+                                <td>{{ expense.supplier|default:"—" }}</td>
+                                <td class="money">MK{{ expense.amount|floatformat:2 }}</td>
+                                <td>
+                                    <form method="post" action="{% url 'expense_delete' expense.pk %}" style="display:inline;">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-outline-danger btn-sm" onclick="return confirm('Delete this expense?')">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    {% else %}
+        <div class="card">
+            <div class="card-body text-muted small text-center">No expenses recorded yet.</div>
+        </div>
+    {% endif %}
+</div>
+
+{% endblock %}

@@ -1,0 +1,87 @@
+{% extends "base/base.html" %}
+{% block page_title %}{{ supplier.name }}{% endblock %}
+{% block page_subtitle %}Supplier details and purchase history{% endblock %}
+{% block content %}
+
+<!-- Back button -->
+<div class="mb-3">
+    <a href="{% url 'supplier_list' %}" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-arrow-left"></i> Back to Suppliers
+    </a>
+</div>
+
+<div class="row">
+    <!-- Supplier info card -->
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Supplier Information</h5>
+                <dl class="row mb-0">
+                    <dt class="col-sm-4">Phone</dt>
+                    <dd class="col-sm-8">{{ supplier.phone|default:"—" }}</dd>
+                    <dt class="col-sm-4">Email</dt>
+                    <dd class="col-sm-8">{{ supplier.email|default:"—" }}</dd>
+                    <dt class="col-sm-4">Address</dt>
+                    <dd class="col-sm-8">{{ supplier.address|default:"—"|linebreaks }}</dd>
+                    <dt class="col-sm-4">Balance</dt>
+                    <dd class="col-sm-8">
+                        <strong>MK{{ supplier.outstanding_balance|floatformat:2 }}</strong>
+                    </dd>
+                </dl>
+            </div>
+        </div>
+    </div>
+
+    <!-- Purchase History -->
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Purchase History</h5>
+                {% if purchases %}
+                    <div class="d-md-none">
+                        <div class="list-group">
+                            {% for movement in purchases %}
+                                <div class="list-group-item d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <div class="fw-bold">{{ movement.product.name }}</div>
+                                        <small class="text-muted">{{ movement.created_at|date:"Y-m-d H:i" }}</small>
+                                    </div>
+                                    <div class="text-end">
+                                        <div>Qty: {{ movement.quantity }}</div>
+                                        <small class="text-muted">{{ movement.reference|default:"—" }}</small>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <div class="d-none d-md-block">
+                        <table class="table table-hover datatable">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Product</th>
+                                    <th>Quantity</th>
+                                    <th>Reference</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for movement in purchases %}
+                                    <tr>
+                                        <td>{{ movement.created_at|date:"Y-m-d H:i" }}</td>
+                                        <td class="fw-bold">{{ movement.product.name }}</td>
+                                        <td>{{ movement.quantity }}</td>
+                                        <td>{{ movement.reference|default:"—" }}</td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <p class="text-muted small">No purchase records for this supplier yet.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

@@ -1,0 +1,137 @@
+{% extends "base/base.html" %}
+{% block page_title %}{{ customer.name }}{% endblock %}
+{% block page_subtitle %}Customer details and history{% endblock %}
+{% block content %}
+
+<!-- Back button -->
+<div class="mb-3">
+    <a href="{% url 'customer_list' %}" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-arrow-left"></i> Back to Customers
+    </a>
+</div>
+
+<div class="row">
+    <!-- Customer info card -->
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Customer Information</h5>
+                <dl class="row mb-0">
+                    <dt class="col-sm-4">Phone</dt>
+                    <dd class="col-sm-8">{{ customer.phone|default:"—" }}</dd>
+                    <dt class="col-sm-4">Location</dt>
+                    <dd class="col-sm-8">{{ customer.location|default:"—" }}</dd>
+                    <dt class="col-sm-4">Balance</dt>
+                    <dd class="col-sm-8">
+                        <strong class="{% if customer.outstanding_balance > 0 %}text-danger{% else %}text-success{% endif %}">
+                            MK{{ customer.outstanding_balance|floatformat:2 }}
+                        </strong>
+                    </dd>
+                </dl>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sales and Payments history -->
+    <div class="col-lg-8">
+        <!-- Sales History -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <h5 class="card-title">Sales History</h5>
+                {% if sales %}
+                    <div class="d-md-none">
+                        <div class="list-group">
+                            {% for sale in sales %}
+                                <div class="list-group-item d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <div class="fw-bold">#{{ sale.pk }}</div>
+                                        <small class="text-muted">{{ sale.created_at|date:"Y-m-d H:i" }}</small>
+                                    </div>
+                                    <div class="text-end">
+                                        <div class="fw-bold">MK{{ sale.total|floatformat:0 }}</div>
+                                        <small class="text-muted">{{ sale.get_payment_method_display }}</small>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <div class="d-none d-md-block">
+                        <table class="table table-hover datatable">
+                            <thead>
+                                <tr>
+                                    <th>Sale #</th>
+                                    <th>Date</th>
+                                    <th>Total</th>
+                                    <th>Payment Method</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for sale in sales %}
+                                    <tr>
+                                        <td class="fw-bold">#{{ sale.pk }}</td>
+                                        <td>{{ sale.created_at|date:"Y-m-d H:i" }}</td>
+                                        <td class="money">MK{{ sale.total|floatformat:2 }}</td>
+                                        <td>{{ sale.get_payment_method_display }}</td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <p class="text-muted small">No sales for this customer.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Payments Received -->
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Payments Received</h5>
+                {% if payments %}
+                    <div class="d-md-none">
+                        <div class="list-group">
+                            {% for payment in payments %}
+                                <div class="list-group-item d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <div class="fw-bold">MK{{ payment.amount|floatformat:0 }}</div>
+                                        <small class="text-muted">{{ payment.created_at|date:"Y-m-d H:i" }}</small>
+                                    </div>
+                                    <div class="text-end">
+                                        <small class="text-muted">{{ payment.get_payment_method_display }}</small>
+                                        <small class="text-muted">{{ payment.reference|default:"—" }}</small>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <div class="d-none d-md-block">
+                        <table class="table table-hover datatable">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Amount</th>
+                                    <th>Method</th>
+                                    <th>Reference</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for payment in payments %}
+                                    <tr>
+                                        <td>{{ payment.created_at|date:"Y-m-d H:i" }}</td>
+                                        <td class="money">MK{{ payment.amount|floatformat:2 }}</td>
+                                        <td>{{ payment.get_payment_method_display }}</td>
+                                        <td>{{ payment.reference|default:"—" }}</td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <p class="text-muted small">No payments recorded for this customer.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

@@ -1,0 +1,97 @@
+{% extends "base/base.html" %}
+{% block page_title %}Profit & Loss{% endblock %}
+{% block page_subtitle %}Monthly revenue, expenses, and net profit{% endblock %}
+
+{% block content %}
+
+<!-- Filter Form -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-3 align-items-end">
+            <div class="col-md-3">
+                <label for="id_month" class="form-label">Month</label>
+                {{ form.month }}
+            </div>
+            <div class="col-md-3">
+                <label for="id_year" class="form-label">Year</label>
+                {{ form.year }}
+            </div>
+            <div class="col-md-auto">
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-search"></i> View
+                </button>
+            </div>
+            {% if request.GET.month and request.GET.year %}
+            <div class="col-md-auto">
+                <a href="{% url 'export_profit_loss_pdf' %}?month={{ request.GET.month }}&year={{ request.GET.year }}" class="btn btn-danger btn-sm">
+                    <i class="bi bi-filetype-pdf"></i> PDF
+                </a>
+                <a href="{% url 'export_profit_loss_excel' %}?month={{ request.GET.month }}&year={{ request.GET.year }}" class="btn btn-success btn-sm">
+                    <i class="bi bi-file-earmark-excel"></i> Excel
+                </a>
+            </div>
+            {% endif %}
+        </form>
+    </div>
+</div>
+
+{% if revenue is not None %}
+    <div class="row g-4">
+        <!-- Revenue Card -->
+        <div class="col-md-4">
+            <div class="card info-card">
+                <div class="card-body">
+                    <h5 class="card-title">Revenue</h5>
+                    <div class="d-flex align-items-center">
+                        <div class="card-icon rounded-circle d-flex align-items-center justify-content-center bg-success-light text-success me-3">
+                            <i class="bi bi-currency-dollar"></i>
+                        </div>
+                        <div>
+                            <h6 class="mb-0">MK{{ revenue|floatformat:2 }}</h6>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Expenses Card -->
+        <div class="col-md-4">
+            <div class="card info-card">
+                <div class="card-body">
+                    <h5 class="card-title">Expenses</h5>
+                    <div class="d-flex align-items-center">
+                        <div class="card-icon rounded-circle d-flex align-items-center justify-content-center bg-danger-light text-danger me-3">
+                            <i class="bi bi-receipt"></i>
+                        </div>
+                        <div>
+                            <h6 class="mb-0">MK{{ expenses|floatformat:2 }}</h6>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Net Profit Card -->
+        <div class="col-md-4">
+            <div class="card info-card">
+                <div class="card-body">
+                    <h5 class="card-title">Net Profit</h5>
+                    <div class="d-flex align-items-center">
+                        <div class="card-icon rounded-circle d-flex align-items-center justify-content-center {% if net_profit >= 0 %}bg-primary-light text-primary{% else %}bg-danger-light text-danger{% endif %} me-3">
+                            <i class="bi bi-pie-chart"></i>
+                        </div>
+                        <div>
+                            <h6 class="mb-0 {% if net_profit >= 0 %}text-primary{% else %}text-danger{% endif %}">
+                                MK{{ net_profit|floatformat:2 }}
+                            </h6>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% else %}
+    <div class="alert alert-info">Select a month and year, then click "View" to generate the report.</div>
+{% endif %}
+
+{% endblock %}

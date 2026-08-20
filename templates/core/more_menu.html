@@ -1,0 +1,14 @@
+{% extends "base/base.html" %}
+{% block content %}
+<div class="list-group">
+    <a href="{% url 'expense_list' %}" class="list-group-item">Expenses</a>
+    <a href="{% url 'supplier_list' %}" class="list-group-item">Suppliers</a>
+    <a href="{% url 'profit_loss' %}" class="list-group-item">Profit & Loss</a>
+    <a href="{% url 'sales_report' %}" class="list-group-item">Sales Report</a>
+    <a href="{% url 'expense_trends' %}" class="list-group-item">Expense Trends</a>
+    {% if request.membership.role.slug == 'owner' %}
+        <a href="{% url 'team_list' %}" class="list-group-item">Team</a>
+    {% endif %}
+    <a href="{% url 'change_password' %}" class="list-group-item">Change Password</a>
+</div>
+{% endblock %}

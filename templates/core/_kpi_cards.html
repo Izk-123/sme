@@ -1,0 +1,43 @@
+<div class="row g-4 htmx-indicator" style="opacity: 1; transition: opacity 0.2s;">
+    <!-- Today's Sales -->
+    <div class="col-md-3">
+        <div class="card h-100 border-0 shadow-sm">
+            <div class="card-body text-center">
+                <h6 class="text-muted text-uppercase small">Today's Sales</h6>
+                <h3 class="text-success mb-0">MK{{ today_sales|floatformat:0 }}</h3>
+            </div>
+        </div>
+    </div>
+
+    <!-- Today's Expenses -->
+    <div class="col-md-3">
+        <div class="card h-100 border-0 shadow-sm">
+            <div class="card-body text-center">
+                <h6 class="text-muted text-uppercase small">Today's Expenses</h6>
+                <h3 class="text-danger mb-0">MK{{ today_expenses|floatformat:0 }}</h3>
+            </div>
+        </div>
+    </div>
+
+    <!-- Gross Profit (Sales - Expenses) -->
+    <div class="col-md-3">
+        <div class="card h-100 border-0 shadow-sm">
+            <div class="card-body text-center">
+                <h6 class="text-muted text-uppercase small">Gross Profit</h6>
+                <h3 class="{% if gross_profit >= 0 %}text-primary{% else %}text-danger{% endif %} mb-0">
+                    MK{{ gross_profit|floatformat:0 }}
+                </h3>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stock Value -->
+    <div class="col-md-3">
+        <div class="card h-100 border-0 shadow-sm">
+            <div class="card-body text-center">
+                <h6 class="text-muted text-uppercase small">Stock Value</h6>
+                <h3 class="text-info mb-0">MK{{ stock_value|floatformat:0 }}</h3>
+            </div>
+        </div>
+    </div>
+</div>

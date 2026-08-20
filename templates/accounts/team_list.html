@@ -1,0 +1,91 @@
+{% extends "base/base.html" %}
+{% block page_title %}Your Team{% endblock %}
+{% block page_subtitle %}Manage your employees{% endblock %}
+{% block content %}
+
+<!-- Header -->
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h2 class="mb-0">Team</h2>
+        <small class="text-muted">{{ memberships|length }} members</small>
+    </div>
+    <a href="{% url 'invite_employee' %}" class="btn btn-primary btn-sm">
+        <i class="bi bi-plus-lg"></i> Invite Employee
+    </a>
+</div>
+
+{% if memberships %}
+    <!-- Mobile layout (cards) -->
+    <div class="d-md-none">
+        <div class="list-group">
+            {% for membership in memberships %}
+                <div class="list-group-item d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="fw-bold">{{ membership.user.profile.display_name|default:membership.user.username }}</div>
+                        <small class="text-muted">{{ membership.role.name }}</small>
+                    </div>
+                    <div class="text-end">
+                        <span class="badge {% if membership.is_active %}bg-success{% else %}bg-secondary{% endif %}">
+                            {% if membership.is_active %}Active{% else %}Inactive{% endif %}
+                        </span>
+                        <form method="post" action="{% url 'toggle_employee_active' membership.pk %}" style="display:inline;">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-outline-secondary btn-sm ms-1">
+                                {% if membership.is_active %}Deactivate{% else %}Activate{% endif %}
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Desktop layout (DataTable) -->
+    <div class="d-none d-md-block">
+        <div class="card">
+            <div class="card-body">
+                <table class="table table-hover datatable">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Email</th>
+                            <th>Role</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for membership in memberships %}
+                            <tr>
+                                <td class="fw-bold">{{ membership.user.profile.display_name|default:membership.user.username }}</td>
+                                <td>{{ membership.user.email|default:"—" }}</td>
+                                <td>{{ membership.role.name }}</td>
+                                <td>
+                                    {% if membership.is_active %}
+                                        <span class="badge bg-success">Active</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">Inactive</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <form method="post" action="{% url 'toggle_employee_active' membership.pk %}" style="display:inline;">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-outline-secondary btn-sm">
+                                            {% if membership.is_active %}Deactivate{% else %}Activate{% endif %}
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+{% else %}
+    <div class="card">
+        <div class="card-body text-muted small text-center">No employees yet. Invite your first one to get started.</div>
+    </div>
+{% endif %}
+
+{% endblock %}

@@ -1,0 +1,135 @@
+{% extends "base/base.html" %}
+{% block page_title %}Sales Report{% endblock %}
+{% block page_subtitle %}Top products and top customers for any month{% endblock %}
+{% block content %}
+
+<!-- Filter Form -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-3 align-items-end">
+            <div class="col-md-3">
+                <label for="id_month" class="form-label">Month</label>
+                {{ form.month }}
+            </div>
+            <div class="col-md-3">
+                <label for="id_year" class="form-label">Year</label>
+                {{ form.year }}
+            </div>
+            <div class="col-md-3">
+                <label for="id_limit" class="form-label">Limit</label>
+                {{ form.limit }}
+            </div>
+            <div class="col-md-auto">
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-search"></i> Generate
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% if total_sales_revenue is not None %}
+    <!-- Summary Cards -->
+    <div class="row g-4 mb-4">
+        <div class="col-md-6">
+            <div class="card info-card">
+                <div class="card-body">
+                    <h5 class="card-title">Total Sales Revenue</h5>
+                    <div class="d-flex align-items-center">
+                        <div class="card-icon rounded-circle d-flex align-items-center justify-content-center bg-success-light text-success me-3">
+                            <i class="bi bi-currency-dollar"></i>
+                        </div>
+                        <div>
+                            <h6 class="mb-0">MK{{ total_sales_revenue|floatformat:2 }}</h6>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card info-card">
+                <div class="card-body">
+                    <h5 class="card-title">Total Transactions</h5>
+                    <div class="d-flex align-items-center">
+                        <div class="card-icon rounded-circle d-flex align-items-center justify-content-center bg-primary-light text-primary me-3">
+                            <i class="bi bi-list-check"></i>
+                        </div>
+                        <div>
+                            <h6 class="mb-0">{{ total_transactions }}</h6>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- Top Selling Products -->
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Top {{ limit }} Selling Products</h5>
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Product</th>
+                                    <th class="text-end">Qty Sold</th>
+                                    <th class="text-end">Revenue</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for product in top_products %}
+                                    <tr>
+                                        <td>{{ product.product__name }}</td>
+                                        <td class="text-end">{{ product.total_quantity }}</td>
+                                        <td class="text-end money">MK{{ product.total_revenue|floatformat:2 }}</td>
+                                    </tr>
+                                {% empty %}
+                                    <tr>
+                                        <td colspan="3" class="text-center text-muted">No product sales in this period.</td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Revenue by Customer -->
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Top {{ limit }} Customers by Revenue</h5>
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Customer</th>
+                                    <th class="text-end">Total Spent</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for customer in revenue_by_customer %}
+                                    <tr>
+                                        <td>{{ customer.customer__name }}</td>
+                                        <td class="text-end money">MK{{ customer.total_spent|floatformat:2 }}</td>
+                                    </tr>
+                                {% empty %}
+                                    <tr>
+                                        <td colspan="2" class="text-center text-muted">No customer sales in this period.</td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% else %}
+    <div class="alert alert-info">Select a month, year, and limit, then click "Generate Report" to view sales analytics.</div>
+{% endif %}
+
+{% endblock %}

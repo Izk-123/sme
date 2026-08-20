@@ -1,0 +1,90 @@
+{% extends "base/base_auth.html" %}
+{% block title %}Create Account - SME Business OS{% endblock %}
+
+{% block auth_content %}
+<div class="pt-4 pb-2">
+    <h5 class="card-title text-center pb-0 fs-4">Create an Account</h5>
+    <p class="text-center small">Enter your business details to create an account</p>
+</div>
+
+<form class="row g-3 needs-validation" method="post" enctype="multipart/form-data" novalidate>
+    {% csrf_token %}
+
+    {% if form.non_field_errors %}
+        <div class="col-12">
+            <div class="alert alert-danger">{{ form.non_field_errors|striptags }}</div>
+        </div>
+    {% endif %}
+
+    <div class="col-12">
+        <label for="{{ form.full_name.id_for_label }}" class="form-label">Your name</label>
+        {{ form.full_name }}
+        {% if form.full_name.errors %}
+            <div class="invalid-feedback d-block">{{ form.full_name.errors|striptags }}</div>
+        {% endif %}
+    </div>
+
+    <div class="col-12">
+        <label for="{{ form.business_name.id_for_label }}" class="form-label">Business name</label>
+        {{ form.business_name }}
+        {% if form.business_name.errors %}
+            <div class="invalid-feedback d-block">{{ form.business_name.errors|striptags }}</div>
+        {% endif %}
+    </div>
+
+    <div class="col-12">
+        <label for="{{ form.email.id_for_label }}" class="form-label">Your email</label>
+        {{ form.email }}
+        {% if form.email.errors %}
+            <div class="invalid-feedback d-block">{{ form.email.errors|striptags }}</div>
+        {% endif %}
+    </div>
+
+    <div class="col-12">
+        <label for="{{ form.username.id_for_label }}" class="form-label">Username</label>
+        <div class="input-group has-validation">
+            <span class="input-group-text" id="inputGroupPrepend">@</span>
+            {{ form.username }}
+            <div class="invalid-feedback">{{ form.username.errors|striptags|default:"Please choose a username." }}</div>
+        </div>
+    </div>
+
+    <div class="col-12">
+        <label for="{{ form.password1.id_for_label }}" class="form-label">Password</label>
+        {{ form.password1 }}
+        {% if form.password1.errors %}
+            <div class="invalid-feedback d-block">{{ form.password1.errors|striptags }}</div>
+        {% endif %}
+        {% if form.password1.help_text %}
+            <div class="form-text">{{ form.password1.help_text|safe }}</div>
+        {% endif %}
+    </div>
+
+    <div class="col-12">
+        <label for="{{ form.password2.id_for_label }}" class="form-label">Confirm password</label>
+        {{ form.password2 }}
+        {% if form.password2.errors %}
+            <div class="invalid-feedback d-block">{{ form.password2.errors|striptags }}</div>
+        {% endif %}
+    </div>
+
+    <div class="col-12">
+        <div class="form-check">
+            {{ form.terms }}
+            <label class="form-check-label" for="{{ form.terms.id_for_label }}">
+                I agree and accept the <a href="#">terms and conditions</a>
+            </label>
+            {% if form.terms.errors %}
+                <div class="invalid-feedback d-block">{{ form.terms.errors|striptags }}</div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="col-12 mt-3">
+        <button class="btn btn-primary w-100" type="submit">Create Account</button>
+    </div>
+    <div class="col-12">
+        <p class="small mb-0 text-center">Already have an account? <a href="{% url 'login' %}">Log in</a></p>
+    </div>
+</form>
+{% endblock %}

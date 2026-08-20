@@ -1,0 +1,327 @@
+{% extends "base/base.html" %}
+{% block page_title %}Settings{% endblock %}
+{% block breadcrumb %}<li class="breadcrumb-item active">Settings</li>{% endblock %}
+{% block content %}
+
+<div class="row">
+  <!-- Sidebar (Left) - a list-group driving Bootstrap's tab JS. Needs
+       data-bs-toggle="list" + role="tab" on each link and role="tablist"
+       on the wrapper, or clicking these does nothing. -->
+  <div class="col-lg-3">
+    <div class="card">
+      <div class="card-body p-3">
+        <div class="list-group list-group-flush" id="settings-tab" role="tablist">
+          <a href="#profile" class="list-group-item list-group-item-action active" data-bs-toggle="list" role="tab">👤 Profile</a>
+          <a href="#contact" class="list-group-item list-group-item-action" data-bs-toggle="list" role="tab">📱 Contact</a>
+          <a href="#identity" class="list-group-item list-group-item-action" data-bs-toggle="list" role="tab">🪪 Identity</a>
+          <a href="#security" class="list-group-item list-group-item-action" data-bs-toggle="list" role="tab">🔐 Security</a>
+          <a href="#notifications" class="list-group-item list-group-item-action" data-bs-toggle="list" role="tab">🔔 Notifications</a>
+          <a href="#preferences" class="list-group-item list-group-item-action" data-bs-toggle="list" role="tab">🎨 Preferences</a>
+          <a href="#businesses" class="list-group-item list-group-item-action" data-bs-toggle="list" role="tab">🏢 Businesses</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Content (Right) -->
+  <div class="col-lg-9">
+    <div class="card">
+      <div class="card-body pt-3">
+        <div class="tab-content">
+
+          <!-- Profile -->
+          <div class="tab-pane fade show active" id="profile">
+            <h5 class="card-title">Personal Profile</h5>
+            {% include "accounts/_profile_form.html" with form=profile_form %}
+          </div>
+
+          <!-- Contact -->
+          <div class="tab-pane fade" id="contact">
+            <h5 class="card-title">Contact Information</h5>
+            <p class="text-muted small">Phone verification (SMS/WhatsApp) isn't set up yet - numbers show as unverified until a provider is connected.</p>
+
+            {% if phone_numbers %}
+              <table class="table table-borderless">
+                <tbody>
+                  {% for phone in phone_numbers %}
+                    <tr>
+                      <td>{{ phone.number }}</td>
+                      <td class="text-muted small">{{ phone.get_type_display }}</td>
+                      <td>{% if phone.is_primary %}<span class="badge bg-primary">Primary</span>{% endif %}</td>
+                      <td>{% if phone.is_verified %}<span class="badge bg-success">Verified</span>{% else %}<span class="badge bg-secondary">Unverified</span>{% endif %}</td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            {% else %}
+              <p class="text-muted small">No phone numbers added yet.</p>
+            {% endif %}
+
+            <h6 class="text-muted mt-4">Add a phone number</h6>
+            <form method="post">
+              {% csrf_token %}
+              <input type="hidden" name="form_name" value="phone">
+              {% if phone_form.non_field_errors %}
+                <div class="alert alert-danger">{{ phone_form.non_field_errors|striptags }}</div>
+              {% endif %}
+              <div class="row g-3">
+                {% for field in phone_form %}
+                  <div class="col-md-4">
+                    <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
+                    {{ field }}
+                    {% if field.errors %}
+                      <div class="invalid-feedback d-block">{{ field.errors|striptags }}</div>
+                    {% endif %}
+                  </div>
+                {% endfor %}
+              </div>
+              <button type="submit" class="btn btn-primary btn-sm mt-3">Add Phone</button>
+            </form>
+          </div>
+
+          <!-- Identity -->
+          <div class="tab-pane fade" id="identity">
+            <h5 class="card-title">Identity Documents</h5>
+            <p class="text-muted small">Optional. Only add these if your business needs them verified - see your business's Team page for who can view the underlying document.</p>
+
+            {% if identities %}
+              <table class="table table-borderless">
+                <tbody>
+                  {% for doc in identities %}
+                    <tr>
+                      <td>{{ doc.get_document_type_display }}</td>
+                      <td><code>{{ doc.masked_number }}</code></td>
+                      <td>{% if doc.is_verified %}<span class="badge bg-success">Verified</span>{% else %}<span class="badge bg-secondary">Unverified</span>{% endif %}</td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            {% else %}
+              <p class="text-muted small">No documents added yet.</p>
+            {% endif %}
+
+            <h6 class="text-muted mt-4">Add a document</h6>
+            <form method="post" enctype="multipart/form-data">
+              {% csrf_token %}
+              <input type="hidden" name="form_name" value="identity">
+              {% if identity_form.non_field_errors %}
+                <div class="alert alert-danger">{{ identity_form.non_field_errors|striptags }}</div>
+              {% endif %}
+              <div class="row g-3">
+                {% for field in identity_form %}
+                  <div class="col-md-6">
+                    <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
+                    {{ field }}
+                    {% if field.errors %}
+                      <div class="invalid-feedback d-block">{{ field.errors|striptags }}</div>
+                    {% endif %}
+                  </div>
+                {% endfor %}
+              </div>
+              <button type="submit" class="btn btn-primary btn-sm mt-3">Save Document</button>
+            </form>
+          </div>
+
+          <!-- Security -->
+          <div class="tab-pane fade" id="security">
+            <h5 class="card-title">Security</h5>
+
+            <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+              <div>
+                <div class="fw-bold">Password</div>
+                <div class="text-muted small">Change your login password.</div>
+              </div>
+              <a href="{% url 'change_password' %}" class="btn btn-outline-primary btn-sm">Change Password</a>
+            </div>
+
+            <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+              <div>
+                <div class="fw-bold">Email verification</div>
+                <div class="text-muted small">
+                  {% if user.email %}
+                    {{ user.email }}
+                    {% if profile.email_verified %}
+                      <span class="badge bg-success ms-1">Verified</span>
+                    {% else %}
+                      <span class="badge bg-secondary ms-1">Unverified</span>
+                    {% endif %}
+                  {% else %}
+                    No email on file - add one on the Profile tab.
+                  {% endif %}
+                </div>
+              </div>
+              {% if user.email and not profile.email_verified %}
+                <form method="post" action="{% url 'resend_verification_email' %}">
+                  {% csrf_token %}
+                  <button type="submit" class="btn btn-outline-primary btn-sm">Resend Email</button>
+                </form>
+              {% endif %}
+            </div>
+
+            <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+              <div>
+                <div class="fw-bold">Two-factor authentication</div>
+                <div class="text-muted small">Coming soon.</div>
+              </div>
+              <button class="btn btn-outline-secondary btn-sm" disabled>Enable</button>
+            </div>
+
+            <div class="py-2">
+              <div class="fw-bold">Username</div>
+              <div class="text-muted small"><code>{{ user.username }}</code></div>
+            </div>
+          </div>
+
+          <!-- Notifications -->
+          <div class="tab-pane fade" id="notifications">
+            <h5 class="card-title">Notification Settings</h5>
+            <form method="post">
+              {% csrf_token %}
+              <input type="hidden" name="form_name" value="notifications">
+              <div class="row g-3">
+                <div class="col-12">
+                  <h6 class="text-muted">Sales & Inventory</h6>
+                  <div class="form-check">
+                    {{ notification_form.daily_sales_summary }}
+                    <label class="form-check-label" for="{{ notification_form.daily_sales_summary.id_for_label }}">Daily sales summary</label>
+                  </div>
+                  <div class="form-check">
+                    {{ notification_form.low_stock_alert }}
+                    <label class="form-check-label" for="{{ notification_form.low_stock_alert.id_for_label }}">Low stock alerts</label>
+                  </div>
+                  <div class="form-check">
+                    {{ notification_form.out_of_stock_alert }}
+                    <label class="form-check-label" for="{{ notification_form.out_of_stock_alert.id_for_label }}">Out-of-stock alerts</label>
+                  </div>
+                </div>
+                <div class="col-12">
+                  <h6 class="text-muted mt-3">Customers</h6>
+                  <div class="form-check">
+                    {{ notification_form.payment_overdue }}
+                    <label class="form-check-label" for="{{ notification_form.payment_overdue.id_for_label }}">Payment overdue</label>
+                  </div>
+                  <div class="form-check">
+                    {{ notification_form.customer_payment_received }}
+                    <label class="form-check-label" for="{{ notification_form.customer_payment_received.id_for_label }}">Customer payment received</label>
+                  </div>
+                </div>
+                <div class="col-12">
+                  <h6 class="text-muted mt-3">Security</h6>
+                  <div class="form-check">
+                    {{ notification_form.new_login_alert }}
+                    <label class="form-check-label" for="{{ notification_form.new_login_alert.id_for_label }}">New login</label>
+                  </div>
+                  <div class="form-check">
+                    {{ notification_form.password_changed_alert }}
+                    <label class="form-check-label" for="{{ notification_form.password_changed_alert.id_for_label }}">Password changed</label>
+                  </div>
+                </div>
+                <div class="col-12">
+                  <h6 class="text-muted mt-3">Channels</h6>
+                  <div class="form-check">
+                    {{ notification_form.push_notifications }}
+                    <label class="form-check-label" for="{{ notification_form.push_notifications.id_for_label }}">Push notifications</label>
+                  </div>
+                  <div class="form-check">
+                    {{ notification_form.email_notifications }}
+                    <label class="form-check-label" for="{{ notification_form.email_notifications.id_for_label }}">Email</label>
+                  </div>
+                </div>
+                <div class="col-12">
+                  <button type="submit" class="btn btn-primary mt-3">Save Notification Settings</button>
+                </div>
+              </div>
+            </form>
+          </div>
+
+          <!-- Preferences -->
+          <div class="tab-pane fade" id="preferences">
+            <h5 class="card-title">Preferences</h5>
+            <form method="post">
+              {% csrf_token %}
+              <input type="hidden" name="form_name" value="preferences">
+
+              <div class="mb-3">
+                <label class="form-label d-block">Appearance</label>
+                {% for radio in preference_form.theme %}
+                  <div class="form-check form-check-inline">
+                    {{ radio.tag }}
+                    <label class="form-check-label" for="{{ radio.id_for_label }}">{{ radio.choice_label }}</label>
+                  </div>
+                {% endfor %}
+                <div class="form-text">Only affects you - not the rest of your team.</div>
+              </div>
+
+              <div class="row g-3">
+                <div class="col-md-6">
+                  <label for="{{ preference_form.language.id_for_label }}" class="form-label">Language</label>
+                  {{ preference_form.language }}
+                </div>
+                <div class="col-md-6">
+                  <label for="{{ preference_form.timezone.id_for_label }}" class="form-label">Timezone</label>
+                  {{ preference_form.timezone }}
+                </div>
+              </div>
+
+              <div class="form-check mt-3">
+                {{ preference_form.compact_mode }}
+                <label class="form-check-label" for="{{ preference_form.compact_mode.id_for_label }}">Compact density</label>
+              </div>
+
+              <button type="submit" class="btn btn-primary mt-3">Save Preferences</button>
+            </form>
+          </div>
+
+          <!-- Businesses -->
+          <div class="tab-pane fade" id="businesses">
+            <h5 class="card-title">Businesses you belong to</h5>
+            <table class="table table-borderless">
+              <thead>
+                <tr>
+                  <th>Business</th>
+                  <th>Role</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for membership in memberships %}
+                  <tr>
+                    <td>{{ membership.organization.name }}</td>
+                    <td>{{ membership.role.name }}</td>
+                    <td>
+                      {% if membership.is_active %}
+                        <span class="badge bg-success">Active</span>
+                      {% else %}
+                        <span class="badge bg-secondary">Inactive</span>
+                      {% endif %}
+                    </td>
+                  </tr>
+                {% empty %}
+                  <tr><td colspan="3" class="text-center text-muted">No memberships yet.</td></tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Restore the tab named in the URL hash (e.g. after a redirect back
+  // from a form save, or a link like {% url 'settings' %}#security).
+  // Without this, Bootstrap's list-group tabs always land back on
+  // Profile no matter which section you just saved.
+  document.addEventListener('DOMContentLoaded', function () {
+    if (window.location.hash) {
+      var target = document.querySelector('#settings-tab a[href="' + window.location.hash + '"]');
+      if (target) {
+        new bootstrap.Tab(target).show();
+      }
+    }
+  });
+</script>
+
+{% endblock %}

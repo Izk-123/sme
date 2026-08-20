@@ -1,0 +1,81 @@
+{% extends "base/base.html" %}
+{% block page_title %}Customers{% endblock %}
+{% block page_subtitle %}Manage your customer accounts and balances{% endblock %}
+{% block content %}
+
+<!-- Header & Actions -->
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h2 class="mb-0">Customers</h2>
+        <small class="text-muted">{{ customers|length }} customers</small>
+    </div>
+    <a href="{% url 'payment_add' %}" class="btn btn-primary btn-sm">
+        <i class="bi bi-plus-lg"></i> Record Payment
+    </a>
+</div>
+
+<!-- Mobile layout (cards) -->
+<div class="d-md-none">
+    {% if customers %}
+        <div class="list-group">
+            {% for customer in customers %}
+                <div class="list-group-item d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="fw-bold">{{ customer.name }}</div>
+                        <small class="text-muted">{{ customer.phone|default:"—" }}</small>
+                    </div>
+                    <div class="text-end">
+                        <div class="fw-bold {% if customer.outstanding_balance > 0 %}text-danger{% else %}text-success{% endif %}">
+                            MK{{ customer.outstanding_balance|floatformat:0 }}
+                        </div>
+                        <a href="{% url 'customer_detail' customer.pk %}" class="btn btn-outline-secondary btn-sm">View</a>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <p class="text-muted small">No customers yet.</p>
+    {% endif %}
+</div>
+
+<!-- Desktop layout (DataTable) -->
+<div class="d-none d-md-block">
+    {% if customers %}
+        <div class="card">
+            <div class="card-body">
+                <table class="table table-hover datatable">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Phone</th>
+                            <th>Location</th>
+                            <th>Outstanding Balance</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for customer in customers %}
+                            <tr>
+                                <td class="fw-bold">{{ customer.name }}</td>
+                                <td>{{ customer.phone|default:"—" }}</td>
+                                <td>{{ customer.location|default:"—" }}</td>
+                                <td class="fw-bold {% if customer.outstanding_balance > 0 %}text-danger{% else %}text-success{% endif %}">
+                                    MK{{ customer.outstanding_balance|floatformat:2 }}
+                                </td>
+                                <td>
+                                    <a href="{% url 'customer_detail' customer.pk %}" class="btn btn-outline-secondary btn-sm">View</a>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    {% else %}
+        <div class="card">
+            <div class="card-body text-muted small text-center">No customers yet.</div>
+        </div>
+    {% endif %}
+</div>
+
+{% endblock %}

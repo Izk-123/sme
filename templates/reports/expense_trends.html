@@ -1,0 +1,152 @@
+{% extends "base/base.html" %}
+{% block page_title %}Expense Trends{% endblock %}
+{% block page_subtitle %}Monthly expense breakdown with highest and lowest highlights{% endblock %}
+{% block content %}
+
+<!-- Filter Form -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-3 align-items-end">
+            <div class="col-md-3">
+                <label for="id_year" class="form-label">Year</label>
+                {{ form.year }}
+            </div>
+            <div class="col-md-auto">
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-search"></i> View
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% if yearly_total is not None %}
+    <!-- Summary Cards -->
+    <div class="row g-4 mb-4">
+        <div class="col-md-3">
+            <div class="card info-card">
+                <div class="card-body">
+                    <h5 class="card-title">Total Expenses</h5>
+                    <div class="d-flex align-items-center">
+                        <div class="card-icon rounded-circle d-flex align-items-center justify-content-center bg-danger-light text-danger me-3">
+                            <i class="bi bi-currency-dollar"></i>
+                        </div>
+                        <div>
+                            <h6 class="mb-0">MK{{ yearly_total|floatformat:2 }}</h6>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card info-card">
+                <div class="card-body">
+                    <h5 class="card-title">Monthly Average</h5>
+                    <div class="d-flex align-items-center">
+                        <div class="card-icon rounded-circle d-flex align-items-center justify-content-center bg-primary-light text-primary me-3">
+                            <i class="bi bi-bar-chart"></i>
+                        </div>
+                        <div>
+                            <h6 class="mb-0">MK{{ average|floatformat:2 }}</h6>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card info-card">
+                <div class="card-body">
+                    <h5 class="card-title">Highest Month</h5>
+                    <div class="d-flex align-items-center">
+                        <div class="card-icon rounded-circle d-flex align-items-center justify-content-center bg-warning-light text-warning me-3">
+                            <i class="bi bi-arrow-up-circle"></i>
+                        </div>
+                        <div>
+                            <h6 class="mb-0">
+                                {% if max_month %}
+                                    {% with month_names="JanFebMarAprMayJunJulAugSepOctNovDec" %}
+                                        {{ month_names|slice:max_month|add:"-3" }}
+                                    {% endwith %}
+                                {% else %}
+                                    —
+                                {% endif %}
+                            </h6>
+                            <small class="text-muted">MK{{ max_value|floatformat:2 }}</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card info-card">
+                <div class="card-body">
+                    <h5 class="card-title">Lowest Month</h5>
+                    <div class="d-flex align-items-center">
+                        <div class="card-icon rounded-circle d-flex align-items-center justify-content-center bg-success-light text-success me-3">
+                            <i class="bi bi-arrow-down-circle"></i>
+                        </div>
+                        <div>
+                            <h6 class="mb-0">
+                                {% if min_month %}
+                                    {% with month_names="JanFebMarAprMayJunJulAugSepOctNovDec" %}
+                                        {{ month_names|slice:min_month|add:"-3" }}
+                                    {% endwith %}
+                                {% else %}
+                                    —
+                                {% endif %}
+                            </h6>
+                            <small class="text-muted">MK{{ min_value|floatformat:2 }}</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Monthly Breakdown Table -->
+    <div class="card">
+        <div class="card-body">
+            <h5 class="card-title">{{ year }} Monthly Expense Breakdown</h5>
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Month</th>
+                            {% for month in months_data %}
+                                <th class="text-center">
+                                    {% with month_names="JanFebMarAprMayJunJulAugSepOctNovDec" %}
+                                        {{ month_names|slice:forloop.counter0|add:"3" }}
+                                    {% endwith %}
+                                </th>
+                            {% endfor %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <th>Amount (MK)</th>
+                            {% for amount in months_data %}
+                                <td class="text-end">
+                                    {% if amount == max_value and max_value > 0 %}
+                                        <span class="badge bg-warning text-dark">{{ amount|floatformat:2 }}</span>
+                                    {% elif amount == min_value and min_value > 0 %}
+                                        <span class="badge bg-success">{{ amount|floatformat:2 }}</span>
+                                    {% else %}
+                                        {{ amount|floatformat:2 }}
+                                    {% endif %}
+                                </td>
+                            {% endfor %}
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="mt-2 text-muted small">
+                <span class="badge bg-warning text-dark">⚠️ Highest</span>
+                <span class="badge bg-success">✅ Lowest</span>
+            </div>
+        </div>
+    </div>
+{% else %}
+    <div class="alert alert-info">Select a year and click "View" to see your expense trends.</div>
+{% endif %}
+
+{% endblock %}

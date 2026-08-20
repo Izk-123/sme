@@ -1,0 +1,128 @@
+{% extends "base/base.html" %}
+{% block page_title %}Inventory{% endblock %}
+{% block page_subtitle %}Manage your products and stock levels{% endblock %}
+{% block content %}
+
+<!-- ========================= HEADER & ACTIONS ========================= -->
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h2 class="mb-0">Inventory</h2>
+        <small class="text-muted">{{ products|length }} products</small>
+    </div>
+    <div class="d-flex gap-2">
+        <!-- Add Product button (green) -->
+        <a href="{% url 'product_add' %}" class="btn btn-success btn-sm">
+            <i class="bi bi-plus-lg"></i> Add Product
+        </a>
+        <!-- Receive Stock button (existing) -->
+        <a href="{% url 'receive_stock' %}" class="btn btn-primary btn-sm">
+            <i class="bi bi-box-seam"></i> Receive Stock
+        </a>
+    </div>
+</div>
+
+<!-- ========================= SEARCH BAR ========================= -->
+<div class="search-field mb-4">
+    <i class="bi bi-search"></i>
+    <input type="text" id="inventory-search" placeholder="Search products…" autocomplete="off">
+</div>
+
+<!-- ========================= MOBILE LAYOUT (CARDS) ========================= -->
+<div class="d-md-none">
+    {% if products %}
+        <div class="list-group">
+            {% for product in products %}
+                <div class="list-group-item d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="fw-bold">{{ product.name }}</div>
+                        <div class="small text-muted">
+                            {{ product.stock_quantity }} bottles
+                            {% if product.is_low_stock %}
+                                <span class="badge bg-warning">Low stock</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="text-end">
+                        <div class="money">MK{{ product.price|floatformat:0 }}</div>
+                        <div class="small text-muted">Stock value: MK{{ product.stock_value|floatformat:0 }}</div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <p class="text-muted small">No products found.</p>
+    {% endif %}
+</div>
+
+<!-- ========================= DESKTOP LAYOUT (DATATABLE) ========================= -->
+<div class="d-none d-md-block">
+    {% if products %}
+        <div class="card">
+            <div class="card-body">
+                <table class="table table-hover datatable">
+                    <thead>
+                        <tr>
+                            <th>SKU</th>
+                            <th>Product</th>
+                            <th>Category</th>
+                            <th>Quantity</th>
+                            <th>Cost</th>
+                            <th>Selling Price</th>
+                            <th>Stock Value</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for product in products %}
+                            <tr>
+                                <td class="mono">{{ product.sku|default:"—" }}</td>
+                                <td class="fw-bold">{{ product.name }}</td>
+                                <td>{{ product.category|default:"—" }}</td>
+                                <td>{{ product.stock_quantity }}</td>
+                                <td class="money">—</td>
+                                <td class="money">MK{{ product.price|floatformat:2 }}</td>
+                                <td class="money">MK{{ product.stock_value|floatformat:2 }}</td>
+                                <td>
+                                    {% if product.is_low_stock %}
+                                        <span class="badge bg-warning">Low Stock</span>
+                                    {% else %}
+                                        <span class="badge bg-success">OK</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="d-flex gap-1">
+                                        <!-- Edit product link (now functional) -->
+                                        <a href="{% url 'product_edit' product.pk %}" class="btn btn-outline-secondary btn-sm">Edit</a>
+                                        <!-- Receive stock shortcut -->
+                                        <a href="{% url 'receive_stock' %}" class="btn btn-outline-secondary btn-sm">Receive</a>
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    {% else %}
+        <div class="card">
+            <div class="card-body text-muted small text-center">No products found.</div>
+        </div>
+    {% endif %}
+</div>
+
+<!-- ========================= CLIENT‑SIDE SEARCH (Works on both layouts) ========================= -->
+<script>
+    document.addEventListener("input", function (e) {
+        if (e.target.id !== "inventory-search") return;
+        var q = e.target.value.trim().toLowerCase();
+        // Select both table rows and list-group items
+        var rows = document.querySelectorAll("tbody tr, .list-group-item");
+        rows.forEach(function (row) {
+            var text = row.textContent.toLowerCase();
+            row.style.display = text.indexOf(q) >= 0 ? "" : "none";
+        });
+    });
+</script>
+
+{% endblock %}

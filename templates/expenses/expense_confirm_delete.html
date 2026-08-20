@@ -1,0 +1,42 @@
+{% extends "base/base.html" %}
+{% block page_title %}Delete Expense{% endblock %}
+{% block page_subtitle %}Confirm deletion of this expense record{% endblock %}
+{% block content %}
+
+<div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+        <div class="card border-danger">
+            <div class="card-body">
+                <h5 class="card-title text-danger">
+                    <i class="bi bi-exclamation-triangle"></i> Are you sure?
+                </h5>
+                <p class="card-text">You are about to delete the following expense. This action cannot be undone.</p>
+                
+                <div class="bg-light p-3 rounded mb-3">
+                    <dl class="row mb-0">
+                        <dt class="col-sm-4">Date</dt>
+                        <dd class="col-sm-8">{{ expense.date|date:"Y-m-d" }}</dd>
+                        <dt class="col-sm-4">Category</dt>
+                        <dd class="col-sm-8">{{ expense.category.name|default:"—" }}</dd>
+                        <dt class="col-sm-4">Description</dt>
+                        <dd class="col-sm-8">{{ expense.description|default:"—" }}</dd>
+                        <dt class="col-sm-4">Amount</dt>
+                        <dd class="col-sm-8"><strong>MK{{ expense.amount|floatformat:2 }}</strong></dd>
+                    </dl>
+                </div>
+
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-danger">
+                            <i class="bi bi-trash"></i> Yes, delete
+                        </button>
+                        <a href="{% url 'expense_list' %}" class="btn btn-outline-secondary">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

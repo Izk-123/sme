@@ -1,0 +1,74 @@
+{% extends "base/base.html" %}
+{% block page_title %}Suppliers{% endblock %}
+{% block page_subtitle %}Manage your suppliers and balances{% endblock %}
+{% block content %}
+
+<!-- Header -->
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h2 class="mb-0">Suppliers</h2>
+        <small class="text-muted">{{ suppliers|length }} suppliers</small>
+    </div>
+</div>
+
+<!-- Mobile layout (cards) -->
+<div class="d-md-none">
+    {% if suppliers %}
+        <div class="list-group">
+            {% for supplier in suppliers %}
+                <div class="list-group-item d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="fw-bold">{{ supplier.name }}</div>
+                        <small class="text-muted">{{ supplier.phone|default:"—" }}</small>
+                    </div>
+                    <div class="text-end">
+                        <div class="fw-bold">MK{{ supplier.outstanding_balance|floatformat:0 }}</div>
+                        <a href="{% url 'supplier_detail' supplier.pk %}" class="btn btn-outline-secondary btn-sm">View</a>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <p class="text-muted small">No suppliers yet.</p>
+    {% endif %}
+</div>
+
+<!-- Desktop layout (DataTable) -->
+<div class="d-none d-md-block">
+    {% if suppliers %}
+        <div class="card">
+            <div class="card-body">
+                <table class="table table-hover datatable">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Phone</th>
+                            <th>Email</th>
+                            <th>Outstanding Balance</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for supplier in suppliers %}
+                            <tr>
+                                <td class="fw-bold">{{ supplier.name }}</td>
+                                <td>{{ supplier.phone|default:"—" }}</td>
+                                <td>{{ supplier.email|default:"—" }}</td>
+                                <td class="fw-bold">MK{{ supplier.outstanding_balance|floatformat:2 }}</td>
+                                <td>
+                                    <a href="{% url 'supplier_detail' supplier.pk %}" class="btn btn-outline-secondary btn-sm">View Purchases</a>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    {% else %}
+        <div class="card">
+            <div class="card-body text-muted small text-center">No suppliers yet.</div>
+        </div>
+    {% endif %}
+</div>
+
+{% endblock %}

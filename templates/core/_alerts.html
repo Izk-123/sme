@@ -1,0 +1,36 @@
+{% if low_stock_products or overdue_customers or sales_change or expense_change > 20 %}
+    <div class="card mt-3">
+        <div class="card-body">
+            <div class="card-title"><i class="bi bi-exclamation-triangle-fill text-warning"></i> Needs attention</div>
+            {% if low_stock_products %}
+                <div class="d-flex align-items-center py-1">
+                    <span class="text-danger me-2">🔴</span>
+                    <span>{{ low_stock_products|length }} products low in stock</span>
+                </div>
+            {% endif %}
+            {% if overdue_customers %}
+                <div class="d-flex align-items-center py-1">
+                    <span class="text-warning me-2">🟠</span>
+                    <span>Customer debt MK{{ overdue_customers|length|floatformat:0 }}k</span>
+                </div>
+            {% endif %}
+            {% if sales_change > 20 %}
+                <div class="d-flex align-items-center py-1">
+                    <span class="text-success me-2">🟢</span>
+                    <span>Sales ↑ {{ sales_change|floatformat:0 }}%</span>
+                </div>
+            {% elif sales_change < -20 %}
+                <div class="d-flex align-items-center py-1">
+                    <span class="text-danger me-2">🔴</span>
+                    <span>Sales ↓ {{ sales_change|floatformat:0 }}%</span>
+                </div>
+            {% endif %}
+            {% if expense_change > 20 %}
+                <div class="d-flex align-items-center py-1">
+                    <span class="me-2">🟡</span>
+                    <span>Expenses ↑ {{ expense_change|floatformat:0 }}%</span>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+{% endif %}

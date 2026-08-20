@@ -1,0 +1,8 @@
+<select name="product" id="id_product" class="form-select">
+    <option value="">Select product…</option>
+    {% for p in products %}
+        <option value="{{ p.id }}" {% if preselected == p.id %}selected{% endif %}>
+            {{ p.name }}
+        </option>
+    {% endfor %}
+</select>

@@ -1,0 +1,141 @@
+{% extends "base/base.html" %}
+{% block page_title %}Sales{% endblock %}
+{% block page_subtitle %}Manage and review all sales transactions{% endblock %}
+{% block content %}
+
+<!-- Today's total & Action Button (desktop) -->
+<div class="d-none d-md-flex justify-content-between align-items-center mb-3">
+    <div class="kpi-trend up">
+        <i class="bi bi-cash-coin"></i> Today: <strong class="money">MK{{ today_sales|floatformat:0 }}</strong>
+    </div>
+    <a href="{% url 'record_sale' %}" class="btn btn-primary btn-sm">
+        <i class="bi bi-plus-lg"></i> Record Sale
+    </a>
+</div>
+
+<!-- Today's total (mobile hero) -->
+<div class="d-md-none mb-3">
+    <div class="card bg-light">
+        <div class="card-body d-flex justify-content-between align-items-center">
+            <span class="text-muted">Today</span>
+            <span class="h4 mb-0 text-success money">MK{{ today_sales|floatformat:0 }}</span>
+        </div>
+    </div>
+    <div class="search-field mt-2">
+        <i class="bi bi-search"></i>
+        <input type="search" name="q" value="{{ request.GET.q }}" placeholder="Search sales…" form="sales-filter-form">
+    </div>
+</div>
+
+<!-- Filters Card -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" id="sales-filter-form" class="row g-2 align-items-end">
+            <div class="col-md-3 col-6">
+                <label for="filter-date" class="form-label small text-muted">Date</label>
+                <input type="date" name="date" id="filter-date" class="form-control form-control-sm" value="{{ selected_date }}">
+            </div>
+            <div class="col-md-3 col-6">
+                <label for="filter-customer" class="form-label small text-muted">Customer</label>
+                <select name="customer" id="filter-customer" class="form-select form-select-sm">
+                    <option value="">All</option>
+                    {% for c in customers %}
+                        <option value="{{ c.id }}" {% if selected_customer == c.id|stringformat:"s" %}selected{% endif %}>{{ c.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3 col-6">
+                <label for="filter-payment" class="form-label small text-muted">Payment</label>
+                <select name="payment" id="filter-payment" class="form-select form-select-sm">
+                    <option value="">All</option>
+                    <option value="cash" {% if selected_payment == 'cash' %}selected{% endif %}>Cash</option>
+                    <option value="airtel_money" {% if selected_payment == 'airtel_money' %}selected{% endif %}>Airtel Money</option>
+                    <option value="tnm_mpamba" {% if selected_payment == 'tnm_mpamba' %}selected{% endif %}>TNM Mpamba</option>
+                    <option value="bank" {% if selected_payment == 'bank' %}selected{% endif %}>Bank Transfer</option>
+                    <option value="credit" {% if selected_payment == 'credit' %}selected{% endif %}>Credit</option>
+                </select>
+            </div>
+            <div class="col-md-3 col-6">
+                <label for="filter-status" class="form-label small text-muted">Status</label>
+                <select name="status" id="filter-status" class="form-select form-select-sm">
+                    <option value="">All</option>
+                    <option value="paid" {% if selected_status == 'paid' %}selected{% endif %}>Paid</option>
+                    <option value="due" {% if selected_status == 'due' %}selected{% endif %}>Due (Credit)</option>
+                </select>
+            </div>
+            <div class="col-12 mt-2 d-flex gap-2">
+                <button type="submit" class="btn btn-primary btn-sm">Filter</button>
+                <a href="{% url 'sale_list' %}" class="btn btn-outline-secondary btn-sm">Clear</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Mobile layout (cards) -->
+<div class="d-md-none">
+    <h5 class="card-title mb-3">Recent Sales</h5>
+    {% if sales %}
+        <div class="list-group">
+            {% for sale in sales %}
+                <div class="list-group-item d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="fw-bold">#{{ sale.pk }}</div>
+                        <small class="text-muted">{{ sale.customer.name|default:"Walk-in" }}</small>
+                    </div>
+                    <div class="text-end">
+                        <div class="fw-bold money">MK{{ sale.total|floatformat:0 }}</div>
+                        <small class="text-muted">{{ sale.created_at|date:"H:i A" }}</small>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <p class="text-muted small">No sales found.</p>
+    {% endif %}
+</div>
+
+<!-- Desktop layout (DataTable) -->
+<div class="d-none d-md-block">
+    {% if sales %}
+        <div class="card">
+            <div class="card-body">
+                <table class="table table-hover datatable">
+                    <thead>
+                        <tr>
+                            <th>Sale</th>
+                            <th>Customer</th>
+                            <th>Amount</th>
+                            <th>Payment</th>
+                            <th>Status</th>
+                            <th>Date</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for sale in sales %}
+                            <tr>
+                                <td class="fw-bold">#{{ sale.pk }}</td>
+                                <td>{{ sale.customer.name|default:"Walk-in" }}</td>
+                                <td class="money">MK{{ sale.total|floatformat:2 }}</td>
+                                <td>{{ sale.get_payment_method_display }}</td>
+                                <td>
+                                    {% if sale.payment_method == 'credit' %}
+                                        <span class="badge bg-warning">Due</span>
+                                    {% else %}
+                                        <span class="badge bg-success">Paid</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-muted">{{ sale.created_at|date:"Y-m-d H:i" }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    {% else %}
+        <div class="card">
+            <div class="card-body text-muted small text-center">No sales found.</div>
+        </div>
+    {% endif %}
+</div>
+
+{% endblock %}

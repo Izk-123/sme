@@ -1,0 +1,32 @@
+<div id="step-4">
+    <h4 class="card-title mb-3">Add your team (optional)</h4>
+    <p class="text-muted mb-4">You can invite employees later from the Team page.</p>
+    <p class="text-muted small mb-3">This creates a shareable invite link, not an account directly - your employee picks their own username and password when they open it.</p>
+    <form hx-post="{% url 'onboarding_step' step=4 %}" hx-target="#wizard-container" hx-swap="innerHTML">
+        {% csrf_token %}
+        <div class="mb-3">
+            <label for="id_full_name" class="form-label">Employee name</label>
+            <input id="id_full_name" type="text" name="full_name" class="form-control" placeholder="e.g. John Banda">
+        </div>
+        <div class="mb-3">
+            <label for="id_phone_number" class="form-label">Phone number</label>
+            <input id="id_phone_number" type="text" name="phone_number" class="form-control" placeholder="e.g. 099 XXX XXXX">
+        </div>
+        <div class="mb-3">
+            <label for="id_email" class="form-label">Email (optional)</label>
+            <input id="id_email" type="email" name="email" class="form-control" placeholder="e.g. john@example.com">
+        </div>
+        <div class="mb-3">
+            <label for="id_role" class="form-label">Role</label>
+            <select id="id_role" name="role" class="form-select">
+                <option value="cashier">Cashier</option>
+                <option value="stock_clerk">Stock Clerk</option>
+                <option value="accountant">Accountant</option>
+            </select>
+        </div>
+        <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-primary">Create Invite & Continue</button>
+            <a href="{% url 'onboarding_step' step=5 %}" class="btn btn-outline-secondary">Skip</a>
+        </div>
+    </form>
+</div>

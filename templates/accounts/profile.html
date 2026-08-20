@@ -1,0 +1,156 @@
+{% extends "base/base.html" %}
+{% block page_title %}Profile{% endblock %}
+{% block breadcrumb %}<li class="breadcrumb-item active">Profile</li>{% endblock %}
+{% block content %}
+
+<section class="section profile">
+  <div class="row">
+    <div class="col-xl-4">
+
+      <div class="card">
+        <div class="card-body profile-card pt-4 d-flex flex-column align-items-center">
+          <img src="{% if profile.profile_photo %}{{ profile.profile_photo.url }}{% else %}https://ui-avatars.com/api/?background=4154f1&color=fff&size=120&name={{ profile.display_name|default:user.username|urlencode }}{% endif %}"
+               alt="Profile" class="rounded-circle" style="width: 120px; height: 120px; object-fit: cover;">
+          <h2>{{ profile.display_name|default:user.username }}</h2>
+          {% with primary_membership=memberships.first %}
+            {% if primary_membership %}
+              <h3>{{ primary_membership.role.name }} at {{ primary_membership.organization.name }}</h3>
+            {% endif %}
+          {% endwith %}
+        </div>
+      </div>
+
+    </div>
+
+    <div class="col-xl-8">
+
+      <div class="card">
+        <div class="card-body pt-3">
+          <ul class="nav nav-tabs nav-tabs-bordered">
+            <li class="nav-item">
+              <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#profile-overview">Overview</button>
+            </li>
+            <li class="nav-item">
+              <button class="nav-link" data-bs-toggle="tab" data-bs-target="#profile-edit">Edit Profile</button>
+            </li>
+            <li class="nav-item">
+              <button class="nav-link" data-bs-toggle="tab" data-bs-target="#profile-account">Account</button>
+            </li>
+          </ul>
+
+          <div class="tab-content pt-2">
+
+            <!-- Overview -->
+            <div class="tab-pane fade show active profile-overview" id="profile-overview">
+              <h5 class="card-title">Profile Details</h5>
+
+              <div class="row">
+                <div class="col-lg-3 col-md-4 label">Full name</div>
+                <div class="col-lg-9 col-md-8">{{ profile.full_name }}</div>
+              </div>
+              {% if profile.preferred_name %}
+                <div class="row">
+                  <div class="col-lg-3 col-md-4 label">Preferred name</div>
+                  <div class="col-lg-9 col-md-8">{{ profile.preferred_name }}</div>
+                </div>
+              {% endif %}
+              <div class="row">
+                <div class="col-lg-3 col-md-4 label">Email</div>
+                <div class="col-lg-9 col-md-8">{{ user.email|default:"—" }}</div>
+              </div>
+              <div class="row">
+                <div class="col-lg-3 col-md-4 label">Phone</div>
+                <div class="col-lg-9 col-md-8">{{ primary_phone.number|default:"—" }}</div>
+              </div>
+              {% if profile.date_of_birth %}
+                <div class="row">
+                  <div class="col-lg-3 col-md-4 label">Date of birth</div>
+                  <div class="col-lg-9 col-md-8">{{ profile.date_of_birth }}</div>
+                </div>
+              {% endif %}
+              {% if profile.address or profile.city or profile.country %}
+                <div class="row">
+                  <div class="col-lg-3 col-md-4 label">Address</div>
+                  <div class="col-lg-9 col-md-8">
+                    {{ profile.address }}{% if profile.address %}, {% endif %}{{ profile.city }}{% if profile.city %}, {% endif %}{{ profile.country }}
+                  </div>
+                </div>
+              {% endif %}
+            </div>
+
+            <!-- Edit Profile -->
+            <div class="tab-pane fade profile-edit pt-3" id="profile-edit">
+              <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+
+                {% if form.non_field_errors %}
+                  <div class="alert alert-danger">{{ form.non_field_errors|striptags }}</div>
+                {% endif %}
+
+                {% for field in form %}
+                  <div class="row mb-3">
+                    <label for="{{ field.id_for_label }}" class="col-md-4 col-lg-3 col-form-label">{{ field.label }}</label>
+                    <div class="col-md-8 col-lg-9">
+                      {{ field }}
+                      {% if field.errors %}
+                        <div class="invalid-feedback d-block">{{ field.errors|striptags }}</div>
+                      {% endif %}
+                      {% if field.help_text %}
+                        <div class="form-text">{{ field.help_text }}</div>
+                      {% endif %}
+                    </div>
+                  </div>
+                {% endfor %}
+
+                <div class="text-center">
+                  <button type="submit" class="btn btn-primary">Save Changes</button>
+                </div>
+              </form>
+            </div>
+
+            <!-- Account -->
+            <div class="tab-pane fade pt-3" id="profile-account">
+              <h5 class="card-title">Businesses you belong to</h5>
+              <table class="table table-borderless">
+                <thead>
+                  <tr>
+                    <th>Business</th>
+                    <th>Role</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for membership in memberships %}
+                    <tr>
+                      <td>{{ membership.organization.name }}</td>
+                      <td>{{ membership.role.name }}</td>
+                      <td>
+                        {% if membership.is_active %}
+                          <span class="badge bg-success">Active</span>
+                        {% else %}
+                          <span class="badge bg-secondary">Inactive</span>
+                        {% endif %}
+                      </td>
+                    </tr>
+                  {% empty %}
+                    <tr><td colspan="3" class="text-center text-muted">No memberships yet.</td></tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+
+              <h5 class="card-title mt-4">Security</h5>
+              <p class="small text-muted">Username: <code>{{ user.username }}</code></p>
+              <a href="{% url 'change_password' %}" class="btn btn-outline-primary btn-sm">
+                <i class="bi bi-key"></i> Change Password
+              </a>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+{% endblock %}

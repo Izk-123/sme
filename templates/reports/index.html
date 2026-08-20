@@ -1,0 +1,81 @@
+{% extends "base/base.html" %}
+{% block page_title %}Reports{% endblock %}
+{% block page_subtitle %}Turn your data into decisions.{% endblock %}
+
+{% block content %}
+<div class="row g-3">
+
+    <!-- Business Overview -->
+    <div class="col-12 col-md-6 col-lg-4">
+        <div class="card h-100 shadow-sm">
+            <div class="card-body text-center">
+                <div class="display-6 text-primary"><i class="bi bi-graph-up-arrow"></i></div>
+                <h5 class="card-title">Business Overview</h5>
+                <p class="card-text small text-muted">Sales, Profit, Cash Flow</p>
+                <a href="{% url 'report_business' %}" class="btn btn-outline-primary btn-sm stretched-link">View Report</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Profit & Loss -->
+    <div class="col-12 col-md-6 col-lg-4">
+        <div class="card h-100 shadow-sm">
+            <div class="card-body text-center">
+                <div class="display-6 text-success"><i class="bi bi-pie-chart"></i></div>
+                <h5 class="card-title">Profit & Loss</h5>
+                <p class="card-text small text-muted">Revenue vs Expenses</p>
+                <a href="{% url 'profit_loss' %}" class="btn btn-outline-success btn-sm stretched-link">View Report</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sales Report -->
+    <div class="col-12 col-md-6 col-lg-4">
+        <div class="card h-100 shadow-sm">
+            <div class="card-body text-center">
+                <div class="display-6 text-warning"><i class="bi bi-cash-coin"></i></div>
+                <h5 class="card-title">Sales Report</h5>
+                <p class="card-text small text-muted">Top Products & Customers</p>
+                <a href="{% url 'sales_report' %}" class="btn btn-outline-warning btn-sm stretched-link">View Report</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Inventory Stock -->
+    <div class="col-12 col-md-6 col-lg-4">
+        <div class="card h-100 shadow-sm">
+            <div class="card-body text-center">
+                <div class="display-6 text-info"><i class="bi bi-box-seam"></i></div>
+                <h5 class="card-title">Inventory Stock</h5>
+                <p class="card-text small text-muted">Current Stock & Low Stock</p>
+                <a href="{% url 'report_inventory_stock' %}" class="btn btn-outline-info btn-sm stretched-link">View Report</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Customer Debt -->
+    <div class="col-12 col-md-6 col-lg-4">
+        <div class="card h-100 shadow-sm">
+            <div class="card-body text-center">
+                <div class="display-6 text-danger"><i class="bi bi-people"></i></div>
+                <h5 class="card-title">Customer Debt</h5>
+                <p class="card-text small text-muted">Outstanding Balances</p>
+                <a href="{% url 'report_customer_debt' %}" class="btn btn-outline-danger btn-sm stretched-link">View Report</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Expense Trends -->
+    <div class="col-12 col-md-6 col-lg-4">
+        <div class="card h-100 shadow-sm">
+            <div class="card-body text-center">
+                <div class="display-6 text-secondary"><i class="bi bi-receipt"></i></div>
+                <h5 class="card-title">Expense Trends</h5>
+                <p class="card-text small text-muted">Monthly Spending</p>
+                <a href="{% url 'expense_trends' %}" class="btn btn-outline-secondary btn-sm stretched-link">View Report</a>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

@@ -1,0 +1,37 @@
+<div class="card {% if error %}border-danger{% else %}border-success{% endif %} shadow-sm">
+    <div class="card-body">
+        {% if error %}
+            <div class="alert alert-danger mb-0">
+                <i class="bi bi-exclamation-triangle-fill"></i> 
+                <strong>Sale failed!</strong><br>
+                {{ error }}
+            </div>
+        {% elif sale %}
+            <div class="d-flex justify-content-between align-items-start">
+                <h5 class="card-title text-success"><i class="bi bi-receipt"></i> Sale #{{ sale.id }} recorded</h5>
+                <span class="badge bg-success"><i class="bi bi-check-lg"></i> Done</span>
+            </div>
+            <div class="list-group list-group-flush mt-2">
+                {% for item in sale.items.all %}
+                    <div class="list-group-item d-flex justify-content-between px-0 border-0">
+                        <span>{{ item.quantity }} × {{ item.product.name }}</span>
+                        <span class="mono fw-bold">MK{{ item.subtotal }}</span>
+                    </div>
+                {% endfor %}
+            </div>
+            <div class="d-flex justify-content-between mt-3 pt-3 border-top">
+                <strong class="text-uppercase">Total</strong>
+                <strong class="money text-primary" style="font-size: 1.4rem;">MK{{ sale.total }}</strong>
+            </div>
+            <small class="text-muted mt-2 d-block">
+                Payment: <span class="badge bg-light text-dark">{{ sale.get_payment_method_display }}</span>
+            </small>
+            <div class="mt-3 d-flex gap-2">
+                <a href="{% url 'record_sale' %}" class="btn btn-outline-primary btn-sm">New Sale</a>
+                <button onclick="window.print()" class="btn btn-outline-secondary btn-sm">Print Receipt</button>
+            </div>
+        {% else %}
+            <div class="text-muted">Unknown error occurred. Please try again.</div>
+        {% endif %}
+    </div>
+</div>

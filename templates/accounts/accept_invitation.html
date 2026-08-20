@@ -1,0 +1,43 @@
+{% extends "base/base_auth.html" %}
+{% block title %}Join {{ invitation.organization.name }} - SME Business OS{% endblock %}
+
+{% block auth_content %}
+<div class="pt-4 pb-2">
+    <h5 class="card-title text-center pb-0 fs-4">
+        {% if expired %}Invite expired{% else %}Join {{ invitation.organization.name }}{% endif %}
+    </h5>
+    {% if not expired %}
+        <p class="text-center small">Hi {{ invitation.full_name }} - set a username and password to get started as {{ invitation.role.name }}.</p>
+    {% endif %}
+</div>
+
+{% if expired %}
+    <div class="alert alert-danger">
+        <i class="bi bi-exclamation-triangle"></i> This invite link has already been used, revoked, or expired. Ask the business owner to send you a new one.
+    </div>
+{% else %}
+    <form method="post" class="row g-3">
+        {% csrf_token %}
+
+        {% if form.non_field_errors %}
+            <div class="col-12">
+                <div class="alert alert-danger">{{ form.non_field_errors|striptags }}</div>
+            </div>
+        {% endif %}
+
+        {% for field in form %}
+            <div class="col-12">
+                <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
+                {{ field }}
+                {% if field.errors %}
+                    <div class="invalid-feedback d-block">{{ field.errors|striptags }}</div>
+                {% endif %}
+            </div>
+        {% endfor %}
+
+        <div class="col-12 mt-3">
+            <button type="submit" class="btn btn-primary w-100">Create My Account</button>
+        </div>
+    </form>
+{% endif %}
+{% endblock %}

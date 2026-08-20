@@ -1,0 +1,13 @@
+{
+  "name": "SME Business OS",
+  "short_name": "Business OS",
+  "description": "Sales, stock, customers, and expenses for Malawian SMEs.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#10152B",
+  "theme_color": "#12182B",
+  "icons": [
+    { "src": "/static/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/static/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

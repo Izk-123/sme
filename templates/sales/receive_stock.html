@@ -1,0 +1,154 @@
+{% extends "base/base.html" %}
+{% block page_title %}Receive Stock{% endblock %}
+{% block page_subtitle %}Add new stock in 5 seconds – scan, enter quantity, confirm.{% endblock %}
+{% block content %}
+
+<div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+        <div class="card shadow-sm border-0">
+            <div class="card-body">
+                <form method="post" id="receive-form">
+                    {% csrf_token %}
+
+                    <!-- Barcode scanner (optional) -->
+                    <div class="mb-3">
+                        <label for="barcode-input" class="form-label">
+                            <i class="bi bi-upc-scan"></i> Scan barcode (optional)
+                        </label>
+                        <div class="input-group">
+                            <input type="text" id="barcode-input" class="form-control"
+                                   placeholder="Scan or type barcode…"
+                                   hx-get="{% url 'barcode_scan_product' %}"
+                                   hx-trigger="change"
+                                   hx-target="#product-select-wrapper"
+                                   hx-swap="outerHTML">
+                            <button type="button" class="btn btn-outline-primary" id="scan-barcode-btn" aria-label="Scan barcode" title="Scan barcode">
+                                <i class="bi bi-camera"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Product selection (replaced by HTMX on scan) -->
+                    <div id="product-select-wrapper" class="mb-3">
+                        <label for="id_product" class="form-label">Product *</label>
+                        {% include "sales/_product_select.html" with products=form.fields.product.queryset preselected=form.instance.product_id %}
+                    </div>
+
+                    <!-- Current & new stock preview (dynamic) -->
+                    <div id="stock-preview" class="alert alert-info d-none">
+                        <strong>Current stock:</strong> <span id="current-stock">0</span> &nbsp;|&nbsp;
+                        <strong>After receiving:</strong> <span id="new-stock">0</span>
+                    </div>
+
+                    <!-- Quantity -->
+                    <div class="mb-3">
+                        <label for="id_quantity" class="form-label">Quantity to receive *</label>
+                        {{ form.quantity }}
+                        <div class="form-text">Enter the number of units you are adding.</div>
+                        {% if form.quantity.errors %}
+                            <div class="text-danger small">{{ form.quantity.errors|striptags }}</div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Supplier (optional) -->
+                    <div class="mb-3">
+                        <label for="id_supplier" class="form-label">Supplier (optional)</label>
+                        {{ form.supplier }}
+                        {% if form.supplier.errors %}
+                            <div class="text-danger small">{{ form.supplier.errors|striptags }}</div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Submit -->
+                    <div class="d-flex gap-2 mt-3">
+                        <button type="submit" class="btn btn-primary flex-grow-1" id="submit-btn">
+                            <i class="bi bi-box-seam"></i> Receive Stock
+                        </button>
+                        <a href="{% url 'inventory_list' %}" class="btn btn-outline-secondary">Cancel</a>
+                    </div>
+                </form>
+
+                <!-- Camera scanner container (hidden) -->
+                <div id="camera-container" style="display:none; max-width: 400px; margin: 15px auto;"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- JavaScript for live stock preview & camera scanning -->
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const productSelect = document.getElementById('id_product');
+        const quantityInput = document.getElementById('id_quantity');
+        const stockPreview = document.getElementById('stock-preview');
+        const currentStockSpan = document.getElementById('current-stock');
+        const newStockSpan = document.getElementById('new-stock');
+
+        // Function to update stock preview
+        function updateStockPreview() {
+            const selected = productSelect.options[productSelect.selectedIndex];
+            if (!selected || !selected.value) {
+                stockPreview.classList.add('d-none');
+                return;
+            }
+            // Read current stock from data attribute
+            const currentStock = parseInt(selected.dataset.stock) || 0;
+            const qty = parseInt(quantityInput.value) || 0;
+            currentStockSpan.textContent = currentStock;
+            newStockSpan.textContent = currentStock + qty;
+            stockPreview.classList.remove('d-none');
+        }
+
+        // Listen to changes
+        productSelect.addEventListener('change', updateStockPreview);
+        quantityInput.addEventListener('input', updateStockPreview);
+
+        // Initial update
+        updateStockPreview();
+
+        // Camera scanning (uses html5-qrcode from base.html)
+        const scanBtn = document.getElementById('scan-barcode-btn');
+        const cameraContainer = document.getElementById('camera-container');
+        let html5QrCode = null;
+
+        scanBtn.addEventListener('click', function() {
+            if (cameraContainer.style.display === 'none') {
+                cameraContainer.style.display = 'block';
+                html5QrCode = new Html5Qrcode("camera-container");
+                html5QrCode.start(
+                    { facingMode: "environment" },
+                    { fps: 10, qrbox: { width: 250, height: 150 } },
+                    function(decodedText) {
+                        // Trigger HTMX to select product
+                        document.getElementById('barcode-input').value = decodedText;
+                        document.getElementById('barcode-input').dispatchEvent(new Event('change'));
+                        // Stop camera
+                        html5QrCode.stop().then(() => {
+                            cameraContainer.style.display = 'none';
+                            html5QrCode.clear();
+                        });
+                    }
+                ).catch(err => alert('Camera not available: ' + err));
+            } else {
+                html5QrCode.stop().then(() => {
+                    cameraContainer.style.display = 'none';
+                    html5QrCode.clear();
+                });
+            }
+        });
+
+        // When HTMX updates the product select (after barcode scan), re-bind the change event
+        document.body.addEventListener('htmx:afterSwap', function(evt) {
+            if (evt.detail.target.id === 'product-select-wrapper') {
+                // Re-run initial setup for the new select
+                const newSelect = document.getElementById('id_product');
+                if (newSelect) {
+                    newSelect.addEventListener('change', updateStockPreview);
+                    updateStockPreview();
+                }
+            }
+        });
+    });
+</script>
+
+{% endblock %}

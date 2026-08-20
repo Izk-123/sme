@@ -1,0 +1,27 @@
+<div id="step-4">
+    <h4 class="card-title mb-3">Add your team (optional)</h4>
+    <p class="text-muted mb-4">You can invite employees later from the Team page.</p>
+    <form hx-post="{% url 'onboarding_step' step=4 %}" hx-target="#wizard-container" hx-swap="innerHTML">
+        {% csrf_token %}
+        <div class="mb-3">
+            <label for="id_username" class="form-label">Employee username</label>
+            <input id="id_username" type="text" name="username" class="form-control" placeholder="e.g. jdoe">
+        </div>
+        <div class="mb-3">
+            <label for="id_email" class="form-label">Email</label>
+            <input id="id_email" type="email" name="email" class="form-control" placeholder="e.g. john@example.com">
+        </div>
+        <div class="mb-3">
+            <label for="id_role" class="form-label">Role</label>
+            <select id="id_role" name="role" class="form-select">
+                <option value="cashier">Cashier</option>
+                <option value="stock_clerk">Stock Clerk</option>
+                <option value="accountant">Accountant</option>
+            </select>
+        </div>
+        <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-primary">Add & Continue</button>
+            <a href="{% url 'onboarding_step' step=5 %}" class="btn btn-outline-secondary">Skip</a>
+        </div>
+    </form>
+</div>
