@@ -5,6 +5,14 @@ Multi-tenant Django platform for Malawian SMEs: sales, inventory, expenses, cust
 
 ---
 
+## 📌 Repository
+
+```bash
+git clone https://github.com/Izk-123/sme.git
+```
+
+---
+
 ## ✨ Key Features
 
 - **Multi-Tenant Architecture**: Single user can manage multiple businesses (Organizations) with distinct Roles and Memberships.
@@ -38,8 +46,8 @@ Multi-tenant Django platform for Malawian SMEs: sales, inventory, expenses, cust
 
 ### 1. Clone the repository
 ```bash
-git clone https://github.com/yourusername/sme-business-os.git
-cd sme-business-os
+git clone https://github.com/Izk-123/sme.git
+cd sme
 ```
 
 ### 2. Create and activate a virtual environment
@@ -104,7 +112,7 @@ After seeding the database (`python manage.py seed --flush`), you can log in wit
 ## 📁 Project Structure
 
 ```text
-sme-os/
+sme/
 ├── config/                 # Project settings, URLs, ASGI/WSGI
 ├── accounts/               # User Auth, Profiles, Memberships, Roles
 ├── core/                   # Dashboard, Middleware, Permissions, Context Processors
