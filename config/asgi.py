@@ -1,3 +1,9 @@
+"""
+ASGI configuration for the SME Business OS project.
+
+Supports both HTTP and WebSocket traffic.
+"""
+
 import os
 from django.core.asgi import get_asgi_application
 from channels.routing import ProtocolTypeRouter, URLRouter
