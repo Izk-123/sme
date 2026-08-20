@@ -1,5 +1,5 @@
 """
-Django settings for SME Business OS project.
+Django settings for SME Business OS project (Production).
 
 This file is organized into clear sections for maintainability.
 Environment variables are loaded from a .env file for security.
@@ -13,10 +13,9 @@ from dotenv import load_dotenv
 # 1. PATH SETUP & ENVIRONMENT VARIABLES
 # =============================================================================
 
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# Load environment variables from .env file (keeps secrets out of code)
+# Load environment variables
 load_dotenv(BASE_DIR / '.env')
 
 
@@ -24,14 +23,15 @@ load_dotenv(BASE_DIR / '.env')
 # 2. SECURITY & DEBUG SETTINGS
 # =============================================================================
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-your-fallback-key-here')
+SECRET_KEY = os.getenv('SECRET_KEY')
+if not SECRET_KEY:
+    raise ValueError("SECRET_KEY must be set in .env for production")
 
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.getenv('DEBUG', 'True') == 'True'
+DEBUG = os.getenv('DEBUG', 'False') == 'True'
 
-# Comma-separated list of allowed hosts (e.g., localhost, yourdomain.com)
-ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
+ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '').split(',')
+if not ALLOWED_HOSTS and not DEBUG:
+    raise ValueError("ALLOWED_HOSTS must be set in .env for production")
 
 
 # =============================================================================
@@ -39,12 +39,12 @@ ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
 # =============================================================================
 
 INSTALLED_APPS = [
-    # Django Admin / Unfold (must come first)
+    # Unfold (must come first)
     'unfold',
     'unfold.contrib.filters',
     'unfold.contrib.forms',
 
-    # Django Core Apps
+    # Django core
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -52,10 +52,10 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
 
-    # Third-party & Async
+    # Third‑party
     'channels',
 
-    # Custom Apps
+    # Custom apps
     'accounts',
     'organizations',
     'customers',
@@ -66,7 +66,6 @@ INSTALLED_APPS = [
     'core',
 ]
 
-# Custom admin theme configuration (Unfold)
 UNFOLD = {
     "SITE_TITLE": "SME Business OS",
     "SITE_HEADER": "SME Business OS",
@@ -80,56 +79,47 @@ UNFOLD = {
 # 4. AUTHENTICATION & USER MODEL
 # =============================================================================
 
-# Custom User model (accounts.User) instead of Django's default
 AUTH_USER_MODEL = "accounts.User"
-
-# Login / Logout URLs
 LOGIN_URL = "login"
 LOGIN_REDIRECT_URL = "home"
 LOGOUT_REDIRECT_URL = "login"
 
 
 # =============================================================================
-# 5. MIDDLEWARE LAYER
+# 5. MIDDLEWARE
 # =============================================================================
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',  # Added for static files
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
-
-    # Custom Middleware (Order is important)
-    # Must run after AuthenticationMiddleware, before anything reading request.org
     'core.middleware.CurrentMembershipMiddleware',
     'core.middleware.ForcePasswordChangeMiddleware',
-
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
 
 # =============================================================================
-# 6. ASGI / CHANNELS (Real-time / Notifications)
+# 6. ASGI / CHANNELS
 # =============================================================================
 
-# Points to config/asgi.py for ASGI server (Daphne / Uvicorn)
 ASGI_APPLICATION = 'config.asgi.application'
 
-# Channel Layers for WebSocket communication
-# For production, use Redis. For local dev without Redis, use InMemory.
+# Use Redis in production; fallback to in‑memory for development.
 if os.getenv('USE_REDIS', 'True') == 'True':
     CHANNEL_LAYERS = {
         "default": {
             "BACKEND": "channels_redis.core.RedisChannelLayer",
             "CONFIG": {
-                "hosts": [("127.0.0.1", 6379)],
+                "hosts": [(os.getenv('REDIS_HOST', '127.0.0.1'), int(os.getenv('REDIS_PORT', 6379)))],
             },
         },
     }
 else:
-    # Fallback for development when Redis is not installed
     CHANNEL_LAYERS = {
         "default": {
             "BACKEND": "channels.layers.InMemoryChannelLayer"
@@ -146,14 +136,13 @@ ROOT_URLCONF = 'config.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [BASE_DIR / 'templates'],   # Global template folder
-        'APP_DIRS': True,                   # Look inside each app's templates/
+        'DIRS': [BASE_DIR / 'templates'],
+        'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
-                # Custom context processor for low-stock alerts
                 'core.context_processors.low_stock_processor',
             ],
         },
@@ -167,26 +156,18 @@ WSGI_APPLICATION = 'config.wsgi.application'
 # 8. DATABASE
 # =============================================================================
 
-# Currently using SQLite for development.
-# For production (cPanel), uncomment the PostgreSQL settings and install psycopg2.
+# Use PostgreSQL in production (recommended). SQLite is not suitable for
+# concurrent production traffic.
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': os.getenv('DB_NAME'),
+        'USER': os.getenv('DB_USER'),
+        'PASSWORD': os.getenv('DB_PASSWORD'),
+        'HOST': os.getenv('DB_HOST', 'localhost'),
+        'PORT': os.getenv('DB_PORT', '5432'),
     }
 }
-
-# Example PostgreSQL configuration for production (uncomment when ready):
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.postgresql',
-#         'NAME': os.getenv('DB_NAME'),
-#         'USER': os.getenv('DB_USER'),
-#         'PASSWORD': os.getenv('DB_PASSWORD'),
-#         'HOST': os.getenv('DB_HOST'),
-#         'PORT': os.getenv('DB_PORT', '5432'),
-#     }
-# }
 
 
 # =============================================================================
@@ -206,7 +187,7 @@ AUTH_PASSWORD_VALIDATORS = [
 # =============================================================================
 
 LANGUAGE_CODE = 'en-us'
-TIME_ZONE = 'Africa/Blantyre'           # Change to 'Africa/Blantyre' if you prefer local time
+TIME_ZONE = 'Africa/Blantyre'
 USE_I18N = True
 USE_TZ = True
 
@@ -215,21 +196,19 @@ USE_TZ = True
 # 11. STATIC & MEDIA FILES
 # =============================================================================
 
-# --- Static Files (CSS, JS, Images) ---
-STATIC_URL = 'static/'
+STATIC_URL = '/static/'
 STATICFILES_DIRS = [BASE_DIR / 'static']
-# STATIC_ROOT = BASE_DIR / 'staticfiles'   # Uncomment for production (collectstatic)
+STATIC_ROOT = BASE_DIR / 'staticfiles'  # ← must be set for collectstatic
 
-# --- Media Files (User Uploads: Profile Photos, Product Images, Receipts) ---
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
-# Note: In production (cPanel/Nginx/Apache), you must configure your web server
-# to serve files from MEDIA_ROOT at the MEDIA_URL path.
+# Whitenoise compression and caching (optional)
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 
 # =============================================================================
-# 12. EMAIL CONFIGURATION (cPanel SMTP)
+# 12. EMAIL CONFIGURATION
 # =============================================================================
 
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
@@ -241,12 +220,26 @@ EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER')
 EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
 DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', EMAIL_HOST_USER)
 
-# Base URL for generating absolute links in emails (e.g., password resets, invites)
-BASE_URL = os.getenv('BASE_URL', 'http://localhost:8000')
+BASE_URL = os.getenv('BASE_URL', 'https://yourdomain.com')
 
 
 # =============================================================================
-# 13. DEFAULT PRIMARY KEY FIELD
+# 13. DEFAULT PRIMARY KEY
 # =============================================================================
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+
+# =============================================================================
+# 14. SECURITY HEADERS (Production only)
+# =============================================================================
+
+if not DEBUG:
+    CSRF_COOKIE_SECURE = True
+    SESSION_COOKIE_SECURE = True
+    SECURE_BROWSER_XSS_FILTER = True
+    SECURE_CONTENT_TYPE_NOSNIFF = True
+    SECURE_HSTS_SECONDS = 31536000  # 1 year
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+    SECURE_SSL_REDIRECT = True  # if you have HTTPS
