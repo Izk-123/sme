@@ -222,6 +222,9 @@ DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', EMAIL_HOST_USER)
 
 BASE_URL = os.getenv('BASE_URL', 'https://yourdomain.com')
 
+# Email timeout in seconds – prevents Gunicorn worker from hanging
+# if SMTP is unreachable (default is 5 seconds)
+EMAIL_TIMEOUT = 5
 
 # =============================================================================
 # 13. DEFAULT PRIMARY KEY
