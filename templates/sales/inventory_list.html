@@ -3,7 +3,6 @@
 {% block page_title %}Inventory{% endblock %}
 {% block content %}
 
-<!-- ========================= HEADER & ACTIONS ========================= -->
 <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
   <div>
     <h2 class="mb-0 fw-bold">Inventory</h2>
@@ -19,7 +18,6 @@
   </div>
 </div>
 
-<!-- ========================= SEARCH ========================= -->
 <div class="cf-search mb-3">
   <i class="bi bi-search"></i>
   <input type="search" id="inventory-search"
@@ -27,7 +25,6 @@
          autocomplete="off">
 </div>
 
-<!-- ========================= PRODUCTS TABLE ========================= -->
 {% if products %}
   <div class="card">
     <div class="card-body">
@@ -52,7 +49,9 @@
               <td class="fw-bold">{{ product.name }}</td>
               <td>{{ product.category|default:"—" }}</td>
               <td>{{ product.stock_quantity }}</td>
-              <td class="money">—</td>
+              <td class="money">
+                {% if product.cost_price %}{% money product.cost_price %}{% else %}<span class="text-muted">—</span>{% endif %}
+              </td>
               <td class="money">{% money product.price %}</td>
               <td class="money">{% money product.stock_value %}</td>
               <td>
@@ -81,13 +80,15 @@
     </div>
   </div>
 {% else %}
+  {% url 'product_add' as add_url %}
   <div class="card">
-    <div class="card-body text-center py-5">
-      <i class="bi bi-box" style="font-size: 2.5rem; color: var(--text-muted);"></i>
-      <p class="text-muted mt-2 mb-3">No products have been added yet.</p>
-      <a href="{% url 'product_add' %}" class="btn btn-primary btn-sm">
-        <i class="bi bi-plus-lg me-1"></i> Add your first product
-      </a>
+    <div class="card-body">
+      {% include "components/_empty_state.html" with
+         icon="bi-box-seam"
+         title="No products yet"
+         message="Add your first product so you can start selling. It takes about 30 seconds."
+         action_url=add_url
+         action_label="Add your first product" %}
     </div>
   </div>
 {% endif %}

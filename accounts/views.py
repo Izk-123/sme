@@ -369,7 +369,6 @@ class ToggleEmployeeActiveView(TeamMixin, View):
     """Deactivates/reactivates a membership. Scoped to request.organization
     so an owner can never touch another business's members, and excludes
     the owner themselves so they can't lock themselves out."""
-
     def post(self, request, *args, **kwargs):
         membership = get_object_or_404(
             Membership,
@@ -380,10 +379,23 @@ class ToggleEmployeeActiveView(TeamMixin, View):
             messages.error(request, "You can't deactivate your own account.")
             return redirect("team_list")
 
+        will_reactivate = not membership.is_active
+        if will_reactivate:
+            subscription = getattr(request, "subscription", None)
+            if subscription is not None and not subscription.can_write:
+                messages.error(
+                    request,
+                    "Your subscription needs renewing before you can add team "
+                    "members back. You can still deactivate existing members.",
+                )
+                return redirect("subscription_detail")
+
         membership.is_active = not membership.is_active
         membership.save(update_fields=["is_active"])
         messages.success(
             request,
-            f"{membership.user.username} is now {'active' if membership.is_active else 'inactive'}.",
+            f"{membership.user.username} is now "
+            f"{'active' if membership.is_active else 'inactive'}.",
         )
         return redirect("team_list")
+

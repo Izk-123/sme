@@ -1,117 +1,123 @@
-{% extends "base/base.html" %}
-{% load money %}
-{% block page_title %}Sales{% endblock %}
-{% block content %}
-
-<!-- ========================= HERO: Today + Action ========================= -->
-<div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-3">
-  <div class="d-flex align-items-center gap-3">
-    <div class="rounded-circle d-flex align-items-center justify-content-center"
-         style="width: 48px; height: 48px; background: var(--cf-flow-teal-soft); color: var(--cf-flow-teal); font-size: 1.3rem;">
-      <i class="bi bi-cash-coin"></i>
-    </div>
-    <div>
-      <div class="text-muted small text-uppercase fw-semibold" style="letter-spacing: 0.6px;">Today</div>
-      <div class="h4 mb-0 fw-bold" style="color: var(--cf-flow-teal);">{% money today_sales %}</div>
-    </div>
-  </div>
-  <a href="{% url 'record_sale' %}" class="btn btn-primary">
-    <i class="bi bi-plus-lg me-1"></i> Record Sale
-  </a>
-</div>
-
-<!-- ========================= FILTERS ========================= -->
-<div class="cf-filter-card">
-  <form method="get" id="sales-filter-form" class="row g-3 align-items-end">
-    <div class="col-md-3 col-6">
-      <label for="filter-date" class="form-label">Date</label>
-      <input type="date" name="date" id="filter-date" class="form-control" value="{{ selected_date }}">
-    </div>
-    <div class="col-md-3 col-6">
-      <label for="filter-customer" class="form-label">Customer</label>
-      <select name="customer" id="filter-customer" class="form-select">
-        <option value="">All</option>
-        {% for c in customers %}
-          <option value="{{ c.id }}" {% if selected_customer == c.id|stringformat:"s" %}selected{% endif %}>{{ c.name }}</option>
-        {% endfor %}
-      </select>
-    </div>
-    <div class="col-md-3 col-6">
-      <label for="filter-payment" class="form-label">Payment</label>
-      <select name="payment" id="filter-payment" class="form-select">
-        <option value="">All</option>
-        <option value="cash" {% if selected_payment == 'cash' %}selected{% endif %}>Cash</option>
-        <option value="airtel_money" {% if selected_payment == 'airtel_money' %}selected{% endif %}>Airtel Money</option>
-        <option value="tnm_mpamba" {% if selected_payment == 'tnm_mpamba' %}selected{% endif %}>TNM Mpamba</option>
-        <option value="bank" {% if selected_payment == 'bank' %}selected{% endif %}>Bank Transfer</option>
-        <option value="credit" {% if selected_payment == 'credit' %}selected{% endif %}>Credit</option>
-      </select>
-    </div>
-    <div class="col-md-3 col-6">
-      <label for="filter-status" class="form-label">Status</label>
-      <select name="status" id="filter-status" class="form-select">
-        <option value="">All</option>
-        <option value="paid" {% if selected_status == 'paid' %}selected{% endif %}>Paid</option>
-        <option value="due" {% if selected_status == 'due' %}selected{% endif %}>Due (Credit)</option>
-      </select>
-    </div>
-    <div class="col-12 cf-filter-actions">
-      <button type="submit" class="btn btn-primary btn-sm">
-        <i class="bi bi-funnel me-1"></i> Apply filters
-      </button>
-      <a href="{% url 'sale_list' %}" class="btn btn-outline-secondary btn-sm">
-        <i class="bi bi-x-lg me-1"></i> Clear
-      </a>
-    </div>
-  </form>
-</div>
-
-<!-- ========================= SALES TABLE ========================= -->
-{% if sales %}
+{% extends "base/base.html" %}
+{% load money %}
+{% block page_title %}Sales{% endblock %}
+{% block content %}
+
+<!-- ========================= HERO: Today + Action ========================= -->
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-3">
+  <div class="d-flex align-items-center gap-3">
+    <div class="rounded-circle d-flex align-items-center justify-content-center"
+         style="width: 48px; height: 48px; background: var(--cf-flow-teal-soft); color: var(--cf-flow-teal); font-size: 1.3rem;">
+      <i class="bi bi-cash-coin"></i>
+    </div>
+    <div>
+      <div class="text-muted small text-uppercase fw-semibold" style="letter-spacing: 0.6px;">
+        {% if selected_date %}Showing {{ selected_date }}{% else %}Showing all sales{% endif %}
+      </div>
+      <div class="h4 mb-0 fw-bold" style="color: var(--cf-flow-teal);">
+        {% money today_sales %} <span class="text-muted small fw-normal">today</span>
+      </div>
+    </div>
+  </div>
+  <a href="{% url 'record_sale' %}" class="btn btn-primary">
+    <i class="bi bi-plus-lg me-1"></i> Record Sale
+  </a>
+</div>
+
+<!-- ========================= FILTERS ========================= -->
+<div class="cf-filter-card">
+  <form method="get" id="sales-filter-form" class="row g-3 align-items-end">
+    <div class="col-md-3 col-6">
+      <label for="filter-date" class="form-label">Date</label>
+      <input type="date" name="date" id="filter-date" class="form-control" value="{{ selected_date }}">
+    </div>
+    <div class="col-md-3 col-6">
+      <label for="filter-customer" class="form-label">Customer</label>
+      <select name="customer" id="filter-customer" class="form-select">
+        <option value="">All</option>
+        {% for c in customers %}
+          <option value="{{ c.id }}" {% if selected_customer == c.id|stringformat:"s" %}selected{% endif %}>{{ c.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-3 col-6">
+      <label for="filter-payment" class="form-label">Payment</label>
+      <select name="payment" id="filter-payment" class="form-select">
+        <option value="">All</option>
+        <option value="cash" {% if selected_payment == 'cash' %}selected{% endif %}>Cash</option>
+        <option value="airtel_money" {% if selected_payment == 'airtel_money' %}selected{% endif %}>Airtel Money</option>
+        <option value="tnm_mpamba" {% if selected_payment == 'tnm_mpamba' %}selected{% endif %}>TNM Mpamba</option>
+        <option value="bank" {% if selected_payment == 'bank' %}selected{% endif %}>Bank Transfer</option>
+        <option value="credit" {% if selected_payment == 'credit' %}selected{% endif %}>Credit</option>
+      </select>
+    </div>
+    <div class="col-md-3 col-6">
+      <label for="filter-status" class="form-label">Status</label>
+      <select name="status" id="filter-status" class="form-select">
+        <option value="">All</option>
+        <option value="paid" {% if selected_status == 'paid' %}selected{% endif %}>Paid</option>
+        <option value="due" {% if selected_status == 'due' %}selected{% endif %}>Due (Credit)</option>
+      </select>
+    </div>
+    <div class="col-12 cf-filter-actions">
+      <button type="submit" class="btn btn-primary btn-sm">
+        <i class="bi bi-funnel me-1"></i> Apply filters
+      </button>
+      <a href="{% url 'sale_list' %}" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-x-lg me-1"></i> Clear
+      </a>
+    </div>
+  </form>
+</div>
+
+<!-- ========================= SALES TABLE ========================= -->
+{% if sales %}
+  <div class="card">
+    <div class="card-body">
+      <table class="table table-hover datatable table-stack cf-hide-dt-top">
+        <thead>
+          <tr>
+            <th>Sale</th>
+            <th>Customer</th>
+            <th>Amount</th>
+            <th>Payment</th>
+            <th>Status</th>
+            <th>Date</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for sale in sales %}
+            <tr>
+              <td class="fw-bold">#{{ sale.pk }}</td>
+              <td>{{ sale.customer.name|default:"Walk-in" }}</td>
+              <td class="money">{% money sale.total %}</td>
+              <td>{{ sale.get_payment_method_display }}</td>
+              <td>
+                {% if sale.payment_method == 'credit' %}
+                  <span class="badge bg-warning text-dark">Due</span>
+                {% else %}
+                  <span class="badge bg-success">Paid</span>
+                {% endif %}
+              </td>
+              <td class="text-muted small">{{ sale.created_at|date:"Y-m-d H:i" }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+{% else %}
+  {% url 'record_sale' as record_url %}
   <div class="card">
     <div class="card-body">
-      <table class="table table-hover datatable table-stack cf-hide-dt-top">
-        <thead>
-          <tr>
-            <th>Sale</th>
-            <th>Customer</th>
-            <th>Amount</th>
-            <th>Payment</th>
-            <th>Status</th>
-            <th>Date</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for sale in sales %}
-            <tr>
-              <td class="fw-bold">#{{ sale.pk }}</td>
-              <td>{{ sale.customer.name|default:"Walk-in" }}</td>
-              <td class="money">{% money sale.total %}</td>
-              <td>{{ sale.get_payment_method_display }}</td>
-              <td>
-                {% if sale.payment_method == 'credit' %}
-                  <span class="badge bg-warning text-dark">Due</span>
-                {% else %}
-                  <span class="badge bg-success">Paid</span>
-                {% endif %}
-              </td>
-              <td class="text-muted small">{{ sale.created_at|date:"Y-m-d H:i" }}</td>
-            </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+      {% include "components/_empty_state.html" with
+         icon="bi-receipt"
+         title="No sales yet"
+         message="Record your first sale to start tracking revenue. Walk-in or by customer."
+         action_url=record_url
+         action_label="Record a sale" %}
     </div>
   </div>
-{% else %}
-  <div class="card">
-    <div class="card-body text-center py-5">
-      <i class="bi bi-receipt" style="font-size: 2.5rem; color: var(--text-muted);"></i>
-      <p class="text-muted mt-2 mb-3">No sales match your filters.</p>
-      <a href="{% url 'record_sale' %}" class="btn btn-primary btn-sm">
-        <i class="bi bi-plus-lg me-1"></i> Record your first sale
-      </a>
-    </div>
-  </div>
-{% endif %}
-
-{% endblock %}
+{% endif %}
+
+{% endblock %}

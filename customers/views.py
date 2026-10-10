@@ -4,7 +4,7 @@ from django.contrib import messages
 from django.urls import reverse_lazy
 from django.views.generic import ListView, DetailView, CreateView
 
-from core.permissions import OrganizationMixin, RoleRequiredMixin
+from core.permissions import OrganizationMixin, RoleRequiredMixin, SubscriptionWriteRequiredMixin
 from .models import Customer, Payment
 from .forms import PaymentForm
 
@@ -36,7 +36,7 @@ class CustomerDetailView(CustomerMixin, DetailView):
         ).order_by("-created_at")
         return context
 
-class PaymentCreateView(CustomerMixin, CreateView):
+class PaymentCreateView(CustomerMixin, SubscriptionWriteRequiredMixin, CreateView):
     model = Payment
     form_class = PaymentForm
     template_name = "customers/payment_form.html"

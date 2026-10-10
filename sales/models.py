@@ -11,6 +11,14 @@ class Product(models.Model):
     name = models.CharField(max_length=200)
     category = models.CharField(max_length=100, blank=True, help_text="Product category")
     price = models.DecimalField(max_digits=12, decimal_places=2)
+    
+    cost_price = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text=("What this product costs us to buy. Falls back to price if blank."),
+    )
     stock_quantity = models.IntegerField(default=0)
     barcode = models.CharField(
         max_length=100,

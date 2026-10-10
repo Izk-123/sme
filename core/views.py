@@ -1,17 +1,18 @@
 # core/views.py
+from core.permissions import SubscriptionWriteRequiredMixin
 from datetime import timedelta
 
+from django.contrib.auth import get_user_model
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.db.models import F, Sum
+from django.db.models import F, Q, Sum
 from django.shortcuts import redirect, render
 from django.utils import timezone
 from django.views.generic import TemplateView, View
 
 from customers.models import Customer
 from expenses.models import Expense
-from sales.models import Product, Sale, SaleItem
-from django.contrib.auth import get_user_model
 from organizations.models import Organization
+from sales.models import Product, Sale, SaleItem
 from subscriptions.models import SubscriptionPlan
 
 
@@ -42,7 +43,7 @@ class DashboardView(LoginRequiredMixin, TemplateView):
         org = self.request.organization
         membership = self.request.membership
         role = membership.role.slug if membership and membership.role_id else None
-        today = timezone.now().date()
+        today = timezone.localdate()
         yesterday = today - timedelta(days=1)
 
         # ---------- ROLE LINKS ----------
@@ -75,8 +76,15 @@ class DashboardView(LoginRequiredMixin, TemplateView):
             ],
         }
 
+        # Early return for users with no organization (e.g. a superuser
+        # without a Membership yet). Nothing below this depends on the org
+        # being present, so the guard must sit *before* any org-scoped query.
         if not org:
-            context.update({"links": ROLE_LINKS.get(role, []), "role": role})
+            context.update({
+                "links": ROLE_LINKS.get(role, []),
+                "role": role,
+                "products_missing_cost": 0,
+            })
             return context
 
         # ---------- KPIs ----------
@@ -106,6 +114,15 @@ class DashboardView(LoginRequiredMixin, TemplateView):
         stock_value = Product.objects.filter(
             organization=org
         ).aggregate(total=Sum(F('price') * F('stock_quantity')))['total'] or 0
+
+        # ---------- PRODUCTS MISSING A COST PRICE ----------
+        # Feeds the dashboard warning banner. A product with cost_price=None
+        # or 0 makes gross-profit figures wrong until it's filled in.
+        products_missing_cost = Product.objects.filter(
+            organization=org
+        ).filter(
+            Q(cost_price__isnull=True) | Q(cost_price=0)
+        ).count()
 
         customer_count = Customer.objects.filter(organization=org).count()
 
@@ -184,6 +201,7 @@ class DashboardView(LoginRequiredMixin, TemplateView):
             "today_expenses": today_expenses,
             "gross_profit": gross_profit,
             "stock_value": stock_value,
+            "products_missing_cost": products_missing_cost,
             "customer_count": customer_count,
             "sales_change": sales_change,
             "sales_progress": sales_progress,
@@ -208,10 +226,15 @@ class DashboardKPIPartialView(LoginRequiredMixin, TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         organization = self.request.organization
-        today = timezone.now().date()
+        today = timezone.localdate()
 
         if not organization:
-            context.update({"today_sales": 0, "today_expenses": 0, "gross_profit": 0, "stock_value": 0})
+            context.update({
+                "today_sales": 0,
+                "today_expenses": 0,
+                "gross_profit": 0,
+                "stock_value": 0,
+            })
             return context
 
         today_sales = Sale.objects.filter(
@@ -258,7 +281,7 @@ class OnboardingWizardView(LoginRequiredMixin, TemplateView):
         return super().get(request, *args, **kwargs)
 
 
-class OnboardingStepView(LoginRequiredMixin, View):
+class OnboardingStepView(LoginRequiredMixin, SubscriptionWriteRequiredMixin, View):
     def get(self, request, step):
         context = {}
         if step == 5:
@@ -296,7 +319,6 @@ class OnboardingStepView(LoginRequiredMixin, View):
             full_name = request.POST.get("full_name", "").strip()
             role_slug = request.POST.get("role", "")
             if full_name and role_slug:
-                from django.db.models import Q
                 from django.urls import reverse
 
                 from accounts.models import Invitation, Role

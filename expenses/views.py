@@ -5,7 +5,7 @@ from django.urls import reverse_lazy
 from django.http import Http404
 from django.views.generic import ListView, CreateView, DeleteView
 
-from core.permissions import OrganizationMixin, RoleRequiredMixin
+from core.permissions import OrganizationMixin, RoleRequiredMixin, SubscriptionWriteRequiredMixin
 from .models import Expense, ExpenseCategory
 from .forms import ExpenseForm
 
@@ -13,14 +13,14 @@ class ExpenseMixin(LoginRequiredMixin, RoleRequiredMixin, OrganizationMixin):
     allowed_roles = ["owner", "accountant"]
 
     def get_queryset(self):
-        return Expense.objects.filter(organization=self.get_organization()).select_related("category").order_by("-date")
+        return Expense.objects.filter(organization=self.get_organization()).select_related("category", "supplier").order_by("-date")
 
 class ExpenseListView(ExpenseMixin, ListView):
     template_name = "expenses/expense_list.html"
     context_object_name = "expenses"
     paginate_by = 20
 
-class ExpenseCreateView(ExpenseMixin, CreateView):
+class ExpenseCreateView(ExpenseMixin, SubscriptionWriteRequiredMixin, CreateView):
     template_name = "expenses/expense_form.html"
     form_class = ExpenseForm
     success_url = reverse_lazy("expense_list")
@@ -36,7 +36,7 @@ class ExpenseCreateView(ExpenseMixin, CreateView):
         messages.success(self.request, "Expense recorded successfully.")
         return super().form_valid(form)
 
-class ExpenseDeleteView(ExpenseMixin, DeleteView):
+class ExpenseDeleteView(ExpenseMixin, SubscriptionWriteRequiredMixin, DeleteView):
     model = Expense
     success_url = reverse_lazy("expense_list")
     template_name = "expenses/expense_confirm_delete.html"

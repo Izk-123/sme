@@ -1,4 +1,4 @@
-# sales/admin.py
+﻿# sales/admin.py
 from django.contrib import admin
 from django.utils.html import format_html
 from unfold.admin import ModelAdmin, TabularInline
@@ -16,14 +16,14 @@ class SaleAdmin(ModelAdmin):
 
 @admin.register(Product)
 class ProductAdmin(ModelAdmin):
-    list_display = ("name", "organization", "price", "stock_quantity", "low_stock_threshold", "stock_status")
+    list_display = ("name", "organization", "price", "cost_price", "stock_quantity", "low_stock_threshold", "stock_status")
     list_filter = ("organization",)
     search_fields = ("name",)
-    fields = ("name", "organization", "price", "stock_quantity", "low_stock_threshold")
+    fields = ("name", "organization", "price", "cost_price", "stock_quantity", "low_stock_threshold")
 
     def stock_status(self, obj):
         if obj.is_low_stock:
-            return format_html('<span style="color: red; font-weight: bold;">⚠️ Low Stock</span>')
+            return format_html('<span style="color: red; font-weight: bold;">âš ï¸ Low Stock</span>')
         return "OK"
     stock_status.short_description = "Stock Status"
 
