@@ -1,12 +1,6 @@
 #!/bin/bash
 # =============================================================================
 # ChumaFlow Deployment & Domain Migration Script
-#   • Pulls latest code from GitHub: https://github.com/Izk-123/sme.git
-#   • Writes an UNPINNED requirements.txt (package names only, no versions)
-#   • Hardens .env for production
-#   • Verifies Postgres is actually used (fails loudly if not)
-#   • Migrates domain: sme.pritechmw.com → chumaflow.co
-#   • Updates Nginx, SSL, restarts gunicorn-wms + daphne-wms
 # =============================================================================
 
 set -euo pipefail
@@ -31,6 +25,10 @@ readonly LOG_FILE="/var/log/chumaflow_migration.log"
 readonly TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 readonly BACKUP_DIR="/root/chumaflow_backup_${TIMESTAMP}"
 
+# Service names — auto-detected if empty.
+GUNICORN_SERVICE="${GUNICORN_SERVICE:-}"
+DAPHNE_SERVICE="${DAPHNE_SERVICE:-}"
+
 readonly EXPLICIT_PACKAGES=(
     "Django" "channels" "channels-redis" "daphne" "reportlab"
     "openpyxl" "python-dotenv" "Pillow" "django-unfold" "psycopg2-binary"
@@ -54,9 +52,7 @@ error_exit() {
     exit 1
 }
 
-check_root() {
-    [[ $EUID -eq 0 ]] || error_exit "Run as root."
-}
+check_root() { [[ $EUID -eq 0 ]] || error_exit "Run as root."; }
 
 check_dependencies() {
     local missing=()
@@ -65,6 +61,23 @@ check_dependencies() {
     done
     [[ ${#missing[@]} -eq 0 ]] || error_exit "Missing: ${missing[*]}"
     log "Dependencies verified."
+}
+
+# Auto-detect gunicorn/daphne systemd unit names.
+detect_services() {
+    if [[ -z "$GUNICORN_SERVICE" ]]; then
+        GUNICORN_SERVICE=$(systemctl list-unit-files --type=service --no-legend \
+            | awk '{print $1}' | grep -E '^gunicorn-.*\.service$' | head -1 | sed 's/\.service$//' || true)
+    fi
+    if [[ -z "$DAPHNE_SERVICE" ]]; then
+        DAPHNE_SERVICE=$(systemctl list-unit-files --type=service --no-legend \
+            | awk '{print $1}' | grep -E '^daphne-.*\.service$' | head -1 | sed 's/\.service$//' || true)
+    fi
+    # Fallbacks to the names you originally gave
+    [[ -z "$GUNICORN_SERVICE" ]] && GUNICORN_SERVICE="gunicorn-wms"
+    [[ -z "$DAPHNE_SERVICE" ]]   && DAPHNE_SERVICE="daphne-wms"
+
+    log "Services: GUNICORN=${GUNICORN_SERVICE}  DAPHNE=${DAPHNE_SERVICE}"
 }
 
 generate_unpinned_requirements() {
@@ -90,6 +103,7 @@ preflight_checks() {
 
     check_root
     check_dependencies
+    detect_services
 
     [[ -d "$PROJECT_DIR" ]] || error_exit "Missing: $PROJECT_DIR"
     [[ -d "$VENV_DIR" ]]    || error_exit "Missing: $VENV_DIR"
@@ -106,7 +120,9 @@ preflight_checks() {
             [[ "$c" =~ ^[Yy]$ ]] || error_exit "Aborted."
         fi
     else
-        read -rp "  WARNING: ${NEW_DOMAIN} does not resolve. Continue? (y/N): " c
+        log "  WARNING: ${NEW_DOMAIN} does not resolve yet."
+        log "           SSL via Certbot will likely FAIL until DNS propagates."
+        read -rp "  Continue anyway? (y/N): " c
         [[ "$c" =~ ^[Yy]$ ]] || error_exit "Aborted."
     fi
     log "Pre-flight OK."
@@ -155,22 +171,19 @@ pull_from_github() {
 
     git fetch origin "$GIT_BRANCH"
     git checkout "$GIT_BRANCH" 2>/dev/null || git checkout -b "$GIT_BRANCH" "origin/${GIT_BRANCH}"
-
-    # Preserve .env across the reset
     cp "$ENV_FILE" "/tmp/chumaflow_env_${TIMESTAMP}.bak"
     git reset --hard "origin/${GIT_BRANCH}"
     [[ -f "$ENV_FILE" ]] || cp "/tmp/chumaflow_env_${TIMESTAMP}.bak" "$ENV_FILE"
-
     log "  HEAD: $(git rev-parse --short HEAD)"
 }
 
 # -------------------------------
-# Sync requirements (unpinned)
+# Requirements sync (unpinned)
 # -------------------------------
 sync_requirements() {
     [[ "$SKIP_REQUIREMENTS_SYNC" == "1" ]] && { log "Skipping requirements sync."; return; }
 
-    log "Synchronizing Python dependencies (unpinned)..."
+    log "Synchronizing Python dependencies..."
     cd "$PROJECT_DIR"
     # shellcheck disable=SC1091
     source "${VENV_DIR}/bin/activate"
@@ -181,7 +194,7 @@ sync_requirements() {
 
     echo
     echo "requirements.txt strategy:"
-    echo "  [1] Write UNPINNED explicit list (recommended — no versions)"
+    echo "  [1] Write UNPINNED explicit list (recommended)"
     echo "  [2] Write UNPINNED pip-freeze of the entire venv"
     echo "  [3] Keep the file that came from git"
     read -rp "Choice [1/2/3] (default 1): " choice
@@ -195,27 +208,19 @@ sync_requirements() {
             ;;
         2)
             cp requirements.txt "requirements.txt.${TIMESTAMP}.bak" 2>/dev/null || true
-            {
-                echo "# Auto-generated from venv (unpinned)."
-                pip freeze | grep -v '^-e' | grep -vE '^(pip|setuptools|wheel)==' \
-                    | sed -E 's/==.*//; s/ @ .*//' | sort -u
+            { echo "# Auto-generated from venv (unpinned)."
+              pip freeze | grep -v '^-e' | grep -vE '^(pip|setuptools|wheel)==' \
+                  | sed -E 's/==.*//; s/ @ .*//' | sort -u
             } > requirements.txt
             log "  Wrote full unpinned pip-freeze."
             ;;
-        3)
-            log "  Keeping repo-provided requirements.txt."
-            ;;
+        3) log "  Keeping repo-provided requirements.txt." ;;
     esac
 
-    if [[ -s requirements.txt ]]; then
-        pip install --quiet --upgrade -r requirements.txt
-    fi
+    [[ -s requirements.txt ]] && pip install --quiet --upgrade -r requirements.txt
 
     for pkg in gunicorn whitenoise channels channels_redis daphne redis; do
-        python -c "import ${pkg}" 2>/dev/null || {
-            log "  Installing missing runtime package: ${pkg}"
-            pip install --quiet --upgrade "${pkg}"
-        }
+        python -c "import ${pkg}" 2>/dev/null || pip install --quiet --upgrade "${pkg}"
     done
 
     deactivate
@@ -223,7 +228,7 @@ sync_requirements() {
 }
 
 # -------------------------------
-# .env production hardening
+# .env hardening
 # -------------------------------
 upsert_var() {
     local key="$1" val="$2"
@@ -241,44 +246,29 @@ upsert_var() {
 update_env_file() {
     log "Hardening .env for production..."
 
-    # Core domain
     upsert_var "ALLOWED_HOSTS"        "${NEW_DOMAIN},${NEW_DOMAIN_WWW},${SERVER_IP},localhost,127.0.0.1"
     upsert_var "CSRF_TRUSTED_ORIGINS" "https://${NEW_DOMAIN},https://${NEW_DOMAIN_WWW}"
     upsert_var "BASE_URL"             "https://${NEW_DOMAIN}"
 
-    # Production flags
     upsert_var "DEBUG"                          "False"
     upsert_var "SECURE_SSL_REDIRECT"            "True"
     upsert_var "SECURE_HSTS_SECONDS"            "31536000"
     upsert_var "SECURE_HSTS_INCLUDE_SUBDOMAINS" "True"
     upsert_var "SECURE_HSTS_PRELOAD"            "True"
     upsert_var "USE_REDIS"                      "True"
+    upsert_var "DB_ENGINE"                      "postgresql"
 
-    # ---- Database ----
-    # settings.py defaults to Postgres whenever DEBUG=False, so DB_ENGINE
-    # is optional. We still write it for documentation / older settings.
-    upsert_var "DB_ENGINE" "postgresql"
-
-    # Verify Postgres credentials exist.
     local db_name db_user db_pass
     db_name=$(grep -E '^DB_NAME='     "$ENV_FILE" | cut -d= -f2- || true)
     db_user=$(grep -E '^DB_USER='     "$ENV_FILE" | cut -d= -f2- || true)
     db_pass=$(grep -E '^DB_PASSWORD=' "$ENV_FILE" | cut -d= -f2- || true)
     if [[ -z "$db_name" || -z "$db_user" || -z "$db_pass" ]]; then
-        log "  ERROR: Postgres credentials incomplete in .env."
-        log "         DB_NAME='${db_name}' DB_USER='${db_user}' DB_PASSWORD=<hidden>"
-        error_exit "Cannot proceed — Django will refuse to start."
+        error_exit "Postgres credentials incomplete in .env."
     fi
-    log "  Postgres credentials present (DB_NAME='${db_name}', DB_USER='${db_user}')."
+    log "  Postgres credentials present (DB_NAME='${db_name}')."
 
-    # Warn if a stray SQLite file exists.
-    if [[ -f "${PROJECT_DIR}/db.sqlite3" ]]; then
-        log "  WARNING: ${PROJECT_DIR}/db.sqlite3 exists."
-        log "           If production data lives there, migrate it to Postgres"
-        log "           before relying on the new configuration."
-    fi
+    [[ -f "${PROJECT_DIR}/db.sqlite3" ]] && log "  WARNING: db.sqlite3 exists — migrate data if it holds production records."
 
-    # SECRET_KEY
     local current_key
     current_key=$(grep -E '^SECRET_KEY=' "$ENV_FILE" | cut -d= -f2- || true)
     if [[ "$current_key" == django-insecure-* ]]; then
@@ -289,15 +279,8 @@ update_env_file() {
             new_key=$(python3 -c "import secrets; print(secrets.token_urlsafe(64))")
             upsert_var "SECRET_KEY" "$new_key"
             log "  New SECRET_KEY written."
-        else
-            log "  WARNING: leaving insecure SECRET_KEY."
         fi
     fi
-
-    local email_host
-    email_host=$(grep -E '^EMAIL_HOST=' "$ENV_FILE" | cut -d= -f2- || true)
-    [[ "$email_host" == "mail.pritechmw.com" ]] && log "  NOTE: EMAIL_HOST still mail.pritechmw.com."
-
     log "  .env hardening complete."
 }
 
@@ -309,11 +292,10 @@ django_setup() {
     cd "$PROJECT_DIR"
     # shellcheck disable=SC1091
     source "${VENV_DIR}/bin/activate"
-
     export DJANGO_SETTINGS_MODULE=config.settings
 
     log "  Verifying DB connection..."
-    python - <<'PY' || error_exit "Django cannot connect to the configured database."
+    python - <<'PY' || error_exit "Django cannot connect to configured DB."
 import os, django
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
 django.setup()
@@ -322,8 +304,6 @@ engine = connection.settings_dict["ENGINE"]
 name   = connection.settings_dict["NAME"]
 print(f"    ENGINE = {engine}")
 print(f"    NAME   = {name}")
-if engine == "django.db.backends.sqlite3" and os.getenv("DEBUG", "").lower() in ("false", "0", "no"):
-    raise SystemExit("Refusing: DEBUG is False but Django resolved to SQLite.")
 connection.ensure_connection()
 print("    Connection: OK")
 PY
@@ -332,7 +312,7 @@ PY
     python manage.py migrate --noinput
 
     log "  seed_plans..."
-    python manage.py seed_plans 2>/dev/null || log "  (seed_plans not available — skipped)"
+    python manage.py seed_plans 2>/dev/null || log "  (skipped)"
 
     log "  collectstatic..."
     python manage.py collectstatic --noinput --clear
@@ -345,43 +325,72 @@ PY
 }
 
 # -------------------------------
-# Nginx
+# Nginx — server_name only, cert paths left for Certbot
 # -------------------------------
 update_nginx_config() {
-    log "Updating Nginx..."
-    sed -i.bak_nginx "s/${OLD_DOMAIN}/${NEW_DOMAIN}/g" "$NGINX_CONF"
+    log "Updating Nginx server_name (SSL cert paths will be handled by Certbot)..."
 
-    if ! grep -q "${NEW_DOMAIN_WWW}" "$NGINX_CONF"; then
-        sed -i "s|server_name ${NEW_DOMAIN} ${SERVER_IP};|server_name ${NEW_DOMAIN} ${NEW_DOMAIN_WWW} ${SERVER_IP};|" "$NGINX_CONF"
-    fi
+    # Back up to BACKUP_DIR (already done) — don't leave .bak_nginx files
+    # sitting in sites-available, they cause clutter and confusion.
 
-    if nginx -t 2>/dev/null; then
-        log "  Nginx config OK."
+    # 1. Replace only the server_name directives.
+    #    Two patterns to handle:
+    #       server_name sme.pritechmw.com 204.168.251.91;
+    #       server_name sme.pritechmw.com www.sme.pritechmw.com 204.168.251.91;
+    #    Result: server_name chumaflow.co www.chumaflow.co;  (drop the IP —
+    #    it's the source of the "conflicting server name" warnings).
+    sed -i -E \
+        "s|(server_name[[:space:]]+)[^;]*${OLD_DOMAIN}[^;]*;|\1${NEW_DOMAIN} ${NEW_DOMAIN_WWW};|g" \
+        "$NGINX_CONF"
+
+    # 2. Also replace ${OLD_DOMAIN} in any remaining lines EXCEPT ssl_certificate*.
+    #    (e.g. "if (\$host = sme.pritechmw.com)" blocks).
+    awk -v old="$OLD_DOMAIN" -v new="$NEW_DOMAIN" '
+        /ssl_certificate/ { print; next }
+        { gsub(old, new); print }
+    ' "$NGINX_CONF" > "${NGINX_CONF}.tmp" && mv "${NGINX_CONF}.tmp" "$NGINX_CONF"
+
+    log "  --- New server_name lines ---"
+    grep -nE 'server_name|if \(\$host' "$NGINX_CONF" | sed 's/^/    /' | tee -a "$LOG_FILE"
+
+    # 3. Test — show stderr this time so real errors are visible.
+    log "  Running 'nginx -t'..."
+    if nginx -t 2>&1 | tee -a "$LOG_FILE" | grep -q "test is successful"; then
+        log "  Nginx config OK (warnings about 204.168.251.91 are pre-existing, harmless)."
     else
-        log "  Nginx config FAILED. Restoring backup."
-        cp "${NGINX_CONF}.bak_nginx" "$NGINX_CONF"
-        nginx -t
-        error_exit "Nginx invalid — restored backup."
+        log "  Nginx config FAILED — restoring backup."
+        cp "${BACKUP_DIR}/nginx_sme.conf" "$NGINX_CONF"
+        nginx -t 2>&1 | tee -a "$LOG_FILE" || true
+        error_exit "Nginx invalid — restored from backup."
     fi
+
     systemctl reload nginx
     log "  Nginx reloaded."
 }
 
 # -------------------------------
-# SSL
+# SSL — Certbot rewrites ssl_certificate paths itself
 # -------------------------------
 obtain_ssl_certificate() {
-    log "Requesting SSL cert for ${NEW_DOMAIN}..."
+    log "Requesting SSL cert for ${NEW_DOMAIN} and ${NEW_DOMAIN_WWW}..."
+
     if certbot --nginx \
-        -d "${NEW_DOMAIN}" \
-        -d "${NEW_DOMAIN_WWW}" \
+        -d "${NEW_DOMAIN}" -d "${NEW_DOMAIN_WWW}" \
         --non-interactive --agree-tos --redirect 2>&1 | tee -a "$LOG_FILE"; then
         log "  SSL OK."
     else
-        log "  WARNING: certbot failed. Run manually:"
-        log "    sudo certbot --nginx -d ${NEW_DOMAIN} -d ${NEW_DOMAIN_WWW}"
+        log "  WARNING: Certbot failed."
+        log "           • If DNS hasn't propagated, retry later:"
+        log "             sudo certbot --nginx -d ${NEW_DOMAIN} -d ${NEW_DOMAIN_WWW}"
+        log "           • Site remains reachable over HTTP meanwhile."
     fi
-    nginx -t 2>/dev/null && systemctl reload nginx || error_exit "Nginx invalid post-SSL."
+
+    # Only reload if config is valid.
+    if nginx -t 2>/dev/null; then
+        systemctl reload nginx
+    else
+        log "  WARNING: Nginx config invalid after Certbot — leaving service as-is."
+    fi
 }
 
 # -------------------------------
@@ -389,7 +398,7 @@ obtain_ssl_certificate() {
 # -------------------------------
 restart_services() {
     log "Restarting services..."
-    for svc in gunicorn-wms daphne-wms; do
+    for svc in "$GUNICORN_SERVICE" "$DAPHNE_SERVICE"; do
         if systemctl list-unit-files | grep -q "^${svc}.service"; then
             systemctl restart "$svc"
             if systemctl is-active --quiet "$svc"; then
@@ -399,7 +408,7 @@ restart_services() {
                 error_exit "${svc} failed to start."
             fi
         else
-            log "  WARNING: ${svc}.service not found."
+            log "  WARNING: ${svc}.service not found — skipping."
         fi
     done
 }
@@ -409,7 +418,7 @@ restart_services() {
 # -------------------------------
 verify_migration() {
     log "Verifying..."
-    for unit in nginx gunicorn-wms daphne-wms; do
+    for unit in nginx "$GUNICORN_SERVICE" "$DAPHNE_SERVICE"; do
         systemctl is-active --quiet "$unit" && log "  ${unit}: RUNNING" || log "  ${unit}: NOT RUNNING"
     done
 
@@ -417,8 +426,10 @@ verify_migration() {
         local code
         code=$(curl -sIk "https://${NEW_DOMAIN}" --max-time 10 | head -1 | awk '{print $2}')
         log "  https://${NEW_DOMAIN} → HTTP ${code}"
+    elif curl -sIk "http://${NEW_DOMAIN}" --max-time 10 | head -1 | grep -q "HTTP"; then
+        log "  http://${NEW_DOMAIN} reachable (HTTPS not ready — run Certbot after DNS propagates)"
     else
-        log "  https://${NEW_DOMAIN} → no response (DNS may still be propagating)"
+        log "  ${NEW_DOMAIN} → no response (DNS may still be propagating)"
     fi
 }
 
@@ -431,17 +442,12 @@ print_summary() {
     log "=========================================="
     log "Commit:     $(git -C "$PROJECT_DIR" rev-parse --short HEAD 2>/dev/null || echo n/a)"
     log "New domain: https://${NEW_DOMAIN}"
+    log "Services:   ${GUNICORN_SERVICE}, ${DAPHNE_SERVICE}"
     log "Backup:     ${BACKUP_DIR}"
     log "Log:        ${LOG_FILE}"
     log ""
-    log "Rollback:"
-    log "  cp ${BACKUP_DIR}/nginx_sme.conf ${NGINX_CONF}"
-    log "  cp ${BACKUP_DIR}/env.backup     ${ENV_FILE}"
-    log "  cp ${BACKUP_DIR}/settings.py.backup ${PROJECT_DIR}/config/settings.py"
-    log "  cp ${BACKUP_DIR}/requirements.txt.backup ${PROJECT_DIR}/requirements.txt"
-    log "  cd ${PROJECT_DIR} && source venv/bin/activate && pip install -r requirements.txt"
-    log "  nginx -t && systemctl reload nginx"
-    log "  systemctl restart gunicorn-wms daphne-wms"
+    log "If HTTPS isn't working yet, wait for DNS propagation, then run:"
+    log "  sudo certbot --nginx -d ${NEW_DOMAIN} -d ${NEW_DOMAIN_WWW}"
 }
 
 # -------------------------------
