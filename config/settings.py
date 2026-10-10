@@ -8,8 +8,8 @@ Minimum .env for PRODUCTION:
     DEBUG=False
     SECRET_KEY=<strong-random-key>
     ALLOWED_HOSTS=yourdomain.com,www.yourdomain.com
-    DB_ENGINE=postgresql
     DB_NAME=...  DB_USER=...  DB_PASSWORD=...  DB_HOST=...  DB_PORT=...
+    (DB_ENGINE is optional — production defaults to PostgreSQL.)
 
 Optional:
     USE_REDIS=True/False, REDIS_HOST, REDIS_PORT
@@ -206,16 +206,49 @@ WSGI_APPLICATION = 'config.wsgi.application'
 # 8. DATABASE
 # =============================================================================
 
-# DB_ENGINE=postgresql → Postgres; anything else (default) → SQLite.
-if os.getenv('DB_ENGINE', 'sqlite').lower() == 'postgresql':
+# Engine resolution:
+#   1. If DB_ENGINE is explicitly set in .env, honour it ('postgresql' | 'sqlite').
+#   2. Otherwise, default by environment:
+#        DEBUG=True  → SQLite      (zero-config local dev)
+#        DEBUG=False → PostgreSQL  (production never silently uses SQLite)
+#
+# Production with Postgres selected but missing credentials → hard crash,
+# so an empty SQLite file can never masquerade as a working database.
+
+_db_engine = os.getenv('DB_ENGINE', '').strip().lower()
+if not _db_engine:
+    _db_engine = 'sqlite' if DEBUG else 'postgresql'
+
+if _db_engine == 'postgresql':
+    _db_name = os.getenv('DB_NAME')
+    _db_user = os.getenv('DB_USER')
+    _db_pass = os.getenv('DB_PASSWORD')
+
+    _missing = [
+        name for name, val in (
+            ('DB_NAME', _db_name),
+            ('DB_USER', _db_user),
+            ('DB_PASSWORD', _db_pass),
+        ) if not val
+    ]
+    if _missing and not DEBUG:
+        raise ValueError(
+            "PostgreSQL is the production database but these .env values "
+            f"are missing: {', '.join(_missing)}"
+        )
+
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.postgresql',
-            'NAME': os.getenv('DB_NAME'),
-            'USER': os.getenv('DB_USER'),
-            'PASSWORD': os.getenv('DB_PASSWORD'),
+            'NAME': _db_name,
+            'USER': _db_user,
+            'PASSWORD': _db_pass,
             'HOST': os.getenv('DB_HOST', 'localhost'),
             'PORT': os.getenv('DB_PORT', '5432'),
+            'CONN_MAX_AGE': 60,          # reuse connections across requests
+            'OPTIONS': {
+                'connect_timeout': 10,
+            },
         }
     }
 else:
