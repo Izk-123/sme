@@ -293,17 +293,27 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
-# Whitenoise's manifest storage requires collectstatic — only enable in prod.
-# In dev it raises "Missing staticfiles manifest entry" errors.
+# Whitenoise in production.
+#
+# CompressedManifestStaticFilesStorage raises ValueError → HTTP 500 whenever a
+# template references a static file that wasn't collected. CompressedStaticFilesStorage
+# compresses + caches headers but 404s missing files instead of exploding.
+#
+# If you want the extra layer of cache-busting hashes, switch to
+# CompressedManifestStaticFilesStorage — but ONLY after confirming that
+# `python manage.py collectstatic` reports zero missing files.
 if not DEBUG:
     STORAGES = {
         "default": {
             "BACKEND": "django.core.files.storage.FileSystemStorage",
         },
         "staticfiles": {
-            "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+            "BACKEND": "whitenoise.storage.CompressedStaticFilesStorage",
         },
     }
+    # Silence the legacy setting name warning on Django 4.2+ (it's still
+    # read for backwards compatibility if STORAGES is absent).
+    STATICFILES_STORAGE = "whitenoise.storage.CompressedStaticFilesStorage"
 
 
 # =============================================================================
@@ -360,3 +370,55 @@ if not DEBUG:
     # Required when running behind a reverse proxy that terminates HTTPS
     # (Nginx, Apache, Cloudflare, cPanel, etc.)
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
+
+# =============================================================================
+# 16. LOGGING (so production errors appear in journalctl)
+# =============================================================================
+
+# Without this, unhandled exceptions under Gunicorn can vanish silently —
+# you get a 500 on the page with nothing in the log. This ensures the
+# traceback is written to stderr, which systemd captures into journalctl.
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '[{asctime}] {levelname} {name}: {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'verbose',
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': 'INFO',
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'django.request': {
+            'handlers': ['console'],
+            'level': 'ERROR',
+            'propagate': False,
+        },
+        'django.security': {
+            'handlers': ['console'],
+            'level': 'WARNING',
+            'propagate': False,
+        },
+        # Silence the noisy startup line from django.db.backends on every query
+        'django.db.backends': {
+            'handlers': ['console'],
+            'level': 'WARNING',
+            'propagate': False,
+        },
+    },
+}
