@@ -1,0 +1,105 @@
+{% extends "base/base.html" %}
+{% load money %}
+{% block page_title %}Inventory{% endblock %}
+{% block content %}
+
+<!-- ========================= HEADER & ACTIONS ========================= -->
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+  <div>
+    <h2 class="mb-0 fw-bold">Inventory</h2>
+    <small class="text-muted">{{ products|length }} product{{ products|length|pluralize }}</small>
+  </div>
+  <div class="d-flex gap-2">
+    <a href="{% url 'product_add' %}" class="btn btn-success btn-sm">
+      <i class="bi bi-plus-lg me-1"></i> Add Product
+    </a>
+    <a href="{% url 'receive_stock' %}" class="btn btn-primary btn-sm">
+      <i class="bi bi-box-seam me-1"></i> Receive Stock
+    </a>
+  </div>
+</div>
+
+<!-- ========================= SEARCH ========================= -->
+<div class="cf-search mb-3">
+  <i class="bi bi-search"></i>
+  <input type="search" id="inventory-search"
+         placeholder="Search products by name, SKU or category…"
+         autocomplete="off">
+</div>
+
+<!-- ========================= PRODUCTS TABLE ========================= -->
+{% if products %}
+  <div class="card">
+    <div class="card-body">
+      <table class="table table-hover datatable table-stack cf-hide-dt-top">
+        <thead>
+          <tr>
+            <th>SKU</th>
+            <th>Product</th>
+            <th>Category</th>
+            <th>Quantity</th>
+            <th>Cost</th>
+            <th>Selling Price</th>
+            <th>Stock Value</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for product in products %}
+            <tr>
+              <td class="mono">{{ product.sku|default:"—" }}</td>
+              <td class="fw-bold">{{ product.name }}</td>
+              <td>{{ product.category|default:"—" }}</td>
+              <td>{{ product.stock_quantity }}</td>
+              <td class="money">—</td>
+              <td class="money">{% money product.price %}</td>
+              <td class="money">{% money product.stock_value %}</td>
+              <td>
+                {% if product.is_low_stock %}
+                  <span class="badge bg-warning text-dark">Low Stock</span>
+                {% else %}
+                  <span class="badge bg-success">OK</span>
+                {% endif %}
+              </td>
+              <td>
+                <div class="d-flex gap-1">
+                  <a href="{% url 'product_edit' product.pk %}"
+                     class="btn btn-outline-secondary btn-sm" title="Edit">
+                    <i class="bi bi-pencil"></i>
+                  </a>
+                  <a href="{% url 'receive_stock' %}"
+                     class="btn btn-outline-secondary btn-sm" title="Receive stock">
+                    <i class="bi bi-box-seam"></i>
+                  </a>
+                </div>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+{% else %}
+  <div class="card">
+    <div class="card-body text-center py-5">
+      <i class="bi bi-box" style="font-size: 2.5rem; color: var(--text-muted);"></i>
+      <p class="text-muted mt-2 mb-3">No products have been added yet.</p>
+      <a href="{% url 'product_add' %}" class="btn btn-primary btn-sm">
+        <i class="bi bi-plus-lg me-1"></i> Add your first product
+      </a>
+    </div>
+  </div>
+{% endif %}
+
+<script>
+  document.addEventListener("input", function (e) {
+    if (e.target.id !== "inventory-search") return;
+    var q = e.target.value.trim().toLowerCase();
+    document.querySelectorAll("tbody tr").forEach(function (row) {
+      row.style.display = row.textContent.toLowerCase().indexOf(q) >= 0 ? "" : "none";
+    });
+  });
+</script>
+
+{% endblock %}

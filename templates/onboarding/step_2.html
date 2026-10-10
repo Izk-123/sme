@@ -1,0 +1,17 @@
+<div id="step-2">
+    <h4 class="card-title mb-3">How big is your business?</h4>
+    <p class="text-muted mb-4">This helps us tailor the experience for you.</p>
+    <form hx-post="{% url 'onboarding_step' step=2 %}" hx-target="#wizard-container" hx-swap="innerHTML">
+        {% csrf_token %}
+        <div class="mb-3">
+            <label for="id_business_size" class="form-label">Business size</label>
+            <select id="id_business_size" name="business_size" class="form-select">
+                <option value="micro">Micro (1–5 employees)</option>
+                <option value="small">Small (6–30 employees)</option>
+                <option value="medium">Medium (31–100+ employees)</option>
+            </select>
+            <div class="form-text text-muted">This helps us tailor the experience for you.</div>
+        </div>
+        <button type="submit" class="btn btn-primary w-100">Next</button>
+    </form>
+</div>

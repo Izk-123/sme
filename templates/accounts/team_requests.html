@@ -1,0 +1,134 @@
+{% extends "base/base.html" %}
+{% block page_title %}Employee Requests{% endblock %}
+{% block content %}
+
+<div class="row g-4">
+
+  <!-- ========================= EXPENSE CLAIMS ========================= -->
+  <div class="col-lg-6">
+    <div class="card h-100">
+      <div class="card-body d-flex flex-column">
+        <h5 class="card-title d-flex align-items-center gap-2">
+          <i class="bi bi-cash-stack" style="color: var(--cf-gold-dark);"></i>
+          Expense Claims
+          {% if expense_requests %}
+            <span class="badge" style="background: var(--cf-gold-soft); color: var(--cf-gold-dark); font-weight: 600;">
+              {{ expense_requests|length }}
+            </span>
+          {% endif %}
+        </h5>
+
+        {% if expense_requests %}
+          <div class="d-flex flex-column gap-2">
+            {% for exp in expense_requests %}
+              <div class="rounded p-3"
+                   style="background: var(--bg-surface); border: 1px solid var(--border-color);">
+                <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
+                  <div class="overflow-hidden">
+                    <div class="fw-semibold">{{ exp.membership.user.username }}</div>
+                    <div class="small">
+                      <span class="fw-bold" style="color: var(--cf-gold-dark);">MK{{ exp.amount|floatformat:0 }}</span>
+                      <span class="text-muted">· {{ exp.category }}</span>
+                    </div>
+                    {% if exp.description %}
+                      <div class="small text-muted mt-1">{{ exp.description }}</div>
+                    {% endif %}
+                  </div>
+
+                  {% if exp.status == "pending" %}
+                    <div class="d-flex gap-1 flex-shrink-0">
+                      <form method="post" action="{% url 'review_expense_request' exp.pk 'approve' %}">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-sm btn-outline-success" title="Approve">
+                          <i class="bi bi-check2"></i>
+                        </button>
+                      </form>
+                      <form method="post" action="{% url 'review_expense_request' exp.pk 'reject' %}">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-sm btn-outline-danger" title="Reject">
+                          <i class="bi bi-x-lg"></i>
+                        </button>
+                      </form>
+                    </div>
+                  {% elif exp.status == "approved" %}
+                    <span class="badge bg-success">Approved</span>
+                  {% else %}
+                    <span class="badge bg-danger">Rejected</span>
+                  {% endif %}
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="text-center py-5 flex-grow-1 d-flex flex-column align-items-center justify-content-center">
+            <i class="bi bi-receipt" style="font-size: 2.5rem; color: var(--text-muted); opacity: 0.4;"></i>
+            <p class="text-muted small mt-2 mb-0">No expense claims yet.</p>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================= EMPLOYEE REQUESTS ========================= -->
+  <div class="col-lg-6">
+    <div class="card h-100">
+      <div class="card-body d-flex flex-column">
+        <h5 class="card-title d-flex align-items-center gap-2">
+          <i class="bi bi-chat-square-text" style="color: var(--cf-flow-teal);"></i>
+          Employee Requests
+          {% if employee_requests %}
+            <span class="badge" style="background: var(--cf-flow-teal-soft); color: var(--cf-flow-teal); font-weight: 600;">
+              {{ employee_requests|length }}
+            </span>
+          {% endif %}
+        </h5>
+
+        {% if employee_requests %}
+          <div class="d-flex flex-column gap-2">
+            {% for req in employee_requests %}
+              <div class="rounded p-3"
+                   style="background: var(--bg-surface); border: 1px solid var(--border-color);">
+                <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
+                  <div class="overflow-hidden">
+                    <div class="fw-semibold">{{ req.membership.user.username }}</div>
+                    <div class="small text-muted">{{ req.get_request_type_display }}</div>
+                    <div class="small mt-1">{{ req.description|truncatewords:15 }}</div>
+                  </div>
+
+                  {% if req.status == "pending" %}
+                    <div class="d-flex gap-1 flex-shrink-0">
+                      <form method="post" action="{% url 'review_employee_request' req.pk 'approve' %}">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-sm btn-outline-success" title="Approve">
+                          <i class="bi bi-check2"></i>
+                        </button>
+                      </form>
+                      <form method="post" action="{% url 'review_employee_request' req.pk 'reject' %}">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-sm btn-outline-danger" title="Reject">
+                          <i class="bi bi-x-lg"></i>
+                        </button>
+                      </form>
+                    </div>
+                  {% elif req.status == "approved" %}
+                    <span class="badge bg-success">Approved</span>
+                  {% else %}
+                    <span class="badge bg-danger">Rejected</span>
+                  {% endif %}
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="text-center py-5 flex-grow-1 d-flex flex-column align-items-center justify-content-center">
+            <i class="bi bi-chat-square-text" style="font-size: 2.5rem; color: var(--text-muted); opacity: 0.4;"></i>
+            <p class="text-muted small mt-2 mb-0">No requests yet.</p>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+</div>
+
+{% endblock %}

@@ -1,0 +1,396 @@
+{% extends "base/base.html" %}
+{% block page_title %}Settings{% endblock %}
+{% block breadcrumb %}<li class="breadcrumb-item active">Settings</li>{% endblock %}
+{% block content %}
+
+<div class="row g-4">
+
+  <!-- ========================= SIDEBAR ========================= -->
+  <div class="col-lg-3">
+    <div class="card">
+      <div class="card-body p-2">
+        <div class="list-group list-group-flush" id="settings-tab" role="tablist">
+          <a href="#profile" class="list-group-item list-group-item-action active d-flex align-items-center gap-2" data-bs-toggle="list" role="tab">
+            <i class="bi bi-person"></i> Profile
+          </a>
+          <a href="#contact" class="list-group-item list-group-item-action d-flex align-items-center gap-2" data-bs-toggle="list" role="tab">
+            <i class="bi bi-phone"></i> Contact
+          </a>
+          <a href="#identity" class="list-group-item list-group-item-action d-flex align-items-center gap-2" data-bs-toggle="list" role="tab">
+            <i class="bi bi-person-vcard"></i> Identity
+          </a>
+          <a href="#security" class="list-group-item list-group-item-action d-flex align-items-center gap-2" data-bs-toggle="list" role="tab">
+            <i class="bi bi-shield-lock"></i> Security
+          </a>
+          <a href="#notifications" class="list-group-item list-group-item-action d-flex align-items-center gap-2" data-bs-toggle="list" role="tab">
+            <i class="bi bi-bell"></i> Notifications
+          </a>
+          <a href="#preferences" class="list-group-item list-group-item-action d-flex align-items-center gap-2" data-bs-toggle="list" role="tab">
+            <i class="bi bi-palette"></i> Preferences
+          </a>
+          <a href="#businesses" class="list-group-item list-group-item-action d-flex align-items-center gap-2" data-bs-toggle="list" role="tab">
+            <i class="bi bi-building"></i> Businesses
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================= MAIN CONTENT ========================= -->
+  <div class="col-lg-9">
+    <div class="card">
+      <div class="card-body pt-3">
+        <div class="tab-content">
+
+          <!-- Profile -->
+          <div class="tab-pane fade show active" id="profile">
+            <h5 class="card-title">Personal profile</h5>
+            {% include "accounts/_profile_form.html" with form=profile_form %}
+          </div>
+
+          <!-- Contact -->
+          <div class="tab-pane fade" id="contact">
+            <h5 class="card-title">Contact information</h5>
+            <div class="rounded p-3 mb-4 small d-flex align-items-start gap-2"
+                 style="background: var(--cf-mist); border: 1px solid var(--border-color); color: var(--text-body);">
+              <i class="bi bi-info-circle flex-shrink-0 mt-1" style="color: var(--cf-flow-teal);"></i>
+              <div>Phone verification (SMS/WhatsApp) isn't set up yet — numbers show as unverified until a provider is connected.</div>
+            </div>
+
+            {% if phone_numbers %}
+              <table class="table table-hover table-stack">
+                <thead>
+                  <tr>
+                    <th>Number</th>
+                    <th>Type</th>
+                    <th class="text-end">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for phone in phone_numbers %}
+                    <tr>
+                      <td class="fw-semibold">{{ phone.number }}</td>
+                      <td class="text-muted small">{{ phone.get_type_display }}</td>
+                      <td class="text-end">
+                        {% if phone.is_primary %}
+                          <span class="badge" style="background: var(--cf-flow-teal); color: #fff;">Primary</span>
+                        {% endif %}
+                        {% if phone.is_verified %}
+                          <span class="badge bg-success">Verified</span>
+                        {% else %}
+                          <span class="badge bg-secondary">Unverified</span>
+                        {% endif %}
+                      </td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            {% else %}
+              <div class="text-center py-4">
+                <i class="bi bi-phone" style="font-size: 2rem; color: var(--text-muted); opacity: 0.4;"></i>
+                <p class="text-muted small mt-2 mb-0">No phone numbers added yet.</p>
+              </div>
+            {% endif %}
+
+            <h6 class="mt-4 mb-3 fw-semibold">Add a phone number</h6>
+            <form method="post">
+              {% csrf_token %}
+              <input type="hidden" name="form_name" value="phone">
+              {% if phone_form.non_field_errors %}
+                <div class="alert alert-danger">{{ phone_form.non_field_errors|striptags }}</div>
+              {% endif %}
+              <div class="row g-3">
+                {% for field in phone_form %}
+                  <div class="col-md-4">
+                    <label for="{{ field.id_for_label }}" class="form-label fw-semibold">{{ field.label }}</label>
+                    {{ field }}
+                    {% if field.errors %}
+                      <div class="invalid-feedback d-block"><i class="bi bi-exclamation-circle me-1"></i>{{ field.errors|striptags }}</div>
+                    {% endif %}
+                  </div>
+                {% endfor %}
+              </div>
+              <button type="submit" class="btn btn-primary btn-sm mt-3">
+                <i class="bi bi-plus-lg me-1"></i> Add phone
+              </button>
+            </form>
+          </div>
+
+          <!-- Identity -->
+          <div class="tab-pane fade" id="identity">
+            <h5 class="card-title">Identity documents</h5>
+            <p class="text-muted small">Optional. Only add these if your business needs them verified — see your business's Team page for who can view the underlying document.</p>
+
+            {% if identities %}
+              <table class="table table-hover table-stack">
+                <thead>
+                  <tr>
+                    <th>Type</th>
+                    <th>Number</th>
+                    <th class="text-end">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for doc in identities %}
+                    <tr>
+                      <td class="fw-semibold">{{ doc.get_document_type_display }}</td>
+                      <td><code>{{ doc.masked_number }}</code></td>
+                      <td class="text-end">
+                        {% if doc.is_verified %}
+                          <span class="badge bg-success">Verified</span>
+                        {% else %}
+                          <span class="badge bg-secondary">Unverified</span>
+                        {% endif %}
+                      </td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            {% else %}
+              <div class="text-center py-4">
+                <i class="bi bi-person-vcard" style="font-size: 2rem; color: var(--text-muted); opacity: 0.4;"></i>
+                <p class="text-muted small mt-2 mb-0">No documents added yet.</p>
+              </div>
+            {% endif %}
+
+            <h6 class="mt-4 mb-3 fw-semibold">Add a document</h6>
+            <form method="post" enctype="multipart/form-data">
+              {% csrf_token %}
+              <input type="hidden" name="form_name" value="identity">
+              {% if identity_form.non_field_errors %}
+                <div class="alert alert-danger">{{ identity_form.non_field_errors|striptags }}</div>
+              {% endif %}
+              <div class="row g-3">
+                {% for field in identity_form %}
+                  <div class="col-md-6">
+                    <label for="{{ field.id_for_label }}" class="form-label fw-semibold">{{ field.label }}</label>
+                    {{ field }}
+                    {% if field.errors %}
+                      <div class="invalid-feedback d-block"><i class="bi bi-exclamation-circle me-1"></i>{{ field.errors|striptags }}</div>
+                    {% endif %}
+                  </div>
+                {% endfor %}
+              </div>
+              <button type="submit" class="btn btn-primary btn-sm mt-3">
+                <i class="bi bi-check2-circle me-1"></i> Save document
+              </button>
+            </form>
+          </div>
+
+          <!-- Security -->
+          <div class="tab-pane fade" id="security">
+            <h5 class="card-title">Security</h5>
+
+            <div class="d-flex justify-content-between align-items-center py-3 border-bottom flex-wrap gap-2">
+              <div>
+                <div class="fw-semibold">Password</div>
+                <div class="text-muted small">Change your login password.</div>
+              </div>
+              <a href="{% url 'change_password' %}" class="btn btn-outline-primary btn-sm">
+                <i class="bi bi-key me-1"></i> Change password
+              </a>
+            </div>
+
+            <div class="d-flex justify-content-between align-items-center py-3 border-bottom flex-wrap gap-2">
+              <div>
+                <div class="fw-semibold">Email verification</div>
+                <div class="text-muted small">
+                  {% if user.email %}
+                    {{ user.email }}
+                    {% if profile.email_verified %}
+                      <span class="badge bg-success ms-1">Verified</span>
+                    {% else %}
+                      <span class="badge bg-secondary ms-1">Unverified</span>
+                    {% endif %}
+                  {% else %}
+                    No email on file — add one on the Profile tab.
+                  {% endif %}
+                </div>
+              </div>
+              {% if user.email and not profile.email_verified %}
+                <form method="post" action="{% url 'resend_verification_email' %}">
+                  {% csrf_token %}
+                  <button type="submit" class="btn btn-outline-primary btn-sm">
+                    <i class="bi bi-envelope me-1"></i> Resend email
+                  </button>
+                </form>
+              {% endif %}
+            </div>
+
+            <div class="d-flex justify-content-between align-items-center py-3 border-bottom flex-wrap gap-2">
+              <div>
+                <div class="fw-semibold">Two-factor authentication</div>
+                <div class="text-muted small">Coming soon.</div>
+              </div>
+              <button class="btn btn-outline-secondary btn-sm" disabled>
+                <i class="bi bi-lock me-1"></i> Enable
+              </button>
+            </div>
+
+            <div class="py-3">
+              <div class="fw-semibold mb-2">Username</div>
+              <code>{{ user.username }}</code>
+            </div>
+          </div>
+
+          <!-- Notifications -->
+          <div class="tab-pane fade" id="notifications">
+            <h5 class="card-title">Notification settings</h5>
+            <form method="post">
+              {% csrf_token %}
+              <input type="hidden" name="form_name" value="notifications">
+              <div class="row g-4">
+
+                <div class="col-md-6">
+                  <h6 class="text-muted text-uppercase small fw-bold mb-3" style="letter-spacing: 0.5px;">Sales &amp; Inventory</h6>
+                  <div class="form-check mb-2">
+                    {{ notification_form.daily_sales_summary }}
+                    <label class="form-check-label" for="{{ notification_form.daily_sales_summary.id_for_label }}">Daily sales summary</label>
+                  </div>
+                  <div class="form-check mb-2">
+                    {{ notification_form.low_stock_alert }}
+                    <label class="form-check-label" for="{{ notification_form.low_stock_alert.id_for_label }}">Low stock alerts</label>
+                  </div>
+                  <div class="form-check mb-2">
+                    {{ notification_form.out_of_stock_alert }}
+                    <label class="form-check-label" for="{{ notification_form.out_of_stock_alert.id_for_label }}">Out-of-stock alerts</label>
+                  </div>
+                </div>
+
+                <div class="col-md-6">
+                  <h6 class="text-muted text-uppercase small fw-bold mb-3" style="letter-spacing: 0.5px;">Customers</h6>
+                  <div class="form-check mb-2">
+                    {{ notification_form.payment_overdue }}
+                    <label class="form-check-label" for="{{ notification_form.payment_overdue.id_for_label }}">Payment overdue</label>
+                  </div>
+                  <div class="form-check mb-2">
+                    {{ notification_form.customer_payment_received }}
+                    <label class="form-check-label" for="{{ notification_form.customer_payment_received.id_for_label }}">Customer payment received</label>
+                  </div>
+                </div>
+
+                <div class="col-md-6">
+                  <h6 class="text-muted text-uppercase small fw-bold mb-3" style="letter-spacing: 0.5px;">Security</h6>
+                  <div class="form-check mb-2">
+                    {{ notification_form.new_login_alert }}
+                    <label class="form-check-label" for="{{ notification_form.new_login_alert.id_for_label }}">New login</label>
+                  </div>
+                  <div class="form-check mb-2">
+                    {{ notification_form.password_changed_alert }}
+                    <label class="form-check-label" for="{{ notification_form.password_changed_alert.id_for_label }}">Password changed</label>
+                  </div>
+                </div>
+
+                <div class="col-md-6">
+                  <h6 class="text-muted text-uppercase small fw-bold mb-3" style="letter-spacing: 0.5px;">Channels</h6>
+                  <div class="form-check mb-2">
+                    {{ notification_form.push_notifications }}
+                    <label class="form-check-label" for="{{ notification_form.push_notifications.id_for_label }}">Push notifications</label>
+                  </div>
+                  <div class="form-check mb-2">
+                    {{ notification_form.email_notifications }}
+                    <label class="form-check-label" for="{{ notification_form.email_notifications.id_for_label }}">Email</label>
+                  </div>
+                </div>
+
+                <div class="col-12 mt-3">
+                  <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-check2-circle me-1"></i> Save notification settings
+                  </button>
+                </div>
+              </div>
+            </form>
+          </div>
+
+          <!-- Preferences -->
+          <div class="tab-pane fade" id="preferences">
+            <h5 class="card-title">Preferences</h5>
+            <form method="post">
+              {% csrf_token %}
+              <input type="hidden" name="form_name" value="preferences">
+
+              <div class="mb-4">
+                <label class="form-label fw-semibold d-block">Appearance</label>
+                {% for radio in preference_form.theme %}
+                  <div class="form-check form-check-inline">
+                    {{ radio.tag }}
+                    <label class="form-check-label" for="{{ radio.id_for_label }}">{{ radio.choice_label }}</label>
+                  </div>
+                {% endfor %}
+                <div class="form-text">Only affects you — not the rest of your team.</div>
+              </div>
+
+              <div class="row g-3">
+                <div class="col-md-6">
+                  <label for="{{ preference_form.language.id_for_label }}" class="form-label fw-semibold">Language</label>
+                  {{ preference_form.language }}
+                </div>
+                <div class="col-md-6">
+                  <label for="{{ preference_form.timezone.id_for_label }}" class="form-label fw-semibold">Timezone</label>
+                  {{ preference_form.timezone }}
+                </div>
+              </div>
+
+              <div class="form-check mt-4">
+                {{ preference_form.compact_mode }}
+                <label class="form-check-label" for="{{ preference_form.compact_mode.id_for_label }}">
+                  Compact density
+                  <div class="small text-muted">Reduce whitespace across tables and lists.</div>
+                </label>
+              </div>
+
+              <button type="submit" class="btn btn-primary mt-4">
+                <i class="bi bi-check2-circle me-1"></i> Save preferences
+              </button>
+            </form>
+          </div>
+
+          <!-- Businesses -->
+          <div class="tab-pane fade" id="businesses">
+            <h5 class="card-title">Businesses you belong to</h5>
+            <table class="table table-hover table-stack">
+              <thead>
+                <tr>
+                  <th>Business</th>
+                  <th>Role</th>
+                  <th class="text-end">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for membership in memberships %}
+                  <tr>
+                    <td class="fw-semibold">{{ membership.organization.name }}</td>
+                    <td>{{ membership.role.name }}</td>
+                    <td class="text-end">
+                      {% if membership.is_active %}
+                        <span class="badge bg-success">Active</span>
+                      {% else %}
+                        <span class="badge bg-secondary">Inactive</span>
+                      {% endif %}
+                    </td>
+                  </tr>
+                {% empty %}
+                  <tr><td colspan="3" class="text-center text-muted py-4">No memberships yet.</td></tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    if (window.location.hash) {
+      var target = document.querySelector('#settings-tab a[href="' + window.location.hash + '"]');
+      if (target) {
+        new bootstrap.Tab(target).show();
+      }
+    }
+  });
+</script>
+
+{% endblock %}

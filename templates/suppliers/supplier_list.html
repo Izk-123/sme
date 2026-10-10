@@ -1,0 +1,77 @@
+{% extends "base/base.html" %}
+{% load money %}
+{% block page_title %}Suppliers{% endblock %}
+{% block content %}
+
+<!-- ========================= HEADER & ACTIONS ========================= -->
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+  <div>
+    <h2 class="mb-0 fw-bold">Suppliers</h2>
+    <small class="text-muted">{{ suppliers|length }} supplier{{ suppliers|length|pluralize }}</small>
+  </div>
+  <div class="d-flex gap-2">
+    <a href="#" class="btn btn-success btn-sm">
+      <i class="bi bi-plus-lg me-1"></i> Add Supplier
+    </a>
+    <a href="{% url 'receive_stock' %}" class="btn btn-primary btn-sm">
+      <i class="bi bi-box-seam me-1"></i> Receive Stock
+    </a>
+  </div>
+</div>
+
+<!-- ========================= SUPPLIERS TABLE ========================= -->
+{% if suppliers %}
+  <div class="card">
+    <div class="card-body">
+      <table class="table table-hover datatable table-stack">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Phone</th>
+            <th>Email</th>
+            <th>Outstanding Balance</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for supplier in suppliers %}
+            <tr>
+              <td class="fw-bold">{{ supplier.name }}</td>
+              <td>
+                {% if supplier.phone %}
+                  <a href="tel:{{ supplier.phone }}" class="cf-link-slide">{{ supplier.phone }}</a>
+                {% else %}—{% endif %}
+              </td>
+              <td>
+                {% if supplier.email %}
+                  <a href="mailto:{{ supplier.email }}" class="cf-link-slide text-break">{{ supplier.email }}</a>
+                {% else %}—{% endif %}
+              </td>
+              <td class="fw-bold {% if supplier.outstanding_balance > 0 %}text-danger{% else %}text-success{% endif %}">
+                {% money supplier.outstanding_balance %}
+              </td>
+              <td>
+                <a href="{% url 'supplier_detail' supplier.pk %}"
+                   class="btn btn-outline-secondary btn-sm" title="View purchases">
+                  <i class="bi bi-eye me-1"></i><span class="d-none d-lg-inline">View</span>
+                </a>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+{% else %}
+  <div class="card">
+    <div class="card-body text-center py-5">
+      <i class="bi bi-truck" style="font-size: 2.5rem; color: var(--text-muted);"></i>
+      <p class="text-muted mt-2 mb-3">No suppliers have been added yet.</p>
+      <a href="#" class="btn btn-primary btn-sm">
+        <i class="bi bi-plus-lg me-1"></i> Add your first supplier
+      </a>
+    </div>
+  </div>
+{% endif %}
+
+{% endblock %}

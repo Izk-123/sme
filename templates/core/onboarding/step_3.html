@@ -1,0 +1,60 @@
+<div id="step-3">
+  <div class="d-flex align-items-center gap-3 mb-1">
+    <span class="badge rounded-pill" style="background: var(--cf-gold-soft); color: var(--cf-deep-teal); font-weight: 700;">Step 3</span>
+    <h4 class="mb-0 fw-bold">What would you like to manage?</h4>
+  </div>
+  <p class="text-muted mb-4">Select the modules you need. You can change this later.</p>
+
+  <form hx-post="{% url 'onboarding_step' step=3 %}" hx-target="#wizard-container" hx-swap="innerHTML">
+    {% csrf_token %}
+
+    <div class="row g-2 mb-4">
+      <div class="col-6 col-md-4">
+        <input type="checkbox" class="btn-check" name="modules" value="sales" id="mod-sales" checked autocomplete="off">
+        <label class="btn btn-outline-primary w-100 py-3" for="mod-sales">
+          <i class="bi bi-cart d-block mb-1" style="font-size: 1.3rem;"></i>
+          <span class="small fw-semibold">Sales</span>
+        </label>
+      </div>
+      <div class="col-6 col-md-4">
+        <input type="checkbox" class="btn-check" name="modules" value="inventory" id="mod-inventory" checked autocomplete="off">
+        <label class="btn btn-outline-primary w-100 py-3" for="mod-inventory">
+          <i class="bi bi-box-seam d-block mb-1" style="font-size: 1.3rem;"></i>
+          <span class="small fw-semibold">Inventory</span>
+        </label>
+      </div>
+      <div class="col-6 col-md-4">
+        <input type="checkbox" class="btn-check" name="modules" value="expenses" id="mod-expenses" checked autocomplete="off">
+        <label class="btn btn-outline-primary w-100 py-3" for="mod-expenses">
+          <i class="bi bi-cash-stack d-block mb-1" style="font-size: 1.3rem;"></i>
+          <span class="small fw-semibold">Expenses</span>
+        </label>
+      </div>
+      <div class="col-6 col-md-4">
+        <input type="checkbox" class="btn-check" name="modules" value="customers" id="mod-customers" checked autocomplete="off">
+        <label class="btn btn-outline-primary w-100 py-3" for="mod-customers">
+          <i class="bi bi-people d-block mb-1" style="font-size: 1.3rem;"></i>
+          <span class="small fw-semibold">Customers</span>
+        </label>
+      </div>
+      <div class="col-6 col-md-4">
+        <input type="checkbox" class="btn-check" name="modules" value="suppliers" id="mod-suppliers" checked autocomplete="off">
+        <label class="btn btn-outline-primary w-100 py-3" for="mod-suppliers">
+          <i class="bi bi-truck d-block mb-1" style="font-size: 1.3rem;"></i>
+          <span class="small fw-semibold">Suppliers</span>
+        </label>
+      </div>
+      <div class="col-6 col-md-4">
+        <input type="checkbox" class="btn-check" name="modules" value="reports" id="mod-reports" checked autocomplete="off">
+        <label class="btn btn-outline-primary w-100 py-3" for="mod-reports">
+          <i class="bi bi-graph-up d-block mb-1" style="font-size: 1.3rem;"></i>
+          <span class="small fw-semibold">Reports</span>
+        </label>
+      </div>
+    </div>
+
+    <button type="submit" class="btn btn-primary btn-lg w-100 fw-bold">
+      Next <i class="bi bi-arrow-right ms-2"></i>
+    </button>
+  </form>
+</div>

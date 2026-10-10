@@ -1,0 +1,84 @@
+{% extends "base/base.html" %}
+{% block page_title %}{% if form.instance.pk %}Edit{% else %}Add{% endif %} Product{% endblock %}
+{% block content %}
+
+<div class="row justify-content-center">
+  <div class="col-md-8 col-lg-6">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <form method="post" novalidate>
+          {% csrf_token %}
+
+          {% for field in form %}
+            <div class="mb-3">
+              <label for="{{ field.id_for_label }}" class="form-label fw-semibold">{{ field.label }}</label>
+              <div class="d-flex align-items-center gap-2">
+                {{ field }}
+                {% if field.name == 'barcode' %}
+                  <button type="button" class="btn btn-outline-primary btn-sm" id="scan-barcode-btn" title="Scan barcode">
+                    <i class="bi bi-upc-scan"></i>
+                  </button>
+                {% endif %}
+              </div>
+              {% if field.errors %}
+                <div class="text-danger small mt-1">
+                  <i class="bi bi-exclamation-circle me-1"></i>{{ field.errors|striptags }}
+                </div>
+              {% endif %}
+              {% if field.help_text %}
+                <div class="form-text mt-1">{{ field.help_text }}</div>
+              {% endif %}
+            </div>
+          {% endfor %}
+
+          <div id="barcode-scanner-container" style="display:none; max-width: 400px; margin: 0 auto 15px;"></div>
+
+          <div class="d-flex gap-2 mt-4">
+            <button type="submit" class="btn btn-primary flex-grow-1">
+              <i class="bi bi-check2-circle me-1"></i> Save Product
+            </button>
+            <a href="{% url 'inventory_list' %}" class="btn btn-outline-secondary">Cancel</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const scanBtn = document.getElementById('scan-barcode-btn');
+    const scannerContainer = document.getElementById('barcode-scanner-container');
+    const barcodeInput = document.getElementById('id_barcode');
+    let html5QrCode = null;
+
+    if (!scanBtn) return;
+
+    scanBtn.addEventListener('click', function () {
+      if (scannerContainer.style.display === 'none') {
+        scannerContainer.style.display = 'block';
+        html5QrCode = new Html5Qrcode("barcode-scanner-container");
+        html5QrCode.start(
+          { facingMode: "environment" },
+          { fps: 10, qrbox: { width: 250, height: 150 } },
+          onScanSuccess
+        ).catch(err => alert('Camera not available: ' + err));
+      } else {
+        html5QrCode.stop().then(() => {
+          scannerContainer.style.display = 'none';
+          html5QrCode.clear();
+        });
+      }
+    });
+
+    function onScanSuccess(decodedText) {
+      barcodeInput.value = decodedText;
+      html5QrCode.stop().then(() => {
+        scannerContainer.style.display = 'none';
+        html5QrCode.clear();
+      });
+    }
+  });
+</script>
+
+{% endblock %}

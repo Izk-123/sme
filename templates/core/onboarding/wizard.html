@@ -1,0 +1,58 @@
+{% extends "base/base.html" %}
+{% block page_title %}Set Up Your Business{% endblock %}
+{% block content %}
+
+<div class="row justify-content-center">
+  <div class="col-md-8 col-lg-6">
+
+    <!-- Progress indicator -->
+    <div class="d-flex align-items-center gap-2 mb-3 px-1" id="wizard-progress" aria-hidden="true">
+      <div class="flex-grow-1 rounded-pill" style="height: 4px; background: var(--bg-surface-alt); overflow: hidden;">
+        <div id="wizard-progress-bar"
+             class="rounded-pill"
+             style="height: 100%; width: 0%; background: linear-gradient(90deg, #12A5A0, #F5B82E); transition: width 420ms cubic-bezier(0.22, 1, 0.36, 1);"></div>
+      </div>
+      <small class="text-muted fw-semibold" id="wizard-progress-label" style="min-width: 46px; text-align: right;">Step —</small>
+    </div>
+
+    <div class="card">
+      <div class="card-body" id="wizard-container">
+        <div hx-get="{% url 'onboarding_step' step=1 %}" hx-trigger="load" hx-swap="innerHTML"></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  (function () {
+    const TOTAL_STEPS = 5;
+
+    function updateProgress() {
+      const container = document.getElementById('wizard-container');
+      const label = document.getElementById('wizard-progress-label');
+      const bar = document.getElementById('wizard-progress-bar');
+      if (!container || !label || !bar) return;
+
+      const stepEl = container.querySelector('[id^="step-"]');
+      if (!stepEl) return;
+
+      const match = stepEl.id.match(/^step-(\d+)/);
+      if (!match) return;
+
+      const step = parseInt(match[1], 10);
+      const pct = Math.min(100, Math.round((step / TOTAL_STEPS) * 100));
+      bar.style.width = pct + '%';
+      label.textContent = `Step ${step}/${TOTAL_STEPS}`;
+    }
+
+    document.addEventListener('DOMContentLoaded', updateProgress);
+    document.body.addEventListener('htmx:afterSwap', function (e) {
+      if (e.detail && e.detail.target && e.detail.target.id === 'wizard-container') {
+        updateProgress();
+      }
+    });
+  })();
+</script>
+
+{% endblock %}

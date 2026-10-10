@@ -1,0 +1,20 @@
+<div id="step-1">
+    <h4 class="card-title mb-3">Tell us about your business</h4>
+    <p class="text-muted mb-4">Select the type that best describes your business.</p>
+    <form hx-post="{% url 'onboarding_step' step=1 %}" hx-target="#wizard-container" hx-swap="innerHTML">
+        {% csrf_token %}
+        <div class="mb-3">
+            <label for="id_business_type" class="form-label">Business type</label>
+            <select id="id_business_type" name="business_type" class="form-select">
+                <option value="retail">Retail / Shop</option>
+                <option value="wholesale">Wholesale / Distribution</option>
+                <option value="manufacturing">Manufacturing</option>
+                <option value="restaurant">Restaurant / Food</option>
+                <option value="services">Services</option>
+                <option value="agriculture">Agriculture</option>
+                <option value="other">Other</option>
+            </select>
+        </div>
+        <button type="submit" class="btn btn-primary w-100">Next</button>
+    </form>
+</div>

@@ -1,0 +1,190 @@
+{% extends "base/base.html" %}
+{% block page_title %}Profile{% endblock %}
+{% block breadcrumb %}<li class="breadcrumb-item active">Profile</li>{% endblock %}
+{% block content %}
+
+<section class="section profile">
+  <div class="row g-4">
+
+    <!-- ========================= IDENTITY CARD ========================= -->
+    <div class="col-xl-4">
+      <div class="card">
+        <div class="card-body profile-card pt-4 d-flex flex-column align-items-center text-center">
+
+          <img src="{% if profile.profile_photo %}{{ profile.profile_photo.url }}{% else %}https://ui-avatars.com/api/?background=12A5A0&color=fff&size=120&name={{ profile.display_name|default:user.username|urlencode }}{% endif %}"
+               alt="Profile"
+               class="rounded-circle mb-3"
+               style="width: 120px; height: 120px; object-fit: cover; box-shadow: 0 0 0 4px var(--cf-flow-teal-soft);">
+
+          <h2 class="mb-1 fw-bold">{{ profile.display_name|default:user.username }}</h2>
+
+          {% with primary_membership=memberships.first %}
+            {% if primary_membership %}
+              <h3 class="h6 text-muted mb-0">
+                {{ primary_membership.role.name }}
+                <span class="d-block small">at {{ primary_membership.organization.name }}</span>
+              </h3>
+            {% endif %}
+          {% endwith %}
+
+        </div>
+      </div>
+    </div>
+
+    <!-- ========================= TAB CONTENT ========================= -->
+    <div class="col-xl-8">
+      <div class="card">
+        <div class="card-body pt-3">
+
+          <ul class="nav nav-tabs nav-tabs-bordered">
+            <li class="nav-item">
+              <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#profile-overview">
+                <i class="bi bi-person me-1"></i> Overview
+              </button>
+            </li>
+            <li class="nav-item">
+              <button class="nav-link" data-bs-toggle="tab" data-bs-target="#profile-edit">
+                <i class="bi bi-pencil me-1"></i> Edit
+              </button>
+            </li>
+            <li class="nav-item">
+              <button class="nav-link" data-bs-toggle="tab" data-bs-target="#profile-account">
+                <i class="bi bi-shield-lock me-1"></i> Account
+              </button>
+            </li>
+          </ul>
+
+          <div class="tab-content pt-4">
+
+            <!-- Overview -->
+            <div class="tab-pane fade show active profile-overview" id="profile-overview">
+              <h5 class="card-title">Profile details</h5>
+
+              <dl class="row mb-0 small">
+                <dt class="col-sm-4 text-muted fw-normal">Full name</dt>
+                <dd class="col-sm-8 fw-semibold">{{ profile.full_name|default:"—" }}</dd>
+
+                {% if profile.preferred_name %}
+                  <dt class="col-sm-4 text-muted fw-normal">Preferred name</dt>
+                  <dd class="col-sm-8">{{ profile.preferred_name }}</dd>
+                {% endif %}
+
+                <dt class="col-sm-4 text-muted fw-normal">Email</dt>
+                <dd class="col-sm-8 text-break">
+                  {% if user.email %}
+                    <a href="mailto:{{ user.email }}" class="cf-link-slide">{{ user.email }}</a>
+                  {% else %}—{% endif %}
+                </dd>
+
+                <dt class="col-sm-4 text-muted fw-normal">Phone</dt>
+                <dd class="col-sm-8">
+                  {% if primary_phone.number %}
+                    <a href="tel:{{ primary_phone.number }}" class="cf-link-slide">{{ primary_phone.number }}</a>
+                  {% else %}—{% endif %}
+                </dd>
+
+                {% if profile.date_of_birth %}
+                  <dt class="col-sm-4 text-muted fw-normal">Date of birth</dt>
+                  <dd class="col-sm-8">{{ profile.date_of_birth }}</dd>
+                {% endif %}
+
+                {% if profile.address or profile.city or profile.country %}
+                  <dt class="col-sm-4 text-muted fw-normal">Address</dt>
+                  <dd class="col-sm-8">
+                    {{ profile.address }}{% if profile.address %}, {% endif %}{{ profile.city }}{% if profile.city %}, {% endif %}{{ profile.country }}
+                  </dd>
+                {% endif %}
+              </dl>
+            </div>
+
+            <!-- Edit Profile -->
+            <div class="tab-pane fade profile-edit pt-3" id="profile-edit">
+              <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+
+                {% if form.non_field_errors %}
+                  <div class="alert alert-danger">{{ form.non_field_errors|striptags }}</div>
+                {% endif %}
+
+                {% for field in form %}
+                  <div class="row mb-3">
+                    <label for="{{ field.id_for_label }}" class="col-md-4 col-lg-3 col-form-label fw-semibold">
+                      {{ field.label }}
+                      {% if field.field.required %}<span class="text-danger">*</span>{% endif %}
+                    </label>
+                    <div class="col-md-8 col-lg-9">
+                      {{ field }}
+                      {% if field.errors %}
+                        <div class="invalid-feedback d-block"><i class="bi bi-exclamation-circle me-1"></i>{{ field.errors|striptags }}</div>
+                      {% endif %}
+                      {% if field.help_text %}
+                        <div class="form-text">{{ field.help_text }}</div>
+                      {% endif %}
+                    </div>
+                  </div>
+                {% endfor %}
+
+                <div class="text-center mt-4">
+                  <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-check2-circle me-1"></i> Save changes
+                  </button>
+                </div>
+              </form>
+            </div>
+
+            <!-- Account -->
+            <div class="tab-pane fade pt-3" id="profile-account">
+              <h5 class="card-title">Businesses you belong to</h5>
+
+              <table class="table table-hover table-stack">
+                <thead>
+                  <tr>
+                    <th>Business</th>
+                    <th>Role</th>
+                    <th class="text-end">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for membership in memberships %}
+                    <tr>
+                      <td class="fw-semibold">{{ membership.organization.name }}</td>
+                      <td>{{ membership.role.name }}</td>
+                      <td class="text-end">
+                        {% if membership.is_active %}
+                          <span class="badge bg-success">Active</span>
+                        {% else %}
+                          <span class="badge bg-secondary">Inactive</span>
+                        {% endif %}
+                      </td>
+                    </tr>
+                  {% empty %}
+                    <tr><td colspan="3" class="text-center text-muted py-4">No memberships yet.</td></tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+
+              <h5 class="card-title mt-4 d-flex align-items-center gap-2">
+                <i class="bi bi-shield-lock" style="color: var(--cf-flow-teal);"></i>
+                Security
+              </h5>
+              <div class="rounded p-3 d-flex align-items-center justify-content-between gap-3 flex-wrap"
+                   style="background: var(--cf-mist); border: 1px solid var(--border-color);">
+                <div>
+                  <div class="small text-muted text-uppercase fw-semibold mb-1" style="letter-spacing: 0.5px;">Username</div>
+                  <code>{{ user.username }}</code>
+                </div>
+                <a href="{% url 'change_password' %}" class="btn btn-outline-primary btn-sm">
+                  <i class="bi bi-key me-1"></i> Change password
+                </a>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+{% endblock %}

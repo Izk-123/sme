@@ -1,0 +1,69 @@
+{% load static %}
+{% load money %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>{{ product.name }} — Barcode Label</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 20px;
+      font-family: 'DM Sans', 'Open Sans', Arial, sans-serif;
+      color: #0A2F35;
+      background: #FFFFFF;
+      display: flex;
+      justify-content: center;
+    }
+    .label {
+      width: 100mm;
+      padding: 8mm 10mm;
+      border: 1px dashed #D6E5E3;
+      border-radius: 8px;
+      text-align: center;
+    }
+    .label-name {
+      font-weight: 700;
+      font-size: 14pt;
+      margin-bottom: 4mm;
+      color: #0A2F35;
+    }
+    .barcode {
+      font-family: 'Code39', 'Courier New', monospace;
+      font-size: 24pt;
+      letter-spacing: 2px;
+      letter-spacing: 3px;
+      padding: 3mm 0;
+      color: #0A2F35;
+      word-break: break-all;
+    }
+    .price {
+      font-size: 16pt;
+      font-weight: 700;
+      color: #12A5A0;
+      margin-top: 3mm;
+    }
+    .sku {
+      font-size: 9pt;
+      color: #7C9B99;
+      margin-top: 2mm;
+    }
+    @media print {
+      body { padding: 0; background: #fff; }
+      .label { border-color: #000; }
+    }
+  </style>
+</head>
+<body>
+  <div class="label">
+    <div class="label-name">{{ product.name }}</div>
+    <div class="barcode">{{ product.barcode }}</div>
+    <div class="price">{% money product.price %}</div>
+    {% if product.sku %}
+      <div class="sku">SKU: {{ product.sku }}</div>
+    {% endif %}
+  </div>
+  <script>window.print();</script>
+</body>
+</html>

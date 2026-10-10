@@ -1,0 +1,110 @@
+{% extends "base/base.html" %}
+{% block page_title %}Reports{% endblock %}
+{% block content %}
+
+<div class="row g-3">
+
+  <!-- Business Overview -->
+  <div class="col-12 col-md-6 col-lg-4">
+    <div class="card h-100">
+      <div class="card-body text-center">
+        <div class="rounded-circle d-inline-flex align-items-center justify-content-center mb-3"
+             style="width: 64px; height: 64px; background: var(--cf-flow-teal-soft); color: var(--cf-flow-teal); font-size: 1.75rem;">
+          <i class="bi bi-graph-up-arrow"></i>
+        </div>
+        <h5 class="card-title mb-1">Business Overview</h5>
+        <p class="card-text small mb-3" style="color: var(--text-muted);">Sales, Profit, Cash Flow</p>
+        <a href="{% url 'report_business' %}" class="btn btn-outline-primary btn-sm stretched-link">
+          View Report <i class="bi bi-arrow-right ms-1"></i>
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Profit & Loss -->
+  <div class="col-12 col-md-6 col-lg-4">
+    <div class="card h-100">
+      <div class="card-body text-center">
+        <div class="rounded-circle d-inline-flex align-items-center justify-content-center mb-3"
+             style="width: 64px; height: 64px; background: var(--cf-gold-soft); color: var(--cf-gold-dark); font-size: 1.75rem;">
+          <i class="bi bi-pie-chart"></i>
+        </div>
+        <h5 class="card-title mb-1">Profit &amp; Loss</h5>
+        <p class="card-text small mb-3" style="color: var(--text-muted);">Revenue vs Expenses</p>
+        <a href="{% url 'profit_loss' %}" class="btn btn-outline-primary btn-sm stretched-link">
+          View Report <i class="bi bi-arrow-right ms-1"></i>
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sales Report -->
+  <div class="col-12 col-md-6 col-lg-4">
+    <div class="card h-100">
+      <div class="card-body text-center">
+        <div class="rounded-circle d-inline-flex align-items-center justify-content-center mb-3"
+             style="width: 64px; height: 64px; background: var(--cf-flow-teal-soft); color: var(--cf-flow-teal); font-size: 1.75rem;">
+          <i class="bi bi-cash-coin"></i>
+        </div>
+        <h5 class="card-title mb-1">Sales Report</h5>
+        <p class="card-text small mb-3" style="color: var(--text-muted);">Top Products &amp; Customers</p>
+        <a href="{% url 'sales_report' %}" class="btn btn-outline-primary btn-sm stretched-link">
+          View Report <i class="bi bi-arrow-right ms-1"></i>
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Inventory Stock -->
+  <div class="col-12 col-md-6 col-lg-4">
+    <div class="card h-100">
+      <div class="card-body text-center">
+        <div class="rounded-circle d-inline-flex align-items-center justify-content-center mb-3"
+             style="width: 64px; height: 64px; background: var(--cf-mist); color: var(--cf-deep-teal); font-size: 1.75rem;">
+          <i class="bi bi-box-seam"></i>
+        </div>
+        <h5 class="card-title mb-1">Inventory Stock</h5>
+        <p class="card-text small mb-3" style="color: var(--text-muted);">Current Stock &amp; Low Stock</p>
+        <a href="{% url 'report_inventory_stock' %}" class="btn btn-outline-primary btn-sm stretched-link">
+          View Report <i class="bi bi-arrow-right ms-1"></i>
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Customer Debt -->
+  <div class="col-12 col-md-6 col-lg-4">
+    <div class="card h-100">
+      <div class="card-body text-center">
+        <div class="rounded-circle d-inline-flex align-items-center justify-content-center mb-3"
+             style="width: 64px; height: 64px; background: #FDEBE7; color: #8A2E1B; font-size: 1.75rem;">
+          <i class="bi bi-people"></i>
+        </div>
+        <h5 class="card-title mb-1">Customer Debt</h5>
+        <p class="card-text small mb-3" style="color: var(--text-muted);">Outstanding Balances</p>
+        <a href="{% url 'report_customer_debt' %}" class="btn btn-outline-primary btn-sm stretched-link">
+          View Report <i class="bi bi-arrow-right ms-1"></i>
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Expense Trends -->
+  <div class="col-12 col-md-6 col-lg-4">
+    <div class="card h-100">
+      <div class="card-body text-center">
+        <div class="rounded-circle d-inline-flex align-items-center justify-content-center mb-3"
+             style="width: 64px; height: 64px; background: var(--cf-gold-soft); color: var(--cf-gold-dark); font-size: 1.75rem;">
+          <i class="bi bi-receipt"></i>
+        </div>
+        <h5 class="card-title mb-1">Expense Trends</h5>
+        <p class="card-text small mb-3" style="color: var(--text-muted);">Monthly Spending</p>
+        <a href="{% url 'expense_trends' %}" class="btn btn-outline-primary btn-sm stretched-link">
+          View Report <i class="bi bi-arrow-right ms-1"></i>
+        </a>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

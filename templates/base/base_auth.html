@@ -1,0 +1,135 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+
+<head>
+  <meta charset="utf-8">
+  <meta content="width=device-width, initial-scale=1.0" name="viewport">
+
+  <!-- ==================== THEME SETUP (Prevents Flash) ==================== -->
+  <script>
+    (function () {
+      const saved = localStorage.getItem("sme-theme");
+      const theme =
+        saved ||
+        (window.matchMedia("(prefers-color-scheme: dark)").matches
+          ? "dark"
+          : "light");
+      document.documentElement.setAttribute("data-theme", theme);
+    })();
+  </script>
+
+  <title>{% block title %}ChumaFlow{% endblock %}</title>
+  <meta content="Simple business software for Malawian SMEs." name="description">
+  <meta content="sales, stock, customers, expenses, Malawi, SME, business" name="keywords">
+
+  <!-- ==================== FAVICON ==================== -->
+  <link rel="icon" type="image/svg+xml" href="{% static 'icons/favicon.svg' %}" />
+  <link rel="icon" type="image/png" sizes="32x32" href="{% static 'icons/favicon-32.png' %}" />
+  <link rel="icon" type="image/png" sizes="16x16" href="{% static 'icons/favicon-16.png' %}" />
+  <link rel="apple-touch-icon" sizes="180x180" href="{% static 'icons/apple-touch-icon.png' %}" />
+  <meta name="theme-color" content="#12A5A0" />
+
+  <!-- ==================== GOOGLE FONTS ==================== -->
+  <link href="https://fonts.googleapis.com/css?family=Open+Sans:300,300i,400,400i,600,600i,700,700i|Nunito:300,300i,400,400i,600,600i,700,700i|Poppins:300,300i,400,400i,500,500i,600,600i,700,700i" rel="stylesheet">
+
+  <!-- ==================== VENDOR CSS (CDN) ==================== -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.snow.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.bubble.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/simple-datatables@7.1.0/dist/style.css" rel="stylesheet">
+
+  <!-- ==================== MAIN CSS ==================== -->
+  <link href="{% static 'css/app.css' %}" rel="stylesheet">
+</head>
+
+<body>
+
+  <main>
+    <div class="container">
+
+      <section class="section register min-vh-100 d-flex flex-column align-items-center justify-content-center py-4">
+        <div class="container">
+          <div class="row justify-content-center">
+            <div class="col-lg-4 col-md-6 d-flex flex-column align-items-center justify-content-center">
+
+              <!-- ==================== LOGO ==================== -->
+              <div class="d-flex justify-content-center py-4">
+                <a href="{% url 'home' %}" class="logo d-flex align-items-center w-auto" aria-label="ChumaFlow home">
+                  <svg width="40" height="40" viewBox="0 0 36 36" aria-hidden="true" class="me-2">
+                    <rect width="36" height="36" rx="10" fill="#12A5A0"/>
+                    <path d="M24.5 12A9 9 0 1 0 24.5 24" fill="none" stroke="#F5B82E" stroke-width="4" stroke-linecap="round"/>
+                    <path d="M13.5 19c1.6-2.4 3.2-2.4 4.8 0s3.2 2.4 4.8 0" fill="none" stroke="#FFFFFF" stroke-width="2.6" stroke-linecap="round"/>
+                  </svg>
+                  <span>ChumaFlow</span>
+                </a>
+              </div>
+
+              <!-- ==================== CARD ==================== -->
+              <div class="card mb-3 w-100">
+                <div class="card-body">
+                  {% block auth_content %}{% endblock %}
+                </div>
+              </div>
+
+              <div class="credits">
+                Made in Blantyre by <a href="https://pritechmw.com/">Pritech ICT Solutions</a>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <a href="#" class="back-to-top d-flex align-items-center justify-content-center">
+    <i class="bi bi-arrow-up-short"></i>
+  </a>
+
+  <!-- ==================== VENDOR JS (CDN) ==================== -->
+  <script src="https://cdn.jsdelivr.net/npm/apexcharts@3.45.0/dist/apexcharts.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/simple-datatables@7.1.0/dist/umd/simple-datatables.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/tinymce@6.8.3/tinymce.min.js"></script>
+
+  <!-- ==================== MAIN JS ==================== -->
+  <script src="{% static 'js/app.js' %}"></script>
+
+  <!-- ==================== Show/hide password toggle ==================== -->
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      document.querySelectorAll('input[type="password"]').forEach(function (input) {
+        if (input.closest('.password-toggle-group')) return;
+
+        var wrapper = document.createElement('div');
+        wrapper.className = 'input-group password-toggle-group';
+        input.parentNode.insertBefore(wrapper, input);
+        wrapper.appendChild(input);
+
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'btn btn-outline-secondary';
+        btn.setAttribute('aria-label', 'Show password');
+        btn.innerHTML = '<i class="bi bi-eye"></i>';
+        wrapper.appendChild(btn);
+
+        btn.addEventListener('click', function () {
+          var showing = input.type === 'text';
+          input.type = showing ? 'password' : 'text';
+          btn.innerHTML = showing ? '<i class="bi bi-eye"></i>' : '<i class="bi bi-eye-slash"></i>';
+          btn.setAttribute('aria-label', showing ? 'Show password' : 'Hide password');
+        });
+      });
+    });
+  </script>
+
+</body>
+</html>

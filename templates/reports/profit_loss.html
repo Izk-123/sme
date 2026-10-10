@@ -1,0 +1,104 @@
+{% extends "base/base.html" %}
+{% load money %}
+{% block page_title %}Profit &amp; Loss{% endblock %}
+{% block content %}
+
+<!-- ========================= FILTERS ========================= -->
+<div class="cf-filter-card">
+  <form method="get" class="row g-3 align-items-end">
+    <div class="col-md-3">
+      <label for="id_month" class="form-label">Month</label>
+      {{ form.month }}
+    </div>
+    <div class="col-md-3">
+      <label for="id_year" class="form-label">Year</label>
+      {{ form.year }}
+    </div>
+    <div class="col-md-auto">
+      <button type="submit" class="btn btn-primary">
+        <i class="bi bi-search me-1"></i> View
+      </button>
+    </div>
+    {% if request.GET.month and request.GET.year %}
+      <div class="col-md-auto ms-md-auto">
+        <a href="{% url 'export_profit_loss_pdf' %}?month={{ request.GET.month }}&year={{ request.GET.year }}"
+           class="btn btn-danger btn-sm">
+          <i class="bi bi-filetype-pdf me-1"></i> PDF
+        </a>
+        <a href="{% url 'export_profit_loss_excel' %}?month={{ request.GET.month }}&year={{ request.GET.year }}"
+           class="btn btn-success btn-sm ms-1">
+          <i class="bi bi-file-earmark-excel me-1"></i> Excel
+        </a>
+      </div>
+    {% endif %}
+  </form>
+</div>
+
+{% if revenue is not None %}
+  <div class="row g-4">
+
+    <!-- Revenue Card -->
+    <div class="col-md-4">
+      <div class="card info-card h-100">
+        <div class="card-body">
+          <h5 class="card-title">Revenue</h5>
+          <div class="d-flex align-items-center">
+            <div class="card-icon rounded-circle d-flex align-items-center justify-content-center me-3"
+                 style="background: var(--cf-flow-teal-soft); color: var(--cf-flow-teal);">
+              <i class="bi bi-currency-dollar"></i>
+            </div>
+            <div>
+              <h6 class="mb-0">{% money revenue %}</h6>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Expenses Card -->
+    <div class="col-md-4">
+      <div class="card info-card h-100">
+        <div class="card-body">
+          <h5 class="card-title">Expenses</h5>
+          <div class="d-flex align-items-center">
+            <div class="card-icon rounded-circle d-flex align-items-center justify-content-center me-3"
+                 style="background: var(--cf-gold-soft); color: var(--cf-gold-dark);">
+              <i class="bi bi-receipt"></i>
+            </div>
+            <div>
+              <h6 class="mb-0">{% money expenses %}</h6>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Net Profit Card -->
+    <div class="col-md-4">
+      <div class="card info-card h-100">
+        <div class="card-body">
+          <h5 class="card-title">Net Profit</h5>
+          <div class="d-flex align-items-center">
+            <div class="card-icon rounded-circle d-flex align-items-center justify-content-center me-3"
+                 style="{% if net_profit >= 0 %}background: var(--cf-flow-teal-soft); color: var(--cf-flow-teal);{% else %}background: #FDEBE7; color: #8A2E1B;{% endif %}">
+              <i class="bi bi-pie-chart"></i>
+            </div>
+            <div>
+              <h6 class="mb-0 {% if net_profit >= 0 %}{% else %}text-danger{% endif %}"
+                  style="{% if net_profit >= 0 %}color: var(--cf-flow-teal);{% endif %}">
+                {% money net_profit %}
+              </h6>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+{% else %}
+  <div class="alert alert-info">
+    <i class="bi bi-info-circle me-1"></i>
+    Select a month and year, then click <strong>View</strong> to generate the report.
+  </div>
+{% endif %}
+
+{% endblock %}

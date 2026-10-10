@@ -1,0 +1,97 @@
+{% extends "base/base.html" %}
+{% block page_title %}Plans{% endblock %}
+{% block breadcrumb %}<li class="breadcrumb-item active">Plans</li>{% endblock %}
+{% block content %}
+
+<div class="row g-4">
+  {% for plan in plans %}
+    <div class="col-lg-3 col-md-6">
+      <div class="card h-100 position-relative
+        {% if subscription.plan_id == plan.id %}border-primary{% endif %}"
+        style="{% if subscription.plan_id == plan.id %}border-width: 2px !important; border-color: var(--cf-flow-teal) !important;{% endif %}">
+
+        {% if subscription.plan_id == plan.id %}
+          <span class="badge position-absolute"
+                style="top: -12px; left: 1.5rem; background: var(--cf-flow-teal); color: #fff; padding: 0.4em 0.85em; font-weight: 600;">
+            <i class="bi bi-check-circle me-1"></i>Current plan
+          </span>
+        {% endif %}
+
+        <div class="card-body d-flex flex-column">
+          <h5 class="card-title mb-2">{{ plan.name }}</h5>
+
+          <div class="mb-4">
+            <span class="fw-bold" style="font-size: 1.65rem; color: var(--cf-deep-teal); letter-spacing: -0.5px;">
+              MK{{ plan.price_monthly|floatformat:0 }}
+            </span>
+            <span class="text-muted">/month</span>
+          </div>
+
+          <ul class="list-unstyled small flex-grow-1 mb-4">
+            <li class="mb-2 d-flex align-items-start gap-2">
+              <i class="bi bi-check-lg flex-shrink-0" style="color: var(--cf-flow-teal); margin-top: 2px;"></i>
+              <span>
+                {% if plan.max_users == 0 %}Unlimited{% else %}Up to {{ plan.max_users }}{% endif %}
+                team member{{ plan.max_users|pluralize }}
+              </span>
+            </li>
+            <li class="mb-2 d-flex align-items-start gap-2">
+              <i class="bi bi-check-lg flex-shrink-0" style="color: var(--cf-flow-teal); margin-top: 2px;"></i>
+              <span>
+                {% if plan.max_products == 0 %}Unlimited{% else %}Up to {{ plan.max_products }}{% endif %}
+                product{{ plan.max_products|pluralize }}
+              </span>
+            </li>
+            <li class="mb-2 d-flex align-items-start gap-2">
+              <i class="bi bi-check-lg flex-shrink-0" style="color: var(--cf-flow-teal); margin-top: 2px;"></i>
+              <span>
+                {% if plan.max_transactions_month == 0 %}Unlimited{% else %}{{ plan.max_transactions_month }}{% endif %}
+                transactions/month
+              </span>
+            </li>
+            {% if plan.features.barcode %}
+              <li class="mb-2 d-flex align-items-start gap-2">
+                <i class="bi bi-check-lg flex-shrink-0" style="color: var(--cf-flow-teal); margin-top: 2px;"></i>
+                <span>Barcode scanning</span>
+              </li>
+            {% endif %}
+            {% if plan.features.advanced_reports %}
+              <li class="mb-2 d-flex align-items-start gap-2">
+                <i class="bi bi-check-lg flex-shrink-0" style="color: var(--cf-flow-teal); margin-top: 2px;"></i>
+                <span>Advanced reports</span>
+              </li>
+            {% endif %}
+            {% if plan.features.multi_branch %}
+              <li class="mb-2 d-flex align-items-start gap-2">
+                <i class="bi bi-check-lg flex-shrink-0" style="color: var(--cf-flow-teal); margin-top: 2px;"></i>
+                <span>Multiple branches</span>
+              </li>
+            {% endif %}
+            {% if plan.features.api_access %}
+              <li class="mb-2 d-flex align-items-start gap-2">
+                <i class="bi bi-check-lg flex-shrink-0" style="color: var(--cf-flow-teal); margin-top: 2px;"></i>
+                <span>API access</span>
+              </li>
+            {% endif %}
+          </ul>
+
+          {% if subscription.plan_id == plan.id %}
+            <button class="btn btn-outline-primary w-100" disabled>
+              <i class="bi bi-check2 me-1"></i> Your current plan
+            </button>
+          {% else %}
+            <a href="{% url 'upgrade_plan' %}" class="btn btn-primary w-100">
+              {% if plan.price_monthly > subscription.plan.price_monthly %}
+                <i class="bi bi-arrow-up-right me-1"></i>Upgrade to {{ plan.name }}
+              {% else %}
+                <i class="bi bi-arrow-repeat me-1"></i>Choose {{ plan.name }}
+              {% endif %}
+            </a>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  {% endfor %}
+</div>
+
+{% endblock %}

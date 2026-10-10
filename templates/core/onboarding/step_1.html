@@ -1,0 +1,26 @@
+<div id="step-1">
+  <div class="d-flex align-items-center gap-3 mb-1">
+    <span class="badge rounded-pill" style="background: var(--cf-gold-soft); color: var(--cf-deep-teal); font-weight: 700;">Step 1</span>
+    <h4 class="mb-0 fw-bold">Tell us about your business</h4>
+  </div>
+  <p class="text-muted mb-4">Select the type that best describes your business.</p>
+
+  <form hx-post="{% url 'onboarding_step' step=1 %}" hx-target="#wizard-container" hx-swap="innerHTML">
+    {% csrf_token %}
+    <div class="mb-4">
+      <label for="id_business_type" class="form-label fw-semibold">Business type</label>
+      <select id="id_business_type" name="business_type" class="form-select form-select-lg">
+        <option value="retail">Retail / Shop</option>
+        <option value="wholesale">Wholesale / Distribution</option>
+        <option value="manufacturing">Manufacturing</option>
+        <option value="restaurant">Restaurant / Food</option>
+        <option value="services">Services</option>
+        <option value="agriculture">Agriculture</option>
+        <option value="other">Other</option>
+      </select>
+    </div>
+    <button type="submit" class="btn btn-primary btn-lg w-100 fw-bold">
+      Next <i class="bi bi-arrow-right ms-2"></i>
+    </button>
+  </form>
+</div>

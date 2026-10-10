@@ -1,0 +1,17 @@
+{% extends "base/base.html" %}
+{% block page_title %}Set Up Your Business{% endblock %}
+{% block page_subtitle %}Complete the onboarding steps to get started{% endblock %}
+{% block content %}
+
+<div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+        <div class="card">
+            <div class="card-body" id="wizard-container">
+                <!-- HTMX loads the first step -->
+                <div hx-get="{% url 'onboarding_step' step=1 %}" hx-trigger="load" hx-swap="innerHTML"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

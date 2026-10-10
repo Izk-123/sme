@@ -1,0 +1,56 @@
+{% extends "base/base.html" %}
+{% block page_title %}Edit {{ membership.user.username }}{% endblock %}
+{% block content %}
+
+<div class="row justify-content-center">
+  <div class="col-lg-6 col-md-8">
+    <div class="card">
+      <div class="card-body">
+
+        <div class="d-flex align-items-center gap-3 mb-4 pb-3 border-bottom">
+          <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
+               style="width: 48px; height: 48px; background: var(--cf-flow-teal-soft); color: var(--cf-flow-teal); font-size: 1.25rem; font-weight: 700;">
+            {{ membership.user.username|slice:":1"|upper }}
+          </div>
+          <div>
+            <div class="fw-bold">{{ membership.user.username }}</div>
+            <small class="text-muted">{{ membership.role.name }}</small>
+          </div>
+        </div>
+
+        <form method="post">
+          {% csrf_token %}
+
+          {% if form.non_field_errors %}
+            <div class="alert alert-danger">{{ form.non_field_errors|striptags }}</div>
+          {% endif %}
+
+          {% for field in form %}
+            <div class="mb-3">
+              <label for="{{ field.id_for_label }}" class="form-label fw-semibold">
+                {{ field.label }}
+                {% if field.field.required %}<span class="text-danger">*</span>{% endif %}
+              </label>
+              {{ field }}
+              {% if field.errors %}
+                <div class="invalid-feedback d-block"><i class="bi bi-exclamation-circle me-1"></i>{{ field.errors|striptags }}</div>
+              {% endif %}
+              {% if field.help_text %}
+                <div class="form-text">{{ field.help_text }}</div>
+              {% endif %}
+            </div>
+          {% endfor %}
+
+          <div class="d-flex gap-2 mt-4">
+            <button type="submit" class="btn btn-primary flex-grow-1">
+              <i class="bi bi-check2-circle me-1"></i> Save changes
+            </button>
+            <a href="{% url 'team_list' %}" class="btn btn-outline-secondary">Cancel</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

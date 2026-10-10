@@ -1,0 +1,99 @@
+{% extends "base/base_auth.html" %}
+{% block title %}Create Account — ChumaFlow{% endblock %}
+
+{% block auth_content %}
+<div class="pt-4 pb-2">
+  <h5 class="card-title text-center pb-0 fs-4 fw-bold">Create your account</h5>
+  <p class="text-center small text-muted">Get ChumaFlow set up for your business</p>
+</div>
+
+<form class="row g-3 needs-validation" method="post" enctype="multipart/form-data" novalidate>
+  {% csrf_token %}
+
+  {% if form.non_field_errors %}
+    <div class="col-12">
+      <div class="alert alert-danger d-flex align-items-start gap-2">
+        <i class="bi bi-exclamation-circle-fill mt-1"></i>
+        <div>{{ form.non_field_errors|striptags }}</div>
+      </div>
+    </div>
+  {% endif %}
+
+  <div class="col-12">
+    <label for="{{ form.full_name.id_for_label }}" class="form-label fw-semibold">Your name</label>
+    {{ form.full_name }}
+    {% if form.full_name.errors %}
+      <div class="invalid-feedback d-block"><i class="bi bi-exclamation-circle me-1"></i>{{ form.full_name.errors|striptags }}</div>
+    {% endif %}
+  </div>
+
+  <div class="col-12">
+    <label for="{{ form.business_name.id_for_label }}" class="form-label fw-semibold">Business name</label>
+    {{ form.business_name }}
+    {% if form.business_name.errors %}
+      <div class="invalid-feedback d-block"><i class="bi bi-exclamation-circle me-1"></i>{{ form.business_name.errors|striptags }}</div>
+    {% endif %}
+  </div>
+
+  <div class="col-12">
+    <label for="{{ form.email.id_for_label }}" class="form-label fw-semibold">Your email</label>
+    {{ form.email }}
+    {% if form.email.errors %}
+      <div class="invalid-feedback d-block"><i class="bi bi-exclamation-circle me-1"></i>{{ form.email.errors|striptags }}</div>
+    {% endif %}
+  </div>
+
+  <div class="col-12">
+    <label for="{{ form.username.id_for_label }}" class="form-label fw-semibold">Username</label>
+    <div class="input-group has-validation">
+      <span class="input-group-text" style="background: var(--cf-mist); color: var(--cf-flow-teal); font-weight: 700;">@</span>
+      {{ form.username }}
+      <div class="invalid-feedback">{{ form.username.errors|striptags|default:"Please choose a username." }}</div>
+    </div>
+  </div>
+
+  <div class="col-12">
+    <label for="{{ form.password1.id_for_label }}" class="form-label fw-semibold">Password</label>
+    {{ form.password1 }}
+    {% if form.password1.errors %}
+      <div class="invalid-feedback d-block"><i class="bi bi-exclamation-circle me-1"></i>{{ form.password1.errors|striptags }}</div>
+    {% endif %}
+    {% if form.password1.help_text %}
+      <div class="form-text">{{ form.password1.help_text|safe }}</div>
+    {% endif %}
+  </div>
+
+  <div class="col-12">
+    <label for="{{ form.password2.id_for_label }}" class="form-label fw-semibold">Confirm password</label>
+    {{ form.password2 }}
+    {% if form.password2.errors %}
+      <div class="invalid-feedback d-block"><i class="bi bi-exclamation-circle me-1"></i>{{ form.password2.errors|striptags }}</div>
+    {% endif %}
+  </div>
+
+  <div class="col-12">
+    <div class="form-check">
+      {{ form.terms }}
+      <label class="form-check-label" for="{{ form.terms.id_for_label }}">
+        I agree to the <a href="#" class="fw-semibold">terms and conditions</a>
+      </label>
+      {% if form.terms.errors %}
+        <div class="invalid-feedback d-block"><i class="bi bi-exclamation-circle me-1"></i>{{ form.terms.errors|striptags }}</div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="col-12 mt-3">
+    <button class="btn btn-primary w-100" type="submit">
+      <i class="bi bi-person-plus me-1"></i> Create account
+    </button>
+  </div>
+
+  <div class="col-12">
+    <p class="small mb-0 text-center text-muted">
+      Already have an account?
+      <a href="{% url 'login' %}" class="fw-semibold">Sign in</a>
+    </p>
+  </div>
+</form>
+{% endblock %}

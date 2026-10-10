@@ -1,0 +1,1359 @@
+# Software Requirements Specification — Functional & Non-Functional Requirements
+
+## 1. System Overview
+
+The proposed system is a **mobile-first, modular SME Business Management Platform** designed for small and medium-sized businesses in Malawi that cannot afford or effectively use traditional ERP systems.
+
+The platform aims to:
+
+* Reduce operating costs
+* Increase revenue
+* Reduce human errors
+* Save time
+* Improve business decision-making
+* Improve record keeping
+* Help informal businesses gradually formalize their operations
+* Provide affordable access through a subscription model
+
+The system will be developed using:
+
+* **Backend:** Django
+* **Frontend:** Django Templates + Bootstrap
+* **Interactivity:** HTMX
+* **Database:** PostgreSQL
+* **Real-time:** Django Channels/WebSockets where required
+* **Mobile:** Progressive Web App (PWA)
+* **Payments:** PayChangu initially, with an abstraction layer for future gateways
+* **Deployment:** Linux/VPS-based production environment
+
+---
+
+# 2. Core Modules
+
+The initial platform should consist of six core business modules:
+
+```text
+                 SME BUSINESS OS
+                       │
+       ┌───────────────┼────────────────┐
+       │               │                │
+   Accounts          Sales          Inventory
+       │               │                │
+       ├───────────────┼────────────────┤
+       │               │                │
+   Finance         Customers         Reports
+                       │
+                       │
+                Subscriptions
+```
+
+The exact six can evolve, but **Accounts, Sales, Inventory, Finance, Customers and Reports** provide a strong initial foundation.
+
+---
+
+# 3. Functional Requirements
+
+Functional requirements describe **what the system must do**.
+
+---
+
+## FR-01: User Registration
+
+The system shall allow a new business owner to create an account.
+
+The registration process shall collect:
+
+* Full name (first name, middle name, last name)
+* Username
+* Email
+* Phone number
+* Password
+* Business name
+* Business type
+
+The system shall automatically create an **Organization** associated with the owner.
+
+```text
+User
+ ↓
+Organization
+ ↓
+Subscription
+```
+
+---
+
+# FR-02: Business Onboarding
+
+The system shall provide a guided onboarding process.
+
+The owner shall be able to specify:
+
+* Business name
+* Business type
+* Location
+* Contact information
+* Currency
+* Business size
+* Number of employees
+* Existing products
+* Existing customers
+* Existing stock
+
+The system shall configure the platform according to the selected business type.
+
+For example:
+
+**Retail**
+
+```text
+Sales
+Inventory
+Customers
+Expenses
+Reports
+```
+
+**Service business**
+
+```text
+Customers
+Services
+Invoices
+Expenses
+Tasks
+Reports
+```
+
+---
+
+# FR-03: Business Type Configuration
+
+The system shall support different SME categories, including:
+
+* Retail
+* Wholesale
+* Manufacturing
+* Restaurant
+* Hospitality
+* Agriculture
+* Salon/barbershop
+* Workshop
+* Professional services
+* Education
+* Other
+
+The selected business type shall determine recommended modules, workflows and terminology.
+
+---
+
+# FR-04: User & Employee Management
+
+Business owners shall be able to:
+
+* Create employee accounts
+* Assign roles
+* Edit employee information
+* Activate/deactivate employees
+* Reset employee passwords
+* View employee activity
+* Assign permissions
+* Manage employee access
+
+Initial roles shall include:
+
+* Owner
+* Cashier
+* Stock Clerk
+* Accountant
+
+The system should eventually support customizable roles.
+
+---
+
+# FR-05: Employee Self-Service
+
+Employees shall be able to access their own self-service portal.
+
+Depending on permissions, employees shall be able to:
+
+* View their profile
+* Change password
+* View assigned tasks
+* Submit expenses
+* Submit requests
+* View attendance
+* View relevant performance information
+* Receive notifications
+
+Employees shall not be able to access business information outside their permissions.
+
+---
+
+# FR-06: Product Management
+
+The system shall allow authorized users to:
+
+* Create products
+* Edit products
+* Delete/deactivate products
+* Categorize products
+* Define selling prices
+* Define cost prices
+* Define units of measurement
+* Set minimum stock levels
+* Set reorder levels
+* Add product images
+* Assign SKU
+* Assign barcode
+* Track whether a product is stock-controlled
+
+The system shall support products such as:
+
+* Individual items
+* Bottles
+* Cases
+* Boxes
+* Kilograms
+* Litres
+* Services
+* Other units
+
+---
+
+# FR-07: Barcode Management
+
+The system shall allow businesses to:
+
+* Register product barcodes
+* Scan barcodes using a smartphone camera
+* Search products using barcodes
+* Use USB/Bluetooth barcode scanners where available
+* Generate internal barcodes where required
+
+Barcode scanning shall be integrated into:
+
+* Sales
+* Stock receiving
+* Stocktaking
+* Product search
+
+---
+
+# FR-08: Sales Management
+
+Authorized employees shall be able to:
+
+* Create sales
+* Search products
+* Scan products
+* Add products to a cart
+* Change quantities
+* Apply discounts
+* Select customers
+* Record payments
+* Record credit sales
+* Complete sales
+* Cancel sales where authorized
+* Hold sales
+* Resume held sales
+* View sales history
+
+---
+
+# FR-09: Payment Management
+
+The system shall support:
+
+* Cash
+* Airtel Money
+* TNM Mpamba
+* Bank
+* Card
+* Credit
+* Other payment methods
+
+The system shall support split payments.
+
+Example:
+
+```text
+Sale: MK25,000
+
+Cash:          MK10,000
+Airtel Money:  MK15,000
+
+Total paid:    MK25,000
+```
+
+---
+
+# FR-10: Credit Sales
+
+The system shall allow authorized users to:
+
+* Sell on credit
+* Record partial payments
+* View outstanding balances
+* Record customer payments
+* View payment history
+* Generate customer statements
+* Set credit limits
+* Track overdue debts
+
+The owner shall be able to see:
+
+> **Who owes the business money?**
+
+---
+
+# FR-11: Sales Returns
+
+The system shall allow authorized users to:
+
+* Return products
+* Specify return quantity
+* Specify return reason
+* Refund customers
+* Record returned stock
+* Reverse applicable inventory movements
+
+Original sales records shall not be permanently deleted.
+
+---
+
+# FR-12: Inventory Management
+
+The system shall maintain real-time inventory quantities.
+
+The system shall support:
+
+* Stock receiving
+* Stock issuing
+* Stock adjustments
+* Stock transfers
+* Stocktaking
+* Damaged stock
+* Lost stock
+* Returned stock
+* Low-stock alerts
+* Reorder levels
+* Stock movement history
+
+---
+
+# FR-13: Stock Movement Tracking
+
+Every inventory change shall generate a stock movement.
+
+For example:
+
+```text
+Opening stock       +100
+Purchase             +50
+Sales                -30
+Damaged               -2
+Customer return       +3
+Adjustment             -1
+--------------------------------
+Current stock        120
+```
+
+The system shall record:
+
+* Product
+* Quantity
+* Movement type
+* Date/time
+* User
+* Organization
+* Reference transaction
+* Reason
+
+---
+
+# FR-14: Stocktaking
+
+The system shall allow authorized users to perform physical stock counts.
+
+The system shall compare:
+
+```text
+System quantity
+        vs
+Physical quantity
+```
+
+and calculate:
+
+* Variance
+* Shortage
+* Surplus
+* Value of variance
+
+---
+
+# FR-15: Supplier Management
+
+The system shall allow businesses to manage:
+
+* Supplier profiles
+* Supplier contacts
+* Purchases
+* Supplier invoices
+* Supplier balances
+* Payments
+* Purchase history
+
+---
+
+# FR-16: Expense Management
+
+The system shall allow authorized users to record:
+
+* Expense amount
+* Category
+* Date
+* Description
+* Payment method
+* Supporting document
+* Employee responsible
+
+Expense categories may include:
+
+* Rent
+* Transport
+* Electricity
+* Water
+* Airtime
+* Internet
+* Salaries
+* Repairs
+* Marketing
+* Packaging
+* Purchases
+* Other
+
+---
+
+# FR-17: Customer Management
+
+The system shall maintain customer profiles containing:
+
+* Name
+* Phone
+* Email
+* Address
+* Customer type
+* Credit limit
+* Current balance
+* Purchase history
+* Payment history
+* Notes
+
+The system shall support a **Walk-in Customer** without requiring a full profile.
+
+---
+
+# FR-18: Financial Management
+
+The system shall record:
+
+* Income
+* Expenses
+* Customer payments
+* Supplier payments
+* Purchases
+* Cash transactions
+* Other financial transactions
+
+The system shall calculate:
+
+* Revenue
+* Cost of sales
+* Gross profit
+* Expenses
+* Net profit
+* Cash flow
+
+---
+
+# FR-19: Reports
+
+The system shall provide reports including:
+
+### Sales
+
+* Sales summary
+* Sales by product
+* Sales by employee
+* Sales by customer
+* Sales by payment method
+* Sales by date
+
+### Inventory
+
+* Current stock
+* Low stock
+* Stock movement
+* Stock valuation
+* Stock variance
+* Slow-moving stock
+
+### Finance
+
+* Income statement
+* Cash flow
+* Expenses
+* Profitability
+
+### Customers
+
+* Customer balances
+* Credit sales
+* Outstanding debt
+* Debt aging
+
+### Employees
+
+* Sales performance
+* Activity
+* Transactions
+* Discounts
+* Returns
+
+---
+
+# FR-20: Dashboard
+
+The system shall provide role-specific dashboards.
+
+### Owner dashboard
+
+```text
+Today's Sales
+MK425,000
+
+Expenses
+MK95,000
+
+Estimated Profit
+MK180,000
+
+Customer Debt
+MK850,000
+
+Low Stock
+7 products
+```
+
+### Cashier dashboard
+
+Should focus on:
+
+* New sale
+* Held sales
+* Today's sales
+* Customers
+
+### Stock Clerk
+
+Should focus on:
+
+* Current stock
+* Stock receiving
+* Stocktaking
+* Low-stock items
+
+---
+
+# FR-21: Notifications
+
+The system shall generate notifications for:
+
+* Low stock
+* Customer payments
+* Overdue debts
+* Employee requests
+* Stock discrepancies
+* Subscription expiry
+* Failed payments
+* Successful payments
+* Important business alerts
+
+---
+
+# FR-22: Subscription Management
+
+The system shall allow businesses to:
+
+* View available plans
+* Start a trial
+* Subscribe
+* Upgrade
+* Downgrade
+* Renew
+* Cancel
+* View billing history
+* View invoices
+* View current usage
+
+Subscription states shall include:
+
+```text
+Trial
+Active
+Past Due
+Grace Period
+Restricted
+Cancelled
+```
+
+---
+
+# FR-23: Payment Gateway Integration
+
+The platform shall integrate with a payment gateway such as PayChangu.
+
+It shall support:
+
+* Subscription payments
+* Payment initiation
+* Payment confirmation
+* Payment verification
+* Webhooks
+* Transaction references
+* Payment failures
+* Refund handling where supported
+
+The payment architecture shall allow future integration with:
+
+* Flutterwave
+* Airtel Money API
+* Other payment providers
+
+---
+
+# FR-24: Usage & Feature Limits
+
+The system shall enforce subscription limits such as:
+
+* Maximum users
+* Maximum products
+* Maximum branches
+* Maximum transactions
+* Storage limits
+* Feature availability
+
+Example:
+
+```text
+Starter
+├── 3 users
+├── 500 products
+└── 1 branch
+
+Business
+├── 10 users
+├── 5,000 products
+└── 3 branches
+```
+
+---
+
+# FR-25: Audit Trail
+
+The system shall record important actions such as:
+
+```text
+Who?
+What?
+When?
+Which organization?
+What changed?
+```
+
+Examples:
+
+> John changed Coca-Cola stock from 50 → 48.
+
+> Mary cancelled Sale #10452.
+
+> Isaac changed the selling price from MK1,500 → MK1,700.
+
+This is particularly important for reducing fraud and errors.
+
+---
+
+# FR-26: Document Management
+
+The system should allow businesses to upload:
+
+* Receipts
+* Supplier invoices
+* Contracts
+* Business documents
+* Employee documents
+* Other supporting documents
+
+Documents shall be associated with relevant records.
+
+---
+
+# FR-27: Export
+
+Authorized users shall be able to export:
+
+* Reports
+* Sales
+* Expenses
+* Inventory
+* Customers
+* Transactions
+* Invoices
+
+Supported formats should include:
+
+* PDF
+* Excel
+* CSV
+
+---
+
+# FR-28: Offline Operation
+
+Because many Malawian businesses may experience unreliable internet connectivity, the PWA should support limited offline operation.
+
+The system should allow selected operations to continue offline, such as:
+
+* Viewing cached products
+* Creating sales
+* Recording basic transactions
+
+Once connectivity returns:
+
+```text
+Offline data
+     ↓
+Synchronization
+     ↓
+Django server
+```
+
+The system shall detect and resolve synchronization conflicts.
+
+---
+
+# FR-29: Multi-Tenancy
+
+Every business shall operate within its own organization.
+
+A user belonging to:
+
+```text
+Organization A
+```
+
+must never access data belonging to:
+
+```text
+Organization B
+```
+
+This must apply to:
+
+* Users
+* Sales
+* Inventory
+* Customers
+* Suppliers
+* Finance
+* Reports
+* Documents
+* Subscriptions
+
+This is one of the **most critical requirements** in your SaaS.
+
+---
+
+# 4. Non-Functional Requirements
+
+Non-functional requirements describe **how well the system must operate**.
+
+---
+
+## NFR-01: Usability
+
+The system shall provide a simple interface suitable for users with varying levels of digital literacy.
+
+The interface shall:
+
+* Use simple language
+* Minimize unnecessary fields
+* Minimize clicks/taps
+* Use recognizable icons
+* Provide clear error messages
+* Provide guided workflows
+* Avoid accounting jargon where unnecessary
+
+Instead of:
+
+> "Accounts Receivable"
+
+the system might say:
+
+> **"Customers who owe you"**
+
+This is particularly important for informal businesses.
+
+---
+
+# NFR-02: Mobile-First Design
+
+The system shall be designed primarily for smartphones.
+
+The UI shall:
+
+* Work on small screens
+* Support touch interaction
+* Use large buttons
+* Minimize typing
+* Support camera access
+* Support barcode scanning
+* Support PWA installation
+
+Desktop screens shall be an extension of the mobile experience rather than the other way around.
+
+---
+
+# NFR-03: Performance
+
+The system should provide fast responses under normal operating conditions.
+
+Target:
+
+* Normal page response: **<2 seconds**
+* Common HTMX operations: **<1 second where practical**
+* Dashboard loading: **<3 seconds**
+* Barcode lookup: **near-instant after local/cache lookup**
+
+Heavy reports should be generated asynchronously where necessary.
+
+---
+
+# NFR-04: Availability
+
+The production system should target:
+
+> **99.5%+ monthly availability**
+
+excluding scheduled maintenance.
+
+The system should have:
+
+* Monitoring
+* Error logging
+* Health checks
+* Automated backups
+* Recovery procedures
+
+---
+
+# NFR-05: Scalability
+
+The system shall support growth from:
+
+```text
+10 businesses
+     ↓
+1,000 businesses
+     ↓
+10,000+ businesses
+```
+
+The architecture should allow:
+
+* Database scaling
+* Horizontal application scaling
+* Background workers
+* Redis caching
+* CDN/static-file optimization
+* Separate reporting workloads
+
+---
+
+# NFR-06: Security
+
+The system shall implement:
+
+* HTTPS
+* Secure password hashing
+* CSRF protection
+* XSS protection
+* SQL injection protection
+* Secure sessions
+* Rate limiting
+* Authentication
+* Role-based authorization
+* Object-level authorization
+* Secure file uploads
+* Audit logging
+
+Django's built-in security mechanisms should be used wherever possible.
+
+---
+
+# NFR-07: Tenant Isolation
+
+Tenant isolation shall be enforced at the application/data-access layer.
+
+Every business transaction should be scoped to:
+
+```text
+request.user.organization
+```
+
+The system must prevent users from manipulating IDs to access another organization's records.
+
+For example:
+
+```text
+/sales/105/
+```
+
+must not allow an employee from Organization A to view Sale #105 belonging to Organization B.
+
+---
+
+# NFR-08: Reliability
+
+The system shall preserve transaction consistency.
+
+For example, completing a sale should not produce:
+
+```text
+Sale = successful
+Inventory = unchanged
+Payment = recorded
+```
+
+Instead, related operations should use appropriate database transactions.
+
+Conceptually:
+
+```text
+BEGIN TRANSACTION
+
+Create Sale
+Create SaleItems
+Create Payment
+Create StockMovements
+
+COMMIT
+```
+
+If something fails:
+
+```text
+ROLLBACK
+```
+
+---
+
+# NFR-09: Data Integrity
+
+The system shall enforce:
+
+* Foreign-key constraints
+* Unique constraints
+* Validation
+* Decimal financial calculations
+* Transaction integrity
+* Referential integrity
+
+Financial values should use:
+
+```python
+Decimal
+```
+
+rather than floating-point numbers.
+
+---
+
+# NFR-10: Backup & Recovery
+
+The database shall be backed up automatically.
+
+A production strategy could include:
+
+* Daily full backups
+* More frequent incremental/WAL backups
+* Off-server backup storage
+* Backup encryption
+* Backup verification
+* Defined recovery procedures
+
+The target should be something like:
+
+**RPO:** ≤ 24 hours initially
+**RTO:** ≤ 4 hours initially
+
+These targets can become stricter as the platform grows.
+
+---
+
+# NFR-11: Offline Capability
+
+The PWA should continue providing selected functionality when connectivity is unavailable.
+
+The system shall:
+
+* Cache required application resources
+* Store pending transactions locally
+* Queue synchronization
+* Detect connectivity
+* Synchronize when online
+* Avoid duplicate transactions
+
+This is particularly important for your intended market.
+
+---
+
+# NFR-12: Maintainability
+
+The system shall use modular Django applications.
+
+For example:
+
+```text
+accounts/
+organizations/
+products/
+sales/
+inventory/
+customers/
+suppliers/
+finance/
+reports/
+subscriptions/
+notifications/
+```
+
+Modules should communicate through clearly defined services/interfaces rather than tightly coupling every application.
+
+---
+
+# NFR-13: Extensibility
+
+The architecture shall allow future functionality such as:
+
+* Payroll
+* Manufacturing
+* Accounting
+* CRM
+* AI assistant
+* WhatsApp integration
+* SMS
+* Payment integrations
+* Multi-branch
+* APIs
+* Mobile applications
+
+without requiring major restructuring.
+
+---
+
+# NFR-14: Payment Reliability
+
+Payment processing shall be **idempotent**.
+
+If the same payment webhook is received twice:
+
+```text
+Webhook #1 → Payment SUCCESS
+Webhook #2 → ignored
+```
+
+The system must not:
+
+```text
+❌ activate twice
+❌ create two invoices
+❌ extend subscription twice
+```
+
+This is critical for your subscription system.
+
+---
+
+# NFR-15: Auditability
+
+Important business operations shall be traceable.
+
+The system should retain sufficient information to answer:
+
+> **Who changed what, when, and why?**
+
+Audit records should not be easily editable by ordinary users.
+
+---
+
+# NFR-16: Accessibility
+
+The interface should:
+
+* Have readable text
+* Provide sufficient contrast
+* Avoid relying only on color
+* Support keyboard navigation on desktop
+* Provide labels for form controls
+* Use clear error messages
+
+---
+
+# NFR-17: Compatibility
+
+The PWA should support modern:
+
+* Chrome
+* Edge
+* Firefox
+* Safari
+* Android browsers
+* iOS Safari
+
+The primary target should be **Android smartphones**, given the target market.
+
+---
+
+# NFR-18: Localization
+
+The system should be designed for Malawi.
+
+Initial localization:
+
+```text
+Currency: MWK
+Country: Malawi
+Phone: +265
+Timezone: Africa/Blantyre
+```
+
+The architecture should eventually support:
+
+* English
+* Chichewa
+* Other local languages
+
+and potentially other African currencies/countries.
+
+---
+
+# NFR-19: Low-Bandwidth Optimization
+
+The application should minimize data usage.
+
+This means:
+
+* Compressed assets
+* Lazy-loaded images
+* Minimal JavaScript
+* HTMX instead of unnecessarily large SPA bundles
+* Efficient database queries
+* Pagination
+* Optimized API responses
+* Local caching
+
+This is one reason your **Django Templates + HTMX + PWA** approach is quite appropriate.
+
+---
+
+# NFR-20: Cost Efficiency
+
+The system shall be designed to operate at relatively low infrastructure cost.
+
+The architecture should initially support deployment on a modest VPS using:
+
+```text
+Nginx
+   ↓
+Gunicorn
+   ↓
+Django
+   ↓
+PostgreSQL
+   ↓
+Redis
+```
+
+Background workers can later use:
+
+```text
+Celery
+```
+
+or another task queue.
+
+---
+
+# NFR-21: Subscription Enforcement
+
+Subscription restrictions shall not rely only on frontend UI.
+
+For example, hiding:
+
+```text
+[Advanced Reports]
+```
+
+is insufficient.
+
+The backend must also reject unauthorized requests.
+
+```text
+Frontend restriction
+        +
+Backend authorization
+        =
+Actual feature protection
+```
+
+---
+
+# NFR-22: Monitoring
+
+The production environment should monitor:
+
+* Application errors
+* Database health
+* CPU
+* RAM
+* Disk
+* Response times
+* Failed jobs
+* Payment failures
+* Webhook failures
+* Subscription failures
+* Login failures
+
+---
+
+# NFR-23: Privacy
+
+The platform shall protect business and employee information.
+
+Sensitive information should only be accessible to authorized users.
+
+Particularly sensitive employee information such as:
+
+* National ID
+* Passport
+* Driving licence
+* Personal phone
+* Date of birth
+
+should have **strict role-based access controls** and should not be displayed unnecessarily.
+
+---
+
+# 5. ⭐ Particularly Important Requirements for Your Project
+
+If I were turning this into an actual SRS for development, I'd mark these as **critical**:
+
+### 🔴 Critical
+
+1. **Multi-tenant data isolation**
+2. **Authentication & authorization**
+3. **Transaction integrity**
+4. **Inventory accuracy**
+5. **Payment verification**
+6. **Subscription state management**
+7. **Audit trail**
+8. **Data backup**
+9. **Mobile-first usability**
+10. **Offline transaction handling**
+
+### 🟠 High Priority
+
+11. Barcode scanning
+12. Customer credit management
+13. Reports
+14. Employee self-service
+15. Notifications
+16. Low-stock alerts
+17. Exporting
+18. Payment gateway integration
+
+### 🟢 Later
+
+19. AI business assistant
+20. Advanced forecasting
+21. WhatsApp automation
+22. Manufacturing
+23. Payroll
+24. Advanced CRM
+25. Multi-country support
+
+---
+
+# 🏗️ Overall System Architecture
+
+Putting everything we've discussed together:
+
+```text
+                         ┌───────────────────┐
+                         │    PWA CLIENT     │
+                         │ Mobile + Desktop  │
+                         └─────────┬─────────┘
+                                   │
+                              HTTPS/HTMX
+                                   │
+                         ┌─────────▼─────────┐
+                         │      NGINX        │
+                         └─────────┬─────────┘
+                                   │
+                    ┌──────────────▼──────────────┐
+                    │          DJANGO             │
+                    │                             │
+                    │ ┌────────┐ ┌─────────────┐ │
+                    │ │Accounts│ │Organizations │ │
+                    │ └────────┘ └─────────────┘ │
+                    │                             │
+                    │ ┌──────┐ ┌──────────────┐ │
+                    │ │Sales │ │Inventory     │ │
+                    │ └──────┘ └──────────────┘ │
+                    │                             │
+                    │ ┌───────────┐ ┌─────────┐ │
+                    │ │Customers  │ │ Finance │ │
+                    │ └───────────┘ └─────────┘ │
+                    │                             │
+                    │ ┌────────┐ ┌────────────┐ │
+                    │ │Reports │ │Subscriptions││
+                    │ └────────┘ └────────────┘ │
+                    └───────┬───────────┬─────────┘
+                            │           │
+                 ┌──────────▼───┐   ┌──▼──────────┐
+                 │ PostgreSQL   │   │    Redis    │
+                 └──────────────┘   └─────────────┘
+                                      │
+                                  Background
+                                    Jobs
+                                      │
+                     ┌────────────────┼─────────────┐
+                     ▼                ▼             ▼
+                 Payments        Notifications    Reports
+                 PayChangu       Email/SMS        Exports
+```
+
+## The key distinction
+
+Your **functional requirements** define the product:
+
+> *"The system shall allow a business owner to record a sale."*
+
+Your **non-functional requirements** define the quality:
+
+> *"The sale shall be recorded securely, accurately, quickly, within the correct organization, and without creating inconsistent inventory or payment records."*
+
+For this particular project, I would put **multi-tenancy, offline capability, low-bandwidth performance, payment reliability, security, and simple UX** much higher than they would appear in a conventional ERP SRS. Those are what make it genuinely suitable for the informal and semi-formal SME market you're targeting.

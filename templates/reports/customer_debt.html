@@ -1,0 +1,50 @@
+{% extends "base/base.html" %}
+{% load money %}
+{% block page_title %}Customer Debt{% endblock %}
+{% block content %}
+
+<!-- ======== Hero: Total Outstanding ======== -->
+<div class="card mb-4" style="max-width: 440px;">
+  <div class="card-body d-flex justify-content-between align-items-center">
+    <div>
+      <div class="text-muted small text-uppercase fw-semibold" style="letter-spacing: 0.6px;">Total Outstanding Debt</div>
+      <div class="h3 mb-0 fw-bold text-danger">{% money total_debt %}</div>
+    </div>
+    <div class="rounded-circle d-flex align-items-center justify-content-center"
+         style="width: 52px; height: 52px; background: #FDEBE7; color: #8A2E1B; font-size: 1.4rem;">
+      <i class="bi bi-people"></i>
+    </div>
+  </div>
+</div>
+
+<!-- ======== Debtor Table ======== -->
+<div class="card">
+  <div class="card-body">
+    <h5 class="card-title">Customers Who Owe</h5>
+    <table class="table table-hover datatable table-stack">
+      <thead>
+        <tr>
+          <th>Customer</th>
+          <th class="text-end">Outstanding Balance</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for customer in customers %}
+          <tr>
+            <td class="fw-bold">{{ customer.name }}</td>
+            <td class="text-end text-danger fw-bold">{% money customer.outstanding_balance %}</td>
+          </tr>
+        {% empty %}
+          <tr>
+            <td colspan="2" class="text-center text-muted py-4">
+              <i class="bi bi-check-circle text-success me-2"></i>
+              No outstanding balances. Everyone's paid up.
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% endblock %}

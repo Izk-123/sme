@@ -1,0 +1,61 @@
+{% extends "base/base_auth.html" %}
+{% block title %}Join {{ invitation.organization.name }} — ChumaFlow{% endblock %}
+
+{% block auth_content %}
+<div class="pt-4 pb-2">
+  <h5 class="card-title text-center pb-0 fs-4 fw-bold">
+    {% if expired %}Invite expired{% else %}Join {{ invitation.organization.name }}{% endif %}
+  </h5>
+  {% if not expired %}
+    <p class="text-center small text-muted">
+      Hi {{ invitation.full_name }} — set a username and password to get started as <strong>{{ invitation.role.name }}</strong>.
+    </p>
+  {% endif %}
+</div>
+
+{% if expired %}
+  <div class="rounded p-3 d-flex align-items-start gap-3"
+       style="background: #FDEBE7; border: 1px solid #E5A899; color: #8A2E1B;">
+    <i class="bi bi-exclamation-triangle-fill flex-shrink-0 mt-1" style="font-size: 1.15rem;"></i>
+    <div>
+      This invite link has already been used, revoked, or expired.
+      Ask the business owner to send you a new one.
+    </div>
+  </div>
+{% else %}
+  <form method="post" class="row g-3">
+    {% csrf_token %}
+
+    {% if form.non_field_errors %}
+      <div class="col-12">
+        <div class="alert alert-danger d-flex align-items-start gap-2">
+          <i class="bi bi-exclamation-circle-fill mt-1"></i>
+          <div>{{ form.non_field_errors|striptags }}</div>
+        </div>
+      </div>
+    {% endif %}
+
+    {% for field in form %}
+      <div class="col-12">
+        <label for="{{ field.id_for_label }}" class="form-label fw-semibold">
+          {{ field.label }}
+          {% if field.field.required %}<span class="text-danger">*</span>{% endif %}
+        </label>
+        {{ field }}
+        {% if field.errors %}
+          <div class="invalid-feedback d-block"><i class="bi bi-exclamation-circle me-1"></i>{{ field.errors|striptags }}</div>
+        {% endif %}
+        {% if field.help_text %}
+          <div class="form-text">{{ field.help_text|safe }}</div>
+        {% endif %}
+      </div>
+    {% endfor %}
+
+    <div class="col-12 mt-3">
+      <button type="submit" class="btn btn-primary w-100">
+        <i class="bi bi-check2-circle me-1"></i> Create my account
+      </button>
+    </div>
+  </form>
+{% endif %}
+{% endblock %}

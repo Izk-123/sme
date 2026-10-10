@@ -1,0 +1,894 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#0A2F35" />
+
+  <title>ChumaFlow — Know your money. Grow your business.</title>
+  <meta name="description" content="Simple business software for Malawian SMEs. Record sales, track stock, collect debts, and see your real profit — from your phone." />
+
+  <link rel="icon" type="image/svg+xml" href="{% static 'icons/favicon.svg' %}" />
+  <link rel="icon" type="image/png" sizes="32x32" href="{% static 'icons/favicon-32.png' %}" />
+  <link rel="apple-touch-icon" sizes="180x180" href="{% static 'icons/apple-touch-icon.png' %}" />
+  <link rel="manifest" href="{% static 'manifest.json' %}" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;800&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet" />
+
+  <style>
+    /* =========================================================================
+       ChumaFlow landing page — mobile-first.
+       Base styles target phones. Use min-width media queries to layer up.
+       ========================================================================= */
+
+    :root {
+      --deep:       #0A2F35;
+      --deep-2:     #11474D;
+      --deep-3:     #1E6A70;
+      --flow:       #12A5A0;
+      --flow-soft:  #2B7F84;
+      --gold:       #F5B82E;
+      --gold-soft:  #FFC94D;
+      --mist:       #EEF6F5;
+      --white:      #FFFFFF;
+      --text:       #0A2F35;
+      --text-muted: #3F5A5D;
+      --text-dim:   #9FC2C0;
+      --hero-lede:  #CFE3E1;
+
+      --radius-sm:  12px;
+      --radius-md:  20px;
+      --radius-lg:  28px;
+      --radius-pill: 999px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; }
+    html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+    body {
+      margin: 0;
+      font-family: 'DM Sans', Arial, sans-serif;
+      color: var(--text);
+      background: var(--white);
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+    a { color: inherit; text-decoration: none; }
+    img, svg { display: block; max-width: 100%; }
+
+    h1, h2, h3, .brand-font {
+      font-family: 'Bricolage Grotesque', sans-serif;
+      letter-spacing: -0.5px;
+    }
+
+    /* Touch-friendly tap targets everywhere */
+    button, .btn {
+      min-height: 44px;
+      font-size: 16px;
+      font-family: inherit;
+      cursor: pointer;
+    }
+
+    /* ---------- Reusable pill button ---------- */
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 14px 24px;
+      border-radius: var(--radius-pill);
+      font-weight: 700;
+      transition: transform 0.15s ease, background 0.2s ease;
+      white-space: nowrap;
+    }
+    .pill:active { transform: scale(0.98); }
+    .pill-primary { background: var(--deep); color: var(--white); }
+    .pill-primary:hover { background: var(--deep-2); }
+    .pill-gold { background: var(--gold); color: var(--deep); }
+    .pill-gold:hover { background: var(--gold-soft); }
+    .pill-outline { border: 2px solid var(--flow-soft); color: var(--white); padding: 12px 22px; }
+    .pill-outline:hover { background: rgba(255,255,255,0.08); }
+    .pill-ghost { color: var(--text); font-weight: 600; padding: 12px 18px; }
+    .pill-ghost:hover { color: var(--flow); }
+
+    /* =========================================================================
+       HEADER — hamburger on mobile, full nav on desktop
+       ========================================================================= */
+    .site-header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: var(--white);
+      border-bottom: 1px solid rgba(10,47,53,0.06);
+      backdrop-filter: saturate(180%) blur(8px);
+    }
+    .header-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 14px 20px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    /* Brand */
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 800;
+      font-size: 22px;
+      letter-spacing: -0.5px;
+      color: var(--deep);
+      flex-shrink: 0;
+    }
+    .brand svg { width: 34px; height: 34px; }
+    .brand-accent { color: var(--flow); }
+
+    /* Hamburger button (mobile only) */
+    .hamburger {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 44px;
+      height: 44px;
+      border: 0;
+      background: transparent;
+      border-radius: var(--radius-sm);
+      color: var(--deep);
+    }
+    .hamburger:hover { background: var(--mist); }
+    .hamburger svg { width: 24px; height: 24px; }
+
+    /* Desktop nav (hidden on mobile) */
+    .nav-desktop {
+      display: none;
+      align-items: center;
+      gap: 8px;
+    }
+    .nav-desktop a { font-weight: 500; padding: 10px 14px; border-radius: var(--radius-sm); }
+    .nav-desktop a:hover { background: var(--mist); color: var(--deep); }
+
+    /* Mobile drawer */
+    .mobile-drawer {
+      position: fixed;
+      inset: 0;
+      z-index: 200;
+      background: rgba(10,47,53,0.55);
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.2s ease, visibility 0.2s ease;
+    }
+    .mobile-drawer[aria-hidden="false"] {
+      opacity: 1;
+      visibility: visible;
+    }
+    .mobile-drawer-inner {
+      position: absolute;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      width: min(88vw, 340px);
+      background: var(--white);
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      transform: translateX(100%);
+      transition: transform 0.25s ease;
+      overflow-y: auto;
+    }
+    .mobile-drawer[aria-hidden="false"] .mobile-drawer-inner {
+      transform: translateX(0);
+    }
+    .mobile-drawer-close {
+      align-self: flex-end;
+      width: 44px; height: 44px;
+      display: inline-flex; align-items: center; justify-content: center;
+      border: 0; background: transparent; border-radius: var(--radius-sm);
+      color: var(--deep); cursor: pointer;
+    }
+    .mobile-drawer-close:hover { background: var(--mist); }
+    .mobile-drawer a {
+      display: flex;
+      align-items: center;
+      padding: 14px 16px;
+      border-radius: var(--radius-sm);
+      font-weight: 600;
+      font-size: 17px;
+      min-height: 48px;
+    }
+    .mobile-drawer a:hover { background: var(--mist); }
+    .mobile-drawer .drawer-cta {
+      margin-top: 12px;
+      justify-content: center;
+      background: var(--deep); color: var(--white);
+    }
+    .mobile-drawer .drawer-cta:hover { background: var(--deep-2); color: var(--white); }
+    .mobile-drawer .drawer-cta-secondary {
+      justify-content: center;
+      border: 2px solid var(--deep);
+      color: var(--deep);
+    }
+
+    /* Desktop enhancements */
+    @media (min-width: 900px) {
+      .header-inner { padding: 18px 32px; }
+      .hamburger { display: none; }
+      .nav-desktop { display: flex; }
+    }
+
+    /* =========================================================================
+       HERO — stacked on mobile, side-by-side on desktop
+       ========================================================================= */
+    .hero {
+      background: var(--deep);
+      color: var(--white);
+      padding: 48px 20px 56px;
+      display: flex;
+      flex-direction: column;
+      gap: 40px;
+      align-items: center;
+    }
+    .hero-copy {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      width: 100%;
+      max-width: 620px;
+      text-align: center;
+    }
+    .hero-eyebrow {
+      color: var(--gold);
+      font-weight: 700;
+      letter-spacing: 2px;
+      font-size: 13px;
+    }
+    .hero h1 {
+      margin: 0;
+      font-weight: 800;
+      font-size: clamp(34px, 9vw, 72px);
+      line-height: 1.05;
+      letter-spacing: -1.5px;
+    }
+    .hero h1 .gold { color: var(--gold); }
+    .hero-lede {
+      margin: 0;
+      font-size: clamp(16px, 4vw, 20px);
+      line-height: 1.55;
+      color: var(--hero-lede);
+    }
+    .hero-ctas {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      width: 100%;
+    }
+    .hero-ctas .pill { width: 100%; }
+    .hero-note {
+      color: var(--text-dim);
+      font-size: 14px;
+    }
+
+    /* Phone mockup */
+    .phone {
+      width: 100%;
+      max-width: 300px;
+      background: var(--deep-2);
+      border-radius: 32px;
+      padding: 14px;
+      border: 2px solid var(--deep-3);
+    }
+    .phone-screen {
+      background: var(--white);
+      color: var(--deep);
+      border-radius: 22px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .phone-label { font-size: 12px; color: #52706F; font-weight: 700; letter-spacing: 1px; }
+    .phone-amount { font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 28px; }
+    .phone-row { display: flex; gap: 10px; }
+    .phone-tile { flex: 1; border-radius: var(--radius-sm); padding: 10px; }
+    .phone-tile-gold { background: #FFF3D1; }
+    .phone-tile-teal { background: #D8F0EE; }
+    .phone-tile-label { font-size: 12px; }
+    .phone-tile-value { font-weight: 700; font-size: 16px; }
+    .phone-alert { background: #FDEBE7; border-radius: var(--radius-sm); padding: 10px; font-size: 13px; color: #8A2E1B; }
+    .phone-cta {
+      background: var(--deep); color: var(--white);
+      text-align: center; padding: 12px;
+      border-radius: var(--radius-sm); font-weight: 700;
+    }
+
+    /* Desktop hero side-by-side */
+    @media (min-width: 900px) {
+      .hero {
+        flex-direction: row;
+        justify-content: center;
+        padding: 96px 32px;
+        gap: 56px;
+      }
+      .hero-copy {
+        flex: 1 1 480px;
+        text-align: left;
+        align-items: flex-start;
+      }
+      .hero-ctas {
+        flex-direction: row;
+        flex-wrap: wrap;
+      }
+      .hero-ctas .pill { width: auto; }
+      .phone { flex: 0 0 300px; }
+    }
+
+    /* =========================================================================
+       STATS STRIP — dynamic, live numbers from DB
+       ========================================================================= */
+    .stats {
+      background: var(--deep-2);
+      color: var(--white);
+      padding: 24px 20px;
+    }
+    .stats-inner {
+      max-width: 1100px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 20px;
+      text-align: center;
+    }
+    .stat-value {
+      font-family: 'Bricolage Grotesque', sans-serif;
+      font-weight: 800;
+      font-size: 30px;
+      color: var(--gold);
+    }
+    .stat-label {
+      color: var(--text-dim);
+      font-size: 14px;
+      letter-spacing: 0.3px;
+    }
+    @media (min-width: 640px) {
+      .stats-inner { grid-template-columns: repeat(3, 1fr); }
+    }
+
+    /* =========================================================================
+       SECTIONS — shared paddings, mobile-first
+       ========================================================================= */
+    .section { padding: 56px 20px; }
+    .section-inner { max-width: 1100px; margin: 0 auto; display: flex; flex-direction: column; gap: 32px; }
+    .section-title {
+      margin: 0;
+      text-align: center;
+      font-size: clamp(26px, 7vw, 44px);
+      letter-spacing: -1px;
+    }
+    .section-alt { background: var(--mist); }
+
+    @media (min-width: 900px) {
+      .section { padding: 80px 32px; }
+      .section-inner { gap: 40px; }
+    }
+
+    /* Problem statement */
+    .problem p {
+      margin: 0 auto;
+      max-width: 780px;
+      font-size: clamp(16px, 4vw, 20px);
+      line-height: 1.6;
+      color: var(--text-muted);
+      text-align: center;
+    }
+
+    /* Card grid */
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 16px;
+    }
+    @media (min-width: 640px) { .grid { grid-template-columns: repeat(2, 1fr); } }
+    @media (min-width: 1024px) { .grid { grid-template-columns: repeat(4, 1fr); } }
+
+    .card {
+      background: var(--white);
+      border-radius: var(--radius-md);
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      box-shadow: 0 1px 3px rgba(10,47,53,0.04);
+    }
+    .card-title { font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 20px; }
+    .card-body { line-height: 1.5; color: var(--text-muted); }
+
+    /* Steps */
+    .step-number {
+      font-family: 'Bricolage Grotesque', sans-serif;
+      font-weight: 800; font-size: 44px; color: var(--gold);
+    }
+    .step-title { font-weight: 700; font-size: 19px; margin-top: 4px; }
+    .step-desc { color: var(--text-muted); line-height: 1.5; margin-top: 4px; }
+
+    /* =========================================================================
+       PRICING — dynamic from SubscriptionPlan
+       ========================================================================= */
+    .pricing-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 16px;
+    }
+    @media (min-width: 640px) { .pricing-grid { grid-template-columns: repeat(2, 1fr); } }
+    @media (min-width: 1024px) { .pricing-grid { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); } }
+
+    .plan {
+      background: var(--white);
+      border-radius: var(--radius-md);
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      position: relative;
+    }
+    .plan-name { font-weight: 700; font-size: 16px; }
+    .plan-price {
+      font-family: 'Bricolage Grotesque', sans-serif;
+      font-weight: 800; font-size: 28px;
+    }
+    .plan-price small { font-size: 14px; font-weight: 500; color: var(--text-muted); }
+    .plan-desc { color: var(--text-muted); line-height: 1.5; font-size: 15px; }
+    .plan-features { list-style: none; padding: 0; margin: 8px 0 0; display: flex; flex-direction: column; gap: 6px; }
+    .plan-features li { display: flex; gap: 8px; align-items: flex-start; font-size: 15px; color: var(--text-muted); }
+    .plan-features li::before {
+      content: "✓";
+      color: var(--flow);
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    /* Featured (Business) plan gets highlighted */
+    .plan-featured { background: var(--deep); color: var(--white); }
+    .plan-featured .plan-name { color: var(--gold); }
+    .plan-featured .plan-price { color: var(--white); }
+    .plan-featured .plan-price small { color: var(--text-dim); }
+    .plan-featured .plan-desc { color: var(--hero-lede); }
+    .plan-featured .plan-features li { color: var(--hero-lede); }
+    .plan-featured .plan-features li::before { color: var(--gold); }
+    .plan-badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: var(--radius-pill);
+      background: var(--gold);
+      color: var(--deep);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.4px;
+      text-transform: uppercase;
+      align-self: flex-start;
+    }
+
+    .pricing-note {
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 14px;
+    }
+
+    /* =========================================================================
+       FAQ — native <details>, zero JS
+       ========================================================================= */
+    .faq-list { display: flex; flex-direction: column; gap: 10px; max-width: 780px; margin: 0 auto; width: 100%; }
+    .faq-list details {
+      background: var(--white);
+      border-radius: var(--radius-sm);
+      padding: 4px 16px;
+      border: 1px solid rgba(10,47,53,0.06);
+    }
+    .faq-list summary {
+      cursor: pointer;
+      font-weight: 600;
+      padding: 14px 0;
+      list-style: none;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+    }
+    .faq-list summary::-webkit-details-marker { display: none; }
+    .faq-list summary::after {
+      content: "+";
+      font-size: 22px;
+      color: var(--flow);
+      transition: transform 0.2s ease;
+      line-height: 1;
+    }
+    .faq-list details[open] summary::after { transform: rotate(45deg); }
+    .faq-list p { margin: 0 0 16px; color: var(--text-muted); line-height: 1.6; }
+
+    /* =========================================================================
+       FINAL CTA
+       ========================================================================= */
+    .final-cta {
+      background: var(--gold);
+      padding: 56px 20px;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+      align-items: center;
+    }
+    .final-cta h2 {
+      margin: 0;
+      font-size: clamp(26px, 7vw, 48px);
+      letter-spacing: -1px;
+      color: var(--deep);
+      max-width: 720px;
+    }
+    .final-cta .small { color: var(--deep); font-size: 14px; }
+    .final-cta .pill { width: 100%; max-width: 340px; }
+    @media (min-width: 640px) {
+      .final-cta { padding: 80px 32px; }
+      .final-cta .pill { width: auto; }
+    }
+
+    /* =========================================================================
+       FOOTER
+       ========================================================================= */
+    .site-footer {
+      background: var(--deep);
+      color: var(--text-dim);
+      padding: 32px 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      gap: 16px;
+      font-size: 14px;
+    }
+    .site-footer .brand { color: var(--white); font-size: 20px; }
+    @media (min-width: 640px) {
+      .site-footer {
+        flex-direction: row;
+        justify-content: space-between;
+        text-align: left;
+        padding: 32px;
+      }
+    }
+
+    /* Body scroll lock when drawer open */
+    body.drawer-open { overflow: hidden; }
+  </style>
+</head>
+
+<body>
+
+<!-- ============================ HEADER ============================ -->
+<header class="site-header">
+  <div class="header-inner">
+    <a href="/" class="brand" aria-label="ChumaFlow home">
+      <svg viewBox="0 0 36 36" aria-hidden="true">
+        <rect width="36" height="36" rx="10" fill="#12A5A0"/>
+        <path d="M24.5 12A9 9 0 1 0 24.5 24" fill="none" stroke="#F5B82E" stroke-width="4" stroke-linecap="round"/>
+        <path d="M13.5 19c1.6-2.4 3.2-2.4 4.8 0s3.2 2.4 4.8 0" fill="none" stroke="#FFFFFF" stroke-width="2.6" stroke-linecap="round"/>
+      </svg>
+      <span>Chuma<span class="brand-accent">Flow</span></span>
+    </a>
+
+    <!-- Desktop nav -->
+    <nav class="nav-desktop" aria-label="Primary">
+      <a href="#features">Features</a>
+      <a href="#pricing">Pricing</a>
+      <a href="#faq">FAQ</a>
+      {% if user.is_authenticated %}
+        <a href="{% url 'home' %}" class="pill pill-primary" style="margin-left: 8px;">Dashboard</a>
+      {% else %}
+        <a href="{% url 'login' %}" class="pill-ghost">Log in</a>
+        <a href="{% url 'signup' %}" class="pill pill-primary" style="margin-left: 4px;">Start free</a>
+      {% endif %}
+    </nav>
+
+    <!-- Hamburger (mobile only) -->
+    <button
+      class="hamburger"
+      type="button"
+      aria-label="Open menu"
+      aria-controls="mobile-drawer"
+      aria-expanded="false"
+      id="hamburger-btn"
+    >
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+        <path d="M4 7h16M4 12h16M4 17h16"/>
+      </svg>
+    </button>
+  </div>
+</header>
+
+<!-- ==================== MOBILE DRAWER ==================== -->
+<div class="mobile-drawer" id="mobile-drawer" aria-hidden="true" role="dialog" aria-modal="true">
+  <div class="mobile-drawer-inner">
+    <button class="mobile-drawer-close" type="button" aria-label="Close menu" id="drawer-close-btn">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+        <path d="M6 6l12 12M18 6L6 18"/>
+      </svg>
+    </button>
+
+    <a href="#features" data-close-drawer>Features</a>
+    <a href="#pricing" data-close-drawer>Pricing</a>
+    <a href="#faq" data-close-drawer>FAQ</a>
+
+    {% if user.is_authenticated %}
+      <a href="{% url 'home' %}" class="drawer-cta" data-close-drawer>Go to dashboard</a>
+    {% else %}
+      <a href="{% url 'login' %}" class="drawer-cta-secondary" data-close-drawer>Log in</a>
+      <a href="{% url 'signup' %}" class="drawer-cta" data-close-drawer>Start free</a>
+    {% endif %}
+  </div>
+</div>
+
+<!-- ============================== HERO ============================== -->
+<section class="hero">
+  <div class="hero-copy">
+    <div class="hero-eyebrow">BUSINESS TOOLS FOR MALAWI</div>
+    <h1>Know your money.<br><span class="gold">Grow your business.</span></h1>
+    <p class="hero-lede">
+      Record sales, track stock, and see who owes you — all from the phone in your pocket.
+      No notebook. No guessing. See your real profit.
+    </p>
+    <div class="hero-ctas">
+      {% if user.is_authenticated %}
+        <a href="{% url 'home' %}" class="pill pill-gold">Go to your dashboard</a>
+      {% else %}
+        <a href="{% url 'signup' %}" class="pill pill-gold">Try it free for 14 days</a>
+      {% endif %}
+      <a href="#features" class="pill pill-outline">See how it works</a>
+    </div>
+    <div class="hero-note">Pay with Airtel Money or TNM Mpamba. No credit card needed.</div>
+  </div>
+
+  <div class="phone" aria-hidden="true">
+    <div class="phone-screen">
+      <div class="phone-label">TODAY (SAMPLE)</div>
+      <div>
+        <div style="font-size: 14px; color: #52706F;">Sales</div>
+        <div class="phone-amount">MK 185,000</div>
+      </div>
+      <div class="phone-row">
+        <div class="phone-tile phone-tile-gold">
+          <div class="phone-tile-label" style="color: #6B5200;">Profit</div>
+          <div class="phone-tile-value">MK 46,000</div>
+        </div>
+        <div class="phone-tile phone-tile-teal">
+          <div class="phone-tile-label" style="color: #2B7F84;">Owed to you</div>
+          <div class="phone-tile-value">MK 62,500</div>
+        </div>
+      </div>
+      <div class="phone-alert">Low stock: cooking oil, sugar</div>
+      <div class="phone-cta">+ New sale</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ STATS ============================ -->
+{% if business_count or product_count or transaction_count %}
+<section class="stats">
+  <div class="stats-inner">
+    <div>
+      <div class="stat-value">{{ business_count }}</div>
+      <div class="stat-label">Businesses on ChumaFlow</div>
+    </div>
+    <div>
+      <div class="stat-value">{{ product_count }}</div>
+      <div class="stat-label">Products tracked</div>
+    </div>
+    <div>
+      <div class="stat-value">{{ transaction_count }}</div>
+      <div class="stat-label">Sales recorded</div>
+    </div>
+  </div>
+</section>
+{% endif %}
+
+<!-- =========================== PROBLEM =========================== -->
+<section class="section problem">
+  <div class="section-inner">
+    <h2 class="section-title">Sales are moving. But are you making money?</h2>
+    <p>
+      Many shops run on a notebook, WhatsApp and memory. Stock goes missing,
+      customers forget their debts, and at month-end nobody can say what the
+      profit was. <strong>ChumaFlow fixes that, in plain language.</strong>
+    </p>
+  </div>
+</section>
+
+<!-- =========================== FEATURES =========================== -->
+<section id="features" class="section section-alt">
+  <div class="section-inner">
+    <h2 class="section-title">Everything your shop needs</h2>
+    <div class="grid">
+      <div class="card">
+        <div class="card-title">Sell fast</div>
+        <div class="card-body">Record a sale in seconds. Take cash, Airtel Money or TNM Mpamba, and send a receipt on WhatsApp.</div>
+      </div>
+      <div class="card">
+        <div class="card-title">Control stock</div>
+        <div class="card-body">See what you have, get alerts before you run out, and know who moved stock and when.</div>
+      </div>
+      <div class="card">
+        <div class="card-title">Collect debts</div>
+        <div class="card-body">Know who owes you, how much, and for how long. Share a statement with one tap.</div>
+      </div>
+      <div class="card">
+        <div class="card-title">See your profit</div>
+        <div class="card-body">Simple reports that tell you if you made money this week, without accounting words.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ STEPS ============================ -->
+<section class="section">
+  <div class="section-inner">
+    <h2 class="section-title">Start in three steps</h2>
+    <div class="grid">
+      <div>
+        <div class="step-number">1</div>
+        <div class="step-title">Add your products</div>
+        <div class="step-desc">Enter your first 20 items. We can help you do it.</div>
+      </div>
+      <div>
+        <div class="step-number">2</div>
+        <div class="step-title">Make your first sale</div>
+        <div class="step-desc">Tap, take payment, send the receipt.</div>
+      </div>
+      <div>
+        <div class="step-number">3</div>
+        <div class="step-title">Watch your profit</div>
+        <div class="step-desc">Open your overview every evening and know where you stand.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ========================== PRICING ========================== -->
+<section id="pricing" class="section section-alt">
+  <div class="section-inner">
+    <h2 class="section-title">Prices that fit a small shop</h2>
+    <div class="pricing-grid">
+      {% for plan in plans %}
+        <div class="plan {% if plan.slug == 'business' %}plan-featured{% endif %}">
+          {% if plan.slug == 'business' %}
+            <div class="plan-badge">Most popular</div>
+          {% endif %}
+          <div class="plan-name">{{ plan.name }}</div>
+          <div class="plan-price">
+            {% if plan.price_monthly > 0 %}
+              MK {{ plan.price_monthly|floatformat:0 }}<small>/month</small>
+            {% else %}
+              MK 0
+            {% endif %}
+          </div>
+          <div class="plan-desc">
+            {% if plan.max_users == 0 %}Unlimited users{% else %}{{ plan.max_users }} user{{ plan.max_users|pluralize }}{% endif %},
+            {% if plan.max_products == 0 %}unlimited products{% else %}{{ plan.max_products }} products{% endif %},
+            {% if plan.max_transactions_month == 0 %}unlimited sales{% else %}{{ plan.max_transactions_month }} sales{% endif %}/month
+          </div>
+
+          {% if plan.features %}
+            <ul class="plan-features">
+              {% for feature, enabled in plan.features.items %}
+                {% if enabled %}
+                  <li>{{ feature|title|cut:"_" }}</li>
+                {% endif %}
+              {% endfor %}
+            </ul>
+          {% endif %}
+        </div>
+      {% empty %}
+        <p style="text-align: center; color: var(--text-muted);">
+          Pricing plans will appear here once they're set up.
+        </p>
+      {% endfor %}
+    </div>
+    <div class="pricing-note">Every paid plan starts with a 14-day free trial. Pay with Airtel Money, TNM Mpamba, card or bank.</div>
+  </div>
+</section>
+
+<!-- ============================= FAQ ============================= -->
+<section id="faq" class="section">
+  <div class="section-inner">
+    <h2 class="section-title">Questions people ask</h2>
+    <div class="faq-list">
+      <details>
+        <summary>Do I need internet to use ChumaFlow?</summary>
+        <p>You need internet to sync. But the app caches products locally, so you can keep recording sales when the network drops — they upload automatically when you're back online.</p>
+      </details>
+      <details>
+        <summary>Will it work on my phone?</summary>
+        <p>If you have any Android phone from the last few years, yes. ChumaFlow installs like an app from your browser — no Play Store needed.</p>
+      </details>
+      <details>
+        <summary>Can my employees use it too?</summary>
+        <p>Yes. You invite them with a link and they get their own login. You decide what each person can see — a cashier doesn't need to see your profit report.</p>
+      </details>
+      <details>
+        <summary>How do I pay?</summary>
+        <p>With Airtel Money, TNM Mpamba, a bank transfer, or a card. Monthly or yearly — whichever fits your cash flow.</p>
+      </details>
+      <details>
+        <summary>What if I stop paying?</summary>
+        <p>Your data stays safe and readable. You just can't add new sales until you renew. We don't delete your business records.</p>
+      </details>
+    </div>
+  </div>
+</section>
+
+<!-- =========================== FINAL CTA =========================== -->
+<section id="start" class="final-cta">
+  <h2>Your business, organised. Your profit, visible.</h2>
+  {% if user.is_authenticated %}
+    <a href="{% url 'home' %}" class="pill pill-primary">Go to your dashboard</a>
+  {% else %}
+    <a href="{% url 'signup' %}" class="pill pill-primary">Start free — 14 days, no card</a>
+    <div class="small">Or <a href="{% url 'login' %}" style="text-decoration: underline; color: var(--deep);">log in</a> if you already have an account.</div>
+  {% endif %}
+</section>
+
+<!-- ============================ FOOTER ============================ -->
+<footer class="site-footer">
+  <div class="brand">
+    <svg width="28" height="28" viewBox="0 0 36 36" aria-hidden="true">
+      <rect width="36" height="36" rx="10" fill="#12A5A0"/>
+      <path d="M24.5 12A9 9 0 1 0 24.5 24" fill="none" stroke="#F5B82E" stroke-width="4" stroke-linecap="round"/>
+      <path d="M13.5 19c1.6-2.4 3.2-2.4 4.8 0s3.2 2.4 4.8 0" fill="none" stroke="#FFFFFF" stroke-width="2.6" stroke-linecap="round"/>
+    </svg>
+    <span>Chuma<span style="color: #F5B82E;">Flow</span></span>
+  </div>
+  <div>Made in Blantyre, Malawi by Pritech ICT Solutions</div>
+</footer>
+
+<!-- ============================= JS ============================= -->
+<script>
+  (function () {
+    const drawer = document.getElementById('mobile-drawer');
+    const openBtn = document.getElementById('hamburger-btn');
+    const closeBtn = document.getElementById('drawer-close-btn');
+
+    function openDrawer() {
+      drawer.setAttribute('aria-hidden', 'false');
+      openBtn.setAttribute('aria-expanded', 'true');
+      document.body.classList.add('drawer-open');
+    }
+    function closeDrawer() {
+      drawer.setAttribute('aria-hidden', 'true');
+      openBtn.setAttribute('aria-expanded', 'false');
+      document.body.classList.remove('drawer-open');
+    }
+
+    openBtn.addEventListener('click', openDrawer);
+    closeBtn.addEventListener('click', closeDrawer);
+
+    // Close on overlay click
+    drawer.addEventListener('click', function (e) {
+      if (e.target === drawer) closeDrawer();
+    });
+
+    // Close on Escape
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && drawer.getAttribute('aria-hidden') === 'false') {
+        closeDrawer();
+      }
+    });
+
+    // Any in-drawer link closes the drawer (so anchor jumps aren't blocked)
+    drawer.querySelectorAll('[data-close-drawer]').forEach(function (a) {
+      a.addEventListener('click', closeDrawer);
+    });
+  })();
+</script>
+
+</body>
+</html>

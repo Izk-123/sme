@@ -1,0 +1,23 @@
+<div id="step-2">
+  <div class="d-flex align-items-center gap-3 mb-1">
+    <span class="badge rounded-pill" style="background: var(--cf-gold-soft); color: var(--cf-deep-teal); font-weight: 700;">Step 2</span>
+    <h4 class="mb-0 fw-bold">How big is your business?</h4>
+  </div>
+  <p class="text-muted mb-4">This helps us tailor the experience for you.</p>
+
+  <form hx-post="{% url 'onboarding_step' step=2 %}" hx-target="#wizard-container" hx-swap="innerHTML">
+    {% csrf_token %}
+    <div class="mb-4">
+      <label for="id_business_size" class="form-label fw-semibold">Business size</label>
+      <select id="id_business_size" name="business_size" class="form-select form-select-lg">
+        <option value="micro">Micro (1–5 employees)</option>
+        <option value="small">Small (6–30 employees)</option>
+        <option value="medium">Medium (31–100+ employees)</option>
+      </select>
+      <div class="form-text mt-2"><i class="bi bi-info-circle me-1"></i>You can change this anytime from Settings.</div>
+    </div>
+    <button type="submit" class="btn btn-primary btn-lg w-100 fw-bold">
+      Next <i class="bi bi-arrow-right ms-2"></i>
+    </button>
+  </form>
+</div>

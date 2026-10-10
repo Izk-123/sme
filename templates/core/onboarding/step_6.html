@@ -1,0 +1,33 @@
+<div id="step-6">
+  <div class="d-flex align-items-center gap-3 mb-1">
+    <span class="badge rounded-pill" style="background: var(--cf-gold-soft); color: var(--cf-deep-teal); font-weight: 700;">Step 6</span>
+    <h4 class="mb-0 fw-bold">Where can customers find you?</h4>
+  </div>
+  <p class="text-muted mb-4">This helps with receipts and reports.</p>
+
+  <form hx-post="{% url 'onboarding_step' step=6 %}" hx-target="#wizard-container" hx-swap="innerHTML">
+    {% csrf_token %}
+    <div class="mb-3">
+      <label for="id_address" class="form-label fw-semibold">Address</label>
+      <input id="id_address" type="text" name="address" class="form-control" placeholder="e.g. Shop 12, Limbe Market">
+    </div>
+    <div class="mb-3">
+      <label for="id_city" class="form-label fw-semibold">City / Town</label>
+      <input id="id_city" type="text" name="city" class="form-control" placeholder="e.g. Blantyre">
+    </div>
+    <div class="mb-3">
+      <label for="id_phone_number" class="form-label fw-semibold">Business phone</label>
+      <input id="id_phone_number" type="tel" name="phone_number" class="form-control" placeholder="e.g. 099 XXX XXXX">
+    </div>
+    <div class="mb-4">
+      <label for="id_currency" class="form-label fw-semibold">Currency</label>
+      <select id="id_currency" name="currency" class="form-select">
+        <option value="MWK" selected>MWK — Malawi Kwacha</option>
+        <option value="USD">USD — US Dollar</option>
+      </select>
+    </div>
+    <button type="submit" class="btn btn-primary btn-lg w-100 fw-bold">
+      Finish <i class="bi bi-check2 ms-2"></i>
+    </button>
+  </form>
+</div>

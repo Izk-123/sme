@@ -1,0 +1,104 @@
+{% extends "base/base.html" %}
+{% block page_title %}Subscription{% endblock %}
+{% block breadcrumb %}<li class="breadcrumb-item active">Subscription</li>{% endblock %}
+{% block content %}
+
+{% if subscription.status == 'grace' %}
+  <div class="alert alert-warning">
+    <i class="bi bi-exclamation-triangle"></i>
+    <strong>Your subscription needs renewing.</strong> You'll keep full access until
+    {{ subscription.grace_end|date:"d M Y" }}, then the account switches to read-only until you renew.
+    <a href="{% url 'upgrade_plan' %}" class="fw-bold">Renew now</a>
+  </div>
+{% elif subscription.status == 'restricted' %}
+  <div class="alert alert-danger">
+    <i class="bi bi-lock-fill"></i>
+    <strong>Your account is in read-only mode.</strong> You can still view and export your data, but
+    new sales, expenses, and other records are disabled until you renew.
+    <a href="{% url 'upgrade_plan' %}" class="fw-bold">Renew now</a>
+  </div>
+{% elif subscription.is_trialing %}
+  <div class="alert alert-info">
+    <i class="bi bi-stars"></i>
+    You're on a {{ subscription.plan.name }} trial - {{ subscription.days_remaining_in_trial }} day{{ subscription.days_remaining_in_trial|pluralize }} left.
+    <a href="{% url 'upgrade_plan' %}" class="fw-bold">Choose a plan</a>
+  </div>
+{% endif %}
+
+{% if usage_warnings %}
+  <div class="alert alert-warning">
+    <strong>You're over your plan's limits:</strong>
+    <ul class="mb-0">
+      {% for w in usage_warnings %}
+        <li>{{ w.label|capfirst }}: {{ w.count }} / {{ w.limit }}</li>
+      {% endfor %}
+    </ul>
+  </div>
+{% endif %}
+
+<div class="row g-4">
+  <div class="col-lg-6">
+    <div class="card">
+      <div class="card-body">
+        <h5 class="card-title">{{ subscription.plan.name }}</h5>
+        <p class="text-muted">MK{{ subscription.plan.price_monthly|floatformat:0 }} / month</p>
+
+        <dl class="row mb-0">
+          <dt class="col-sm-5">Status</dt>
+          <dd class="col-sm-7">
+            <span class="badge
+              {% if subscription.status == 'active' %}bg-success
+              {% elif subscription.status == 'trialing' %}bg-info
+              {% elif subscription.status == 'grace' %}bg-warning
+              {% else %}bg-danger{% endif %}">
+              {{ subscription.get_status_display }}
+            </span>
+          </dd>
+
+          {% if subscription.is_trialing %}
+            <dt class="col-sm-5">Trial ends</dt>
+            <dd class="col-sm-7">{{ subscription.trial_end|date:"d M Y" }}</dd>
+          {% elif subscription.current_period_end %}
+            <dt class="col-sm-5">Renews</dt>
+            <dd class="col-sm-7">{{ subscription.current_period_end|date:"d M Y" }}</dd>
+          {% endif %}
+        </dl>
+
+        <a href="{% url 'upgrade_plan' %}" class="btn btn-primary btn-sm mt-3">Manage Subscription</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-6">
+    <div class="card">
+      <div class="card-body">
+        <h5 class="card-title">Payment History</h5>
+        {% if invoices %}
+          <table class="table table-borderless table-sm">
+            <tbody>
+              {% for invoice in invoices %}
+                <tr>
+                  <td>{{ invoice.period_start|date:"d M Y" }}</td>
+                  <td>MK{{ invoice.amount|floatformat:0 }}</td>
+                  <td>
+                    {% if invoice.status == 'paid' %}
+                      <span class="badge bg-success">Paid</span>
+                    {% elif invoice.status == 'pending' %}
+                      <span class="badge bg-warning">Pending</span>
+                    {% else %}
+                      <span class="badge bg-danger">Failed</span>
+                    {% endif %}
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        {% else %}
+          <p class="text-muted small">No payments recorded yet.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
