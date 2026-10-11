@@ -2,6 +2,7 @@
 # =============================================================================
 # ChumaFlow Deployment & Domain Migration Script
 #   • Migrates domain: sme.pritechmw.com → chumaflow.pritechmw.com
+#   • Handles WhatsApp Business API environment variables
 #   • Self-preserving across git pull
 #
 # Recommended:
@@ -281,7 +282,7 @@ sync_requirements() {
 }
 
 # -------------------------------
-# .env production hardening
+# .env production hardening & WhatsApp Setup
 # -------------------------------
 upsert_var() {
     local key="$1" val="$2"
@@ -299,10 +300,12 @@ upsert_var() {
 update_env_file() {
     log "Hardening .env for production..."
 
+    # --- Core Domain Settings ---
     upsert_var "ALLOWED_HOSTS"        "${NEW_DOMAIN},${NEW_DOMAIN_WWW},${SERVER_IP},localhost,127.0.0.1"
     upsert_var "CSRF_TRUSTED_ORIGINS" "https://${NEW_DOMAIN},https://${NEW_DOMAIN_WWW}"
     upsert_var "BASE_URL"             "https://${NEW_DOMAIN}"
 
+    # --- Production Security & DB ---
     upsert_var "DEBUG"                          "False"
     upsert_var "SECURE_SSL_REDIRECT"            "True"
     upsert_var "SECURE_HSTS_SECONDS"            "31536000"
@@ -324,6 +327,7 @@ update_env_file() {
         log "  WARNING: db.sqlite3 exists — migrate data if it holds production records."
     fi
 
+    # --- SECRET_KEY Management ---
     local current_key
     current_key=$(grep -E '^SECRET_KEY=' "$ENV_FILE" | cut -d= -f2- || true)
     if [[ "$current_key" == django-insecure-* ]]; then
@@ -338,6 +342,50 @@ update_env_file() {
             log "  WARNING: leaving insecure SECRET_KEY."
         fi
     fi
+
+    # ==========================================================
+    # WHATSAPP BUSINESS API SETUP
+    # ==========================================================
+    log "Checking WhatsApp Business API configuration..."
+    
+    local wa_phone wa_token wa_verify wa_secret
+    wa_phone=$(grep -E '^WHATSAPP_PHONE_NUMBER_ID=' "$ENV_FILE" | cut -d= -f2- || true)
+    wa_token=$(grep -E '^WHATSAPP_ACCESS_TOKEN=' "$ENV_FILE" | cut -d= -f2- || true)
+    wa_verify=$(grep -E '^WHATSAPP_VERIFY_TOKEN=' "$ENV_FILE" | cut -d= -f2- || true)
+    wa_secret=$(grep -E '^WHATSAPP_APP_SECRET=' "$ENV_FILE" | cut -d= -f2- || true)
+
+    if [[ -z "$wa_phone" || -z "$wa_token" || -z "$wa_verify" || -z "$wa_secret" ]]; then
+        log "  Some WhatsApp variables are missing."
+        echo ""
+        echo "  ──────────────────────────────────────────────────────────"
+        echo "  WhatsApp Business API Setup"
+        echo "  Get these values from: https://developers.facebook.com/apps/"
+        echo "    → Your App → WhatsApp → Basic Setup"
+        echo "    → Your App → App Settings → Basic (for App Secret)"
+        echo "  ──────────────────────────────────────────────────────────"
+        echo ""
+        read -rp "  WHATSAPP_PHONE_NUMBER_ID (press Enter to keep current): " new_phone
+        read -rp "  WHATSAPP_ACCESS_TOKEN (press Enter to keep current): " new_token
+        read -rp "  WHATSAPP_VERIFY_TOKEN (e.g., chumaflow_verify_2026): " new_verify
+        read -rp "  WHATSAPP_APP_SECRET (press Enter to keep current): " new_secret
+
+        [[ -n "$new_phone" ]] && upsert_var "WHATSAPP_PHONE_NUMBER_ID" "$new_phone"
+        [[ -n "$new_token" ]] && upsert_var "WHATSAPP_ACCESS_TOKEN" "$new_token"
+        [[ -n "$new_verify" ]] && upsert_var "WHATSAPP_VERIFY_TOKEN" "$new_verify"
+        [[ -n "$new_secret" ]] && upsert_var "WHATSAPP_APP_SECRET" "$new_secret"
+        log "  WhatsApp variables updated."
+    else
+        log "  WhatsApp variables already present."
+    fi
+
+    # Print the Webhook URL for Meta configuration
+    log ""
+    log "  ════════════════════════════════════════════════════════════"
+    log "  ACTION REQUIRED: Configure this Webhook URL in Meta"
+    log "  URL:   https://${NEW_DOMAIN}/payments/webhooks/whatsapp/"
+    log "  Token: $(grep -E '^WHATSAPP_VERIFY_TOKEN=' "$ENV_FILE" | cut -d= -f2- || echo 'Not set')"
+    log "  ════════════════════════════════════════════════════════════"
+    log ""
 
     log "  .env hardening complete."
 }
@@ -499,6 +547,21 @@ verify_migration() {
     else
         log "  ${NEW_DOMAIN} → no response"
     fi
+
+    # ==========================================================
+    # VERIFY WHATSAPP WEBHOOK ENDPOINT
+    # ==========================================================
+    log "  Verifying WhatsApp webhook endpoint..."
+    local wa_code
+    wa_code=$(curl -s -o /dev/null -w "%{http_code}" \
+        "https://${NEW_DOMAIN}/payments/webhooks/whatsapp/" \
+        --max-time 10 || echo "000")
+    
+    if [[ "$wa_code" == "403" || "$wa_code" == "400" || "$wa_code" == "200" ]]; then
+        log "  WhatsApp webhook is LIVE (HTTP ${wa_code})."
+    else
+        log "  WARNING: WhatsApp webhook returned HTTP ${wa_code}. Check your URLs."
+    fi
 }
 
 # -------------------------------
@@ -521,6 +584,13 @@ print_summary() {
     log ""
     log "If HTTPS isn't working:"
     log "  sudo certbot --nginx -d ${NEW_DOMAIN} -d ${NEW_DOMAIN_WWW}"
+    log ""
+    log "════════════════════════════════════════════════════════════"
+    log "NEXT STEP: Configure this Webhook in Meta"
+    log "1. Go to developers.facebook.com -> Your App -> WhatsApp -> Configuration"
+    log "2. Callback URL: https://${NEW_DOMAIN}/payments/webhooks/whatsapp/"
+    log "3. Verify Token: $(grep -E '^WHATSAPP_VERIFY_TOKEN=' "$ENV_FILE" | cut -d= -f2- || echo 'Not set')"
+    log "════════════════════════════════════════════════════════════"
 }
 
 # -------------------------------

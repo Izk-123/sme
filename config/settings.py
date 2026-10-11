@@ -14,12 +14,13 @@ Minimum .env for PRODUCTION:
 Optional:
     USE_REDIS=True/False, REDIS_HOST, REDIS_PORT
     CSRF_TRUSTED_ORIGINS=https://yourdomain.com
-    EMAIL_* , PAYCHANGU_* , BASE_URL, SECURE_SSL_REDIRECT
+    EMAIL_* , PAYCHANGU_* , WHATSAPP_* , BASE_URL, SECURE_SSL_REDIRECT
 """
 
 import os
 from pathlib import Path
 from dotenv import load_dotenv
+
 
 # =============================================================================
 # 1. PATH SETUP & ENVIRONMENT VARIABLES
@@ -140,6 +141,7 @@ MIDDLEWARE = [
     'subscriptions.middleware.SubscriptionMiddleware',
     'core.middleware.ForcePasswordChangeMiddleware',
 
+    'core.middleware.EmailVerificationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
@@ -347,14 +349,42 @@ PAYCHANGU_WEBHOOK_SECRET = os.getenv('PAYCHANGU_WEBHOOK_SECRET')
 
 
 # =============================================================================
-# 14. DEFAULT PRIMARY KEY FIELD
+# 14. WHATSAPP BUSINESS API (Cloud API / Meta Graph)
+# =============================================================================
+# Used for sending receipts, statements, invite links, and (optionally)
+# receiving inbound messages via webhook.
+#
+# Where to get these values:
+#   - Meta Business Suite → Apps → your app → WhatsApp → API Setup
+#     → WHATSAPP_PHONE_NUMBER_ID, WHATSAPP_ACCESS_TOKEN
+#     → App settings → Basic → App Secret → WHATSAPP_APP_SECRET
+#   - You choose WHATSAPP_VERIFY_TOKEN yourself; enter the same value in the
+#     Meta webhook configuration so Meta can verify your endpoint.
+#
+# Webhook URL to register with Meta:
+#   https://yourdomain.com/payments/webhooks/whatsapp/
+#   (or wherever you route the WhatsApp webhook view)
+#
+# Notes:
+#   - WHATSAPP_ACCESS_TOKEN for production should be a System User token so it
+#     doesn't expire in 24h like temporary tokens from API Setup.
+#   - Never expose APP_SECRET or ACCESS_TOKEN in templates or client-side JS.
+
+WHATSAPP_PHONE_NUMBER_ID = os.getenv('WHATSAPP_PHONE_NUMBER_ID')
+WHATSAPP_ACCESS_TOKEN = os.getenv('WHATSAPP_ACCESS_TOKEN')
+WHATSAPP_VERIFY_TOKEN = os.getenv('WHATSAPP_VERIFY_TOKEN')
+WHATSAPP_APP_SECRET = os.getenv('WHATSAPP_APP_SECRET')
+
+
+# =============================================================================
+# 15. DEFAULT PRIMARY KEY FIELD
 # =============================================================================
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 
 # =============================================================================
-# 15. SECURITY HEADERS (Production only)
+# 16. SECURITY HEADERS (Production only)
 # =============================================================================
 
 if not DEBUG:
@@ -373,7 +403,7 @@ if not DEBUG:
 
 
 # =============================================================================
-# 16. LOGGING (so production errors appear in journalctl)
+# 17. LOGGING (so production errors appear in journalctl)
 # =============================================================================
 
 # Without this, unhandled exceptions under Gunicorn can vanish silently —

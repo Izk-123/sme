@@ -1,8 +1,12 @@
+import json
+import hmac
+import hashlib
 import logging
 
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.http import HttpResponse, HttpResponseBadRequest
+from django.http import HttpResponse, HttpResponseBadRequest, JsonResponse
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse
 from django.utils.decorators import method_decorator
@@ -103,20 +107,11 @@ class PayChanguWebhookView(View):
             logger.warning("Rejected PayChangu webhook with invalid signature")
             return HttpResponse(status=400)
 
-        import json
         try:
             payload = json.loads(request.body or b"{}")
         except ValueError:
             payload = {}
 
-        # PayChangu's docs confirm tx_ref appears in webhook payloads
-        # "for any transaction" but the only full example shown is for a
-        # Direct API charge (a different product than Standard Checkout,
-        # which is what start_subscription_checkout uses), and that
-        # example uses "reference" rather than "tx_ref". Checking both,
-        # and logging the full payload on first receipt, so you can
-        # confirm the exact field name from a real test webhook rather
-        # than trusting this comment.
         tx_ref = payload.get("tx_ref") or payload.get("reference")
         logger.info("PayChangu webhook received: %s", payload)
 
@@ -126,3 +121,61 @@ class PayChanguWebhookView(View):
             logger.warning("PayChangu webhook had a valid signature but no tx_ref/reference: %s", payload)
 
         return HttpResponse(status=200)
+
+
+@method_decorator(csrf_exempt, name="dispatch")
+class WhatsAppWebhookView(View):
+    """
+    Public, CSRF-exempt (Meta can't send a Django CSRF token) - safe because
+    incoming POST requests are verified against the HMAC "X-Hub-Signature-256"
+    header using your WhatsApp App Secret.
+    
+    Handles:
+      - GET: Meta's webhook verification challenge.
+      - POST: Incoming messages, delivery statuses, etc.
+    """
+
+    def get(self, request):
+        """Verification handshake required by Meta when setting up the webhook."""
+        mode = request.GET.get("hub.mode")
+        token = request.GET.get("hub.verify_token")
+        challenge = request.GET.get("hub.challenge")
+
+        # Compare the token Meta sends with the one in your .env
+        if mode == "subscribe" and token == settings.WHATSAPP_VERIFY_TOKEN:
+            logger.info("WhatsApp webhook verified successfully.")
+            return HttpResponse(challenge, status=200)
+
+        logger.warning("WhatsApp webhook verification failed. Mode: %s, Token: %s", mode, token)
+        return HttpResponse("Forbidden", status=403)
+
+    def post(self, request):
+        """Handles incoming messages and status updates from WhatsApp."""
+        # 1. Verify the request is genuinely from Meta using App Secret
+        signature = request.headers.get("X-Hub-Signature-256", "")
+        if settings.WHATSAPP_APP_SECRET and signature:
+            expected = hmac.new(
+                settings.WHATSAPP_APP_SECRET.encode("utf-8"),
+                request.body,
+                hashlib.sha256,
+            ).hexdigest()
+            # Constant-time comparison to prevent timing attacks
+            if not hmac.compare_digest(f"sha256={expected}", signature):
+                logger.warning("WhatsApp webhook rejected: invalid signature.")
+                return HttpResponse("Invalid signature", status=403)
+
+        # 2. Parse the JSON payload
+        try:
+            payload = json.loads(request.body or b"{}")
+        except ValueError:
+            logger.warning("WhatsApp webhook received invalid JSON.")
+            return HttpResponseBadRequest("Invalid JSON")
+
+        # 3. Log the payload for debugging (you'll see this in your server logs)
+        logger.info("Received WhatsApp webhook payload: %s", json.dumps(payload, indent=2))
+
+        # TODO: Save incoming messages to your database, trigger
+        # notifications, update delivery statuses, etc.
+
+        # 4. Always return 200 OK so Meta knows you received it
+        return JsonResponse({"status": "ok"})

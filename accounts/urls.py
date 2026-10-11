@@ -15,6 +15,14 @@ urlpatterns = [
     path("team/invite/success/", views.InviteSuccessView.as_view(), name="invite_success"),
     path("team/<int:pk>/toggle-active/", views.ToggleEmployeeActiveView.as_view(), name="toggle_employee_active"),
     path("invite/<str:token>/", views.AcceptInvitationView.as_view(), name="accept_invitation"),
+    # Must be registered BEFORE verify-email/<token>/ — the str
+    # converter would otherwise swallow "required" as a token.
+    path("verify-email/required/",
+         views.VerifyEmailRequiredView.as_view(),
+         name="verify_email_required"),
+    path("verify-email/resend/",
+         views.ResendVerificationEmailView.as_view(),
+         name="resend_verification_email"),
     path("verify-email/<str:token>/", views.VerifyEmailView.as_view(), name="verify_email"),
     path("verify-email/resend/", views.ResendVerificationEmailView.as_view(), name="resend_verification_email"),
 ]

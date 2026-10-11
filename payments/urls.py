@@ -7,4 +7,5 @@ urlpatterns = [
     path("callback/", views.PaymentCallbackView.as_view(), name="payment_callback"),
     path("return/", views.PaymentReturnView.as_view(), name="payment_return"),
     path("webhooks/paychangu/", views.PayChanguWebhookView.as_view(), name="paychangu_webhook"),
+    path("webhooks/whatsapp/", views.WhatsAppWebhookView.as_view(), name="whatsapp_webhook"),
 ]

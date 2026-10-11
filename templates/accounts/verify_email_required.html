@@ -1,0 +1,41 @@
+{% extends "base/base_auth.html" %}
+{% block title %}Confirm your email — ChumaFlow{% endblock %}
+
+{% block auth_content %}
+<div class="pt-4 pb-2">
+  <h5 class="card-title text-center pb-0 fs-4 fw-bold">Confirm your email</h5>
+  <p class="text-center small text-muted">
+    We sent a confirmation link to <strong>{{ user.email }}</strong>.
+    Click it to unlock your account.
+  </p>
+</div>
+
+<div class="rounded p-3 mb-3 d-flex align-items-start gap-3"
+     style="background: var(--cf-flow-teal-soft); border: 1px solid var(--cf-flow-teal); color: var(--cf-deep-teal);">
+  <i class="bi bi-info-circle flex-shrink-0 mt-1"></i>
+  <div class="small">
+    Didn't get the email? Check spam, then request a new one below.
+    The link expires in 3 days.
+  </div>
+</div>
+
+<form method="post" action="{% url 'resend_verification_email' %}" class="mb-3">
+  {% csrf_token %}
+  <button type="submit" class="btn btn-primary w-100">
+    <i class="bi bi-envelope me-1"></i> Resend verification email
+  </button>
+</form>
+
+<div class="d-flex gap-2">
+  <a href="{% url 'settings' %}#security" class="btn btn-outline-secondary flex-grow-1">
+    <i class="bi bi-gear me-1"></i> Settings
+  </a>
+  {# Logout is POST-only in Django 5.0+ — a plain <a href> would 405. #}
+  <form method="post" action="{% url 'logout' %}" class="flex-grow-1 m-0">
+    {% csrf_token %}
+    <button type="submit" class="btn btn-outline-secondary w-100">
+      <i class="bi bi-box-arrow-right me-1"></i> Sign out
+    </button>
+  </form>
+</div>
+{% endblock %}
