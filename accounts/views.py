@@ -5,16 +5,16 @@ Authentication, profile, team, settings, and invitation views.
 This module is the accounts app's HTTP surface. It covers five distinct
 flows that all touch the User model but are otherwise unrelated:
 
-  1. Signup + email verification       (SignupView, VerifyEmailView,
-                                        ResendVerificationEmailView,
-                                        VerifyEmailRequiredView)
-  2. Login / logout / password change  (BusinessLoginView,
-                                        ChangePasswordView)
-  3. The single "my account" page      (SettingsView, ProfileRedirectView)
-  4. Team management (owner-only)      (TeamListView, InviteEmployeeView,
-                                        InviteSuccessView,
-                                        ToggleEmployeeActiveView)
-  5. Invitation acceptance (public)    (AcceptInvitationView)
+  1. Signup + contact verification       (SignupView, VerifyEmailView,
+                                          ResendVerificationEmailView,
+                                          VerifyEmailRequiredView)
+  2. Login / logout / password change    (BusinessLoginView,
+                                          ChangePasswordView)
+  3. The single "my account" page        (SettingsView, ProfileRedirectView)
+  4. Team management (owner-only)        (TeamListView, InviteEmployeeView,
+                                          InviteSuccessView,
+                                          ToggleEmployeeActiveView)
+  5. Invitation acceptance (public)      (AcceptInvitationView)
 
 Design rules applied throughout:
 
@@ -28,13 +28,14 @@ Design rules applied throughout:
     ad-hoc `if request.user.role == "owner"` checks — the mixins are
     already hardened against the "forgot LoginRequiredMixin" footgun.
 
-  * Emails are always best-effort. A broken SMTP server must never
-    500 a signup or invitation flow — see accounts.emails for the
-    contract, and the callers below for how the result is surfaced
-    to the user.
+  * Verification sends are always best-effort. A broken SMTP server or
+    an unreachable WhatsApp API must never 500 a signup or invitation
+    flow — see accounts.verification for the contract, and the callers
+    below for how the result is surfaced to the user.
 
   * Tokens are opaque and signed (django.core.signing), not stored as
-    rows. See accounts.emails.make_verification_token for the format.
+    rows. See accounts.verification.make_verification_token for the
+    format, and _build_verification_url for how the link is constructed.
 """
 
 from django.contrib import messages
@@ -51,7 +52,6 @@ from django.views.generic import CreateView, ListView, RedirectView
 
 from core.permissions import RoleRequiredMixin, SubscriptionWriteRequiredMixin
 
-from .emails import send_verification_email, verify_token
 from .forms import (
     AcceptInvitationForm,
     IdentityDocumentForm,
@@ -73,25 +73,34 @@ from .models import (
     UserPreference,
     UserProfile,
 )
+from .verification import (
+    CHANNEL_EMAIL,
+    CHANNEL_WHATSAPP,
+    send_verification,
+    send_verification_email,
+    verify_token,
+)
 
 
 # =============================================================================
-# 1. SIGNUP + EMAIL VERIFICATION
+# 1. SIGNUP + CONTACT VERIFICATION
 # =============================================================================
 
 class SignupView(CreateView):
     """
     Creates the Organization + owner User + Profile + Membership in one
-    step (see SignupForm.save), then sends them to the onboarding wizard.
+    step (see SignupForm.save), then dispatches the confirmation link
+    over whichever channel the user picked on the form — email or
+    WhatsApp. See accounts.verification.send_verification.
 
     Note on the sequencing with EmailVerificationMiddleware: this view
     redirects to /onboarding/ after login, but for a fresh account
     profile.email_verified is False, so the middleware intercepts that
-    request and bounces the user to /verify-email/required/. That is by
-    design — the email gate exists precisely to hold the user there.
-    Once they click the link in their inbox, VerifyEmailView sends them
-    back here (to /onboarding/), and this time the middleware lets it
-    through because the profile is now verified.
+    request and bounces the user to /verify-email/required/. That's by
+    design — the verification gate exists precisely to hold the user
+    there. Once they click the link, VerifyEmailView sends them back to
+    /onboarding/, and this time the middleware lets it through because
+    the profile is now verified.
     """
 
     form_class = SignupForm
@@ -102,10 +111,11 @@ class SignupView(CreateView):
         try:
             user = form.save()
         except IntegrityError:
-            # Belt-and-braces: form validation already checks username/email
-            # uniqueness, so this only fires on a genuine race (two signups
-            # for the same username landing at once) - rare, but a raw
-            # IntegrityError would otherwise 500 instead of showing a message.
+            # Belt-and-braces: form validation already checks username /
+            # email / phone uniqueness, so this only fires on a genuine
+            # race (two signups for the same identifier landing at once)
+            # — rare, but a raw IntegrityError would otherwise 500
+            # instead of showing a message.
             messages.error(
                 self.request,
                 "That username or email was just taken. Please try again.",
@@ -114,27 +124,39 @@ class SignupView(CreateView):
 
         login(self.request, user)
 
-        # Best-effort verification email. If SMTP fails we still proceed
-        # to the onboarding redirect — the user will land on the "check
-        # your email" gate page and can hit Resend from Settings, or
-        # from the gate page itself (ResendVerificationEmailView).
-        if user.email and not send_verification_email(user):
+        # Dispatch on the channel the user chose. send_verification
+        # returns one bool regardless of transport, so the messaging
+        # below stays uniform — but we echo the channel name back to the
+        # user, because "we couldn't email you" and "we couldn't WhatsApp
+        # you" imply different next steps (check spam vs. check number).
+        channel = form.cleaned_data["verification_channel"]
+        label = "email" if channel == CHANNEL_EMAIL else "WhatsApp"
+
+        if send_verification(user, channel):
+            messages.info(
+                self.request,
+                f"Check your {label} to confirm your account.",
+            )
+        else:
             messages.warning(
                 self.request,
-                "We couldn't send a verification email right now - you can resend it from Settings.",
+                f"We couldn't send your {label} confirmation right now — "
+                f"you can try again from Settings.",
             )
-        elif user.email:
-            messages.info(self.request, "Check your email to confirm your account.")
 
         return redirect(self.success_url)
 
 
 class VerifyEmailView(View):
     """
-    Public — this is the link that lands in the user's inbox.
+    Public — this is the link that lands in the user's inbox (email) or
+    chat (WhatsApp). Despite the class name (kept for URL stability),
+    it handles both channels: the token and URL are identical whichever
+    transport delivered them. That's a feature — if a user picked
+    WhatsApp and their phone is acting up, the same endpoint will
+    process an email resend.
 
-    Confirms the signed token, marks the profile verified, and then
-    routes the user to the right next step:
+    Routes the user to the right next step:
 
       * First-time verification + business hasn't finished onboarding
         → /onboarding/ (the wizard). This is the important case: without
@@ -157,11 +179,11 @@ class VerifyEmailView(View):
         except signing.SignatureExpired:
             messages.error(
                 request,
-                "That verification link has expired. Request a new one from Settings.",
+                "That confirmation link has expired. Request a new one from Settings.",
             )
             return redirect("login")
         except signing.BadSignature:
-            messages.error(request, "That verification link isn't valid.")
+            messages.error(request, "That confirmation link isn't valid.")
             return redirect("login")
 
         profile = (
@@ -170,7 +192,7 @@ class VerifyEmailView(View):
             .first()
         )
         if not profile:
-            messages.error(request, "That verification link isn't valid.")
+            messages.error(request, "That confirmation link isn't valid.")
             return redirect("login")
 
         # Capture BEFORE flipping the flag — this is the only signal that
@@ -181,7 +203,10 @@ class VerifyEmailView(View):
             profile.email_verified = True
             profile.save(update_fields=["email_verified"])
 
-        messages.success(request, "Email confirmed.")
+        # Neutral wording: the user could have arrived here from either
+        # transport, so don't say "Email confirmed" when they used
+        # WhatsApp.
+        messages.success(request, "Account confirmed.")
 
         # Not logged in: the link was opened on another device/browser,
         # or the session has since expired. They need to authenticate
@@ -204,27 +229,70 @@ class VerifyEmailView(View):
 
 
 class ResendVerificationEmailView(LoginRequiredMixin, View):
-    """POST-only, from the Security tab on Settings."""
+    """
+    POST-only, from Settings → Security (and the verify gate page).
+
+    Uses the channel the user picked at signup, stored on
+    UserProfile.preferred_verification_channel, so the resend goes out
+    the same way the original did. Switching channels is a bigger
+    feature (the new contact has to be verified independently) and
+    isn't offered here — the user can update their contact info on the
+    Profile / Contact tabs first, and a future "switch channel" action
+    would flip the stored preference and trigger a fresh send.
+    """
 
     def post(self, request):
         profile, _ = UserProfile.objects.get_or_create(user=request.user)
+        settings_url = f"{reverse('settings')}#security"
+
         if profile.email_verified:
-            messages.info(request, "Your email is already confirmed.")
-        elif not request.user.email:
-            messages.error(request, "Add an email address first.")
-        elif send_verification_email(request.user):
-            messages.success(request, "Verification email sent.")
+            messages.info(request, "Your account is already confirmed.")
+            return redirect(settings_url)
+
+        channel = profile.preferred_verification_channel or CHANNEL_EMAIL
+        label = "email" if channel == CHANNEL_EMAIL else "WhatsApp"
+
+        # Pre-flight the contact info so we can give a specific error
+        # ("add an email address") rather than a generic send failure.
+        # Without this, a WhatsApp-channel user with no phone on file
+        # would get the vague "couldn't send" message from the
+        # dispatcher's return value.
+        if channel == CHANNEL_EMAIL and not request.user.email:
+            messages.error(
+                request,
+                "Add an email address in the Contact tab first.",
+            )
+            return redirect(settings_url)
+        if channel == CHANNEL_WHATSAPP and not request.user.phone_numbers.filter(
+            is_primary=True
+        ).exists():
+            messages.error(
+                request,
+                "Add a WhatsApp number in the Contact tab first.",
+            )
+            return redirect(settings_url)
+
+        if send_verification(request.user, channel):
+            messages.success(request, f"Confirmation link sent by {label}.")
         else:
-            messages.error(request, "Couldn't send the email right now - try again shortly.")
-        return redirect(f"{reverse('settings')}#security")
+            messages.error(
+                request,
+                f"Couldn't send the {label} confirmation right now — try again shortly.",
+            )
+        return redirect(settings_url)
 
 
 class VerifyEmailRequiredView(LoginRequiredMixin, View):
     """
-    Where EmailVerificationMiddleware sends users with unverified email.
-    Renders a simple "check your email" page with a resend button; the
-    middleware's ALLOWED_URL_NAMES set includes this view's URL name so
-    that rendering it doesn't cause an infinite redirect loop.
+    Where EmailVerificationMiddleware sends users with unverified
+    contact info. Renders a "check your email / WhatsApp" page with a
+    resend button; the middleware's ALLOWED_URL_NAMES set includes this
+    view's URL name so that rendering it doesn't cause an infinite
+    redirect loop.
+
+    The template reads request.user.profile.preferred_verification_channel
+    to pick the right wording — see accounts/verify_email_required.html.
+    No channel logic lives here; the template handles the copy switch.
     """
 
     template_name = "accounts/verify_email_required.html"
@@ -244,10 +312,10 @@ class BusinessLoginView(LoginView):
     def get_success_url(self):
         """
         Override LOGIN_REDIRECT_URL for the one case it gets wrong:
-        a brand-new owner who verified their email on another device
-        (so they weren't logged in when they clicked the link) and is
-        now logging in for the first time. Without this override they'd
-        land on an empty dashboard with enabled_modules == [].
+        a brand-new owner who verified their contact info on another
+        device (so they weren't logged in when they clicked the link)
+        and is now logging in for the first time. Without this override
+        they'd land on an empty dashboard with enabled_modules == [].
 
         request.organization isn't available here — CurrentMembership-
         Middleware runs before authentication, so the login request
@@ -315,10 +383,9 @@ class SettingsView(LoginRequiredMixin, View):
     bound and validated; the rest stay fresh/unbound for redisplay.
 
     Deliberately NOT built: Devices/Sessions and My Activity tabs (no
-    UserSession/AuditLog model exists to back them — see the accounts
-    refactor notes) and working 2FA (the Security tab shows it as a
-    clearly-disabled "coming soon" control rather than a toggle that
-    doesn't actually do anything).
+    UserSession/AuditLog model exists to back them) and working 2FA
+    (the Security tab shows it as a clearly-disabled "coming soon"
+    control rather than a toggle that doesn't actually do anything).
     """
 
     template_name = "accounts/settings.html"
@@ -558,6 +625,15 @@ class AcceptInvitationView(View):
     gateway needed on our side; the owner does the sending however they
     normally reach the employee. The employee picks their own username
     and password here, which creates their User + Profile + Membership.
+
+    Note on the verification send at the end: this flow is intentionally
+    email-only. The inviter chooses how to reach the invitee outside the
+    app, and any email the inviter provided on the invitation is what we
+    verify against — offering a channel choice to the invitee would be a
+    separate feature (channel picker on AcceptInvitationForm). If the
+    invitation has no email, the user is created with no email and the
+    EmailVerificationMiddleware's `not user.email` guard passes them
+    straight through.
     """
 
     template_name = "accounts/accept_invitation.html"
@@ -647,11 +723,12 @@ class AcceptInvitationView(View):
                 )
 
         # Best-effort, same contract as SignupView — a broken SMTP server
-        # must not abort an otherwise-successful acceptance.
+        # must not abort an otherwise-successful acceptance. Email-only
+        # here; see the class docstring for why.
         if user.email and not send_verification_email(user):
             messages.warning(
                 request,
-                "We couldn't send a verification email right now - you can resend it from Settings.",
+                "We couldn't send a verification email right now — you can resend it from Settings.",
             )
 
         login(request, user)

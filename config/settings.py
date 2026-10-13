@@ -334,7 +334,10 @@ DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', EMAIL_HOST_USER)
 # Prevents Gunicorn worker from hanging if SMTP is unreachable
 EMAIL_TIMEOUT = 10
 
-# Absolute base URL used in emails (password reset, invites, etc.)
+# Absolute base URL used in emails, WhatsApp messages, invite links,
+# and verification links. Must be the *public* URL — behind a reverse
+# proxy, request.build_absolute_uri would pick up the internal host,
+# so accounts.verification._build_verification_url reads this instead.
 BASE_URL = os.getenv('BASE_URL', 'http://localhost:8000')
 
 
@@ -351,29 +354,67 @@ PAYCHANGU_WEBHOOK_SECRET = os.getenv('PAYCHANGU_WEBHOOK_SECRET')
 # =============================================================================
 # 14. WHATSAPP BUSINESS API (Cloud API / Meta Graph)
 # =============================================================================
-# Used for sending receipts, statements, invite links, and (optionally)
-# receiving inbound messages via webhook.
+# Used for sending verification links, receipts, statements, invite
+# links, and (via webhook) receiving inbound messages.
 #
 # Where to get these values:
-#   - Meta Business Suite → Apps → your app → WhatsApp → API Setup
+#   - Meta Business Suite → Apps → your app → WhatsApp → Basic setup
 #     → WHATSAPP_PHONE_NUMBER_ID, WHATSAPP_ACCESS_TOKEN
 #     → App settings → Basic → App Secret → WHATSAPP_APP_SECRET
-#   - You choose WHATSAPP_VERIFY_TOKEN yourself; enter the same value in the
-#     Meta webhook configuration so Meta can verify your endpoint.
+#   - You choose WHATSAPP_VERIFY_TOKEN yourself; enter the same value in
+#     the Meta webhook configuration so Meta can verify your endpoint.
 #
 # Webhook URL to register with Meta:
 #   https://yourdomain.com/payments/webhooks/whatsapp/
-#   (or wherever you route the WhatsApp webhook view)
+#   (handled by payments.views.WhatsAppWebhookView)
 #
 # Notes:
-#   - WHATSAPP_ACCESS_TOKEN for production should be a System User token so it
-#     doesn't expire in 24h like temporary tokens from API Setup.
+#   - WHATSAPP_ACCESS_TOKEN in production should be a System User token,
+#     not a temporary one from Basic setup. Temporary tokens expire in
+#     ~24h; System User tokens can be set to never expire. See:
+#     Business Settings → Users → System Users → Generate Token.
 #   - Never expose APP_SECRET or ACCESS_TOKEN in templates or client-side JS.
 
+# --- Credentials -----------------------------------------------------------
 WHATSAPP_PHONE_NUMBER_ID = os.getenv('WHATSAPP_PHONE_NUMBER_ID')
 WHATSAPP_ACCESS_TOKEN = os.getenv('WHATSAPP_ACCESS_TOKEN')
 WHATSAPP_VERIFY_TOKEN = os.getenv('WHATSAPP_VERIFY_TOKEN')
 WHATSAPP_APP_SECRET = os.getenv('WHATSAPP_APP_SECRET')
+
+# --- Graph API version -----------------------------------------------------
+# Meta deprecates Graph API versions on a rolling ~2-year cycle. Keep
+# this current: a stale version hard-rejects with an OAuthException.
+# Read by accounts/verification.py, which builds every outbound URL.
+#
+# Current version list: https://developers.facebook.com/docs/graph-api/changelog
+WHATSAPP_API_VERSION = os.getenv('WHATSAPP_API_VERSION', 'v23.0')
+
+# --- Verification template (optional but recommended) ----------------------
+# Meta only accepts free-form text within a 24-hour "re-engagement
+# window" that opens when the recipient messages the business first.
+# A brand-new signup has never messaged us — so a plain-text verification
+# send will fail with error 131047 unless a template is used.
+#
+# Register a UTILITY template in Meta Business Suite → WhatsApp Manager
+# → Message Templates with a body like:
+#
+#   "Confirm your ChumaFlow account by opening this link:
+#    {{1}}
+#
+#    This link expires in 3 days. If you didn't sign up, ignore this message."
+#
+# Once approved, set WHATSAPP_VERIFICATION_TEMPLATE_NAME in .env to the
+# template name you chose. See accounts/verification.py for the full
+# two-attempt strategy (template first, free-form text as fallback).
+#
+# Leave blank to disable the template attempt (text-only sends will
+# still work inside the 24h window and on test numbers).
+WHATSAPP_VERIFICATION_TEMPLATE_NAME = os.getenv(
+    'WHATSAPP_VERIFICATION_TEMPLATE_NAME', ''
+)
+WHATSAPP_VERIFICATION_TEMPLATE_LANG = os.getenv(
+    'WHATSAPP_VERIFICATION_TEMPLATE_LANG', 'en_US'
+)
 
 
 # =============================================================================

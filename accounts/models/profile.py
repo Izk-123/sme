@@ -13,8 +13,15 @@ class UserProfile(models.Model):
     GENDER_CHOICES = [
         ("male", "Male"),
         ("female", "Female"),
-        ("other", "Other"),
-        ("prefer_not_to_say", "Prefer not to say"),
+    ]
+
+    # Values must stay in sync with accounts.verification.CHANNEL_EMAIL /
+    # CHANNEL_WHATSAPP. Duplicated here on purpose: a model importing from
+    # a service module invites a circular import the moment the service
+    # needs something from models.
+    VERIFICATION_CHANNEL_CHOICES = [
+        ("email", "Email"),
+        ("whatsapp", "WhatsApp"),
     ]
 
     user = models.OneToOneField(
@@ -35,10 +42,22 @@ class UserProfile(models.Model):
     city = models.CharField(max_length=100, blank=True)
     district = models.CharField(max_length=100, blank=True)
     country = models.CharField(max_length=100, default="Malawi", blank=True)
+
     email_verified = models.BooleanField(
         default=False,
-        help_text="Set when the user clicks the link in their verification email - see accounts.emails.",
+        help_text="Set when the user clicks the confirmation link — see accounts.verification.",
     )
+    preferred_verification_channel = models.CharField(
+        max_length=20,
+        choices=VERIFICATION_CHANNEL_CHOICES,
+        default="email",
+        help_text=(
+            "How the account owner chose to receive their confirmation "
+            "link at signup. Read by ResendVerificationEmailView so a "
+            "resend goes out the same way the original did."
+        ),
+    )
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

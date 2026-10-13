@@ -1,30 +1,65 @@
 {% extends "base/base_auth.html" %}
-{% block title %}Confirm your email — ChumaFlow{% endblock %}
+{% block title %}Confirm your account — ChumaFlow{% endblock %}
 
 {% block auth_content %}
-<div class="pt-4 pb-2">
-  <h5 class="card-title text-center pb-0 fs-4 fw-bold">Confirm your email</h5>
-  <p class="text-center small text-muted">
-    We sent a confirmation link to <strong>{{ user.email }}</strong>.
-    Click it to unlock your account.
-  </p>
-</div>
 
-<div class="rounded p-3 mb-3 d-flex align-items-start gap-3"
-     style="background: var(--cf-flow-teal-soft); border: 1px solid var(--cf-flow-teal); color: var(--cf-deep-teal);">
-  <i class="bi bi-info-circle flex-shrink-0 mt-1"></i>
-  <div class="small">
-    Didn't get the email? Check spam, then request a new one below.
-    The link expires in 3 days.
-  </div>
-</div>
+{# Decide the copy once, from the user's stored preference, so the page #}
+{# reflects whichever channel they picked at signup. --profile is the  #}
+{# OneToOne related name on UserProfile; --preferred_verification_     #}
+{# channel is set by SignupForm.save().                                 #}
+{% with channel=user.profile.preferred_verification_channel|default:"email" %}
+  {% if channel == "whatsapp" %}
+    {% with channel_label="WhatsApp" destination=primary_phone.number|default:"your WhatsApp number" icon="bi-whatsapp" %}
+      <div class="pt-4 pb-2">
+        <h5 class="card-title text-center pb-0 fs-4 fw-bold">Confirm your account</h5>
+        <p class="text-center small text-muted">
+          We sent a confirmation link to <strong>{{ destination }}</strong> on WhatsApp.
+          Open it to unlock your account.
+        </p>
+      </div>
 
-<form method="post" action="{% url 'resend_verification_email' %}" class="mb-3">
-  {% csrf_token %}
-  <button type="submit" class="btn btn-primary w-100">
-    <i class="bi bi-envelope me-1"></i> Resend verification email
-  </button>
-</form>
+      <div class="rounded p-3 mb-3 d-flex align-items-start gap-3"
+           style="background: var(--cf-flow-teal-soft); border: 1px solid var(--cf-flow-teal); color: var(--cf-deep-teal);">
+        <i class="bi bi-info-circle flex-shrink-0 mt-1"></i>
+        <div class="small">
+          Didn't get the message? Check your WhatsApp notifications, then request a new one below.
+          The link expires in 3 days.
+        </div>
+      </div>
+
+      <form method="post" action="{% url 'resend_verification_email' %}" class="mb-3">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-primary w-100">
+          <i class="bi {{ icon }} me-1"></i> Resend WhatsApp message
+        </button>
+      </form>
+    {% endwith %}
+  {% else %}
+    <div class="pt-4 pb-2">
+      <h5 class="card-title text-center pb-0 fs-4 fw-bold">Confirm your email</h5>
+      <p class="text-center small text-muted">
+        We sent a confirmation link to <strong>{{ user.email }}</strong>.
+        Click it to unlock your account.
+      </p>
+    </div>
+
+    <div class="rounded p-3 mb-3 d-flex align-items-start gap-3"
+         style="background: var(--cf-flow-teal-soft); border: 1px solid var(--cf-flow-teal); color: var(--cf-deep-teal);">
+      <i class="bi bi-info-circle flex-shrink-0 mt-1"></i>
+      <div class="small">
+        Didn't get the email? Check spam, then request a new one below.
+        The link expires in 3 days.
+      </div>
+    </div>
+
+    <form method="post" action="{% url 'resend_verification_email' %}" class="mb-3">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-primary w-100">
+        <i class="bi bi-envelope me-1"></i> Resend verification email
+      </button>
+    </form>
+  {% endif %}
+{% endwith %}
 
 <div class="d-flex gap-2">
   <a href="{% url 'settings' %}#security" class="btn btn-outline-secondary flex-grow-1">

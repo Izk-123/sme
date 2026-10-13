@@ -17,6 +17,7 @@ from .models import (
     UserPreference,
     UserProfile,
 )
+from .verification import normalize_malawi_phone
 
 
 class LoginForm(BootstrapFormMixin, AuthenticationForm):
@@ -33,10 +34,36 @@ class SignupForm(BootstrapFormMixin, UserCreationForm):
     UserProfile, and owning Membership in one step. Every signup gets
     its own Organization; everything the user does afterwards is scoped
     to it through their Membership (not a field on User anymore).
+
+    The user picks a verification channel — email or WhatsApp — and the
+    chosen channel decides which contact field is required. The choice
+    is stored on UserProfile.preferred_verification_channel so a later
+    Resend doesn't have to guess (see ResendVerificationEmailView).
+
+    `email` is declared explicitly (required=False) so clean() can
+    enforce "required iff the email radio is picked" with one clear
+    error. Leaving it in Meta.fields as well would raise FieldError —
+    a ModelForm field can't be both declared and listed.
     """
 
     full_name = forms.CharField(max_length=200, label="Your name")
     business_name = forms.CharField(max_length=200, label="Business name")
+
+    verification_channel = forms.ChoiceField(
+        choices=[("email", "Email"), ("whatsapp", "WhatsApp")],
+        initial="email",
+        widget=forms.RadioSelect,
+        label="How should we send your confirmation link?",
+    )
+
+    email = forms.EmailField(required=False)
+    phone_number = forms.CharField(
+        max_length=20,
+        required=False,
+        label="WhatsApp number",
+        help_text="e.g. 088 123 4567",
+    )
+
     terms = forms.BooleanField(
         required=True,
         label="I agree to the terms and conditions",
@@ -45,7 +72,9 @@ class SignupForm(BootstrapFormMixin, UserCreationForm):
 
     class Meta:
         model = User
-        fields = ("username", "email")
+        # email is declared above — listing it here as well raises
+        # FieldError: "Field 'email' is declared but also in Meta.fields".
+        fields = ("username",)
 
     def clean_email(self):
         email = self.cleaned_data.get("email", "").strip()
@@ -53,31 +82,97 @@ class SignupForm(BootstrapFormMixin, UserCreationForm):
             raise forms.ValidationError("An account with this email already exists.")
         return email
 
+    def clean_phone_number(self):
+        raw = self.cleaned_data.get("phone_number", "").strip()
+        if not raw:
+            return ""
+
+        normalized = normalize_malawi_phone(raw)
+        if normalized is None:
+            raise forms.ValidationError(
+                "Enter a Malawi mobile number, e.g. 088 123 4567."
+            )
+
+        # Check the common typed variants so the same number written two
+        # ways (088… / +26588… / 26588…) can't slip past the uniqueness
+        # check on the way to a duplicate row.
+        variants = [raw, normalized, f"+{normalized}", f"0{normalized[3:]}"]
+        if PhoneNumber.objects.filter(number__in=variants).exists():
+            raise forms.ValidationError("This phone number is already in use.")
+
+        # Return the canonical form so save() and the WhatsApp sender
+        # both work with one representation.
+        return normalized
+
+    def clean(self):
+        cleaned = super().clean()
+        channel = cleaned.get("verification_channel")
+        email = cleaned.get("email")
+        phone = cleaned.get("phone_number")
+
+        if channel == "email" and not email:
+            self.add_error(
+                "email",
+                "Enter your email address, or choose WhatsApp instead.",
+            )
+        elif channel == "whatsapp" and not phone:
+            self.add_error(
+                "phone_number",
+                "Enter your WhatsApp number, or choose email instead.",
+            )
+
+        return cleaned
+
     @transaction.atomic
     def save(self, commit=True):
         user = super().save(commit=False)
+        # UserCreationForm.save(commit=False) has already hashed the
+        # password; we just attach email before persisting.
+        user.email = self.cleaned_data.get("email", "")
         if not commit:
             return user
 
         user.save()
-        UserProfile.objects.create(user=user, first_name=self.cleaned_data["full_name"])
+
+        UserProfile.objects.create(
+            user=user,
+            first_name=self.cleaned_data["full_name"],
+            preferred_verification_channel=self.cleaned_data["verification_channel"],
+        )
+
+        # If they gave us a phone number — whether because they chose
+        # WhatsApp or just filled the optional field — attach it as the
+        # primary number so the WhatsApp sender (and, later, receipts and
+        # statements) can find it.
+        if self.cleaned_data.get("phone_number"):
+            PhoneNumber.objects.create(
+                user=user,
+                number=self.cleaned_data["phone_number"],
+                is_primary=True,
+            )
+
         organization = Organization.objects.create(
             name=self.cleaned_data["business_name"],
-            business_type="retail",  # default, set properly in the onboarding wizard
+            business_type="retail",  # default — set properly in the onboarding wizard
         )
         owner_role = Role.get_system("owner")
-        Membership.objects.create(user=user, organization=organization, role=owner_role, is_active=True)
+        Membership.objects.create(
+            user=user,
+            organization=organization,
+            role=owner_role,
+            is_active=True,
+        )
         return user
 
 
 class ProfileForm(BootstrapFormMixin, forms.ModelForm):
     """
-    Backs the "Edit Profile" tab on the profile page. Bundles fields from
-    three different models behind one form: UserProfile (the ModelForm's
-    own fields), plus a plain User.email field and a plain phone_number
-    field that read/write the user's primary PhoneNumber - the person
-    filling this in doesn't need to know their contact info is split
-    across models under the hood.
+    Backs the "Edit Profile" tab on the settings page. Bundles fields
+    from three different models behind one form: UserProfile (the
+    ModelForm's own fields), plus a plain User.email field and a plain
+    phone_number field that read/write the user's primary PhoneNumber —
+    the person filling this in doesn't need to know their contact info
+    is split across models under the hood.
     """
 
     email = forms.EmailField(required=False)
@@ -134,7 +229,7 @@ class ProfileForm(BootstrapFormMixin, forms.ModelForm):
                 self.user.email = email
                 self.user.save(update_fields=["email"])
                 # A changed email hasn't been proven to belong to this
-                # person yet - the old verification doesn't carry over.
+                # person yet — the old verification doesn't carry over.
                 profile.email_verified = False
                 profile.save(update_fields=["email_verified"])
 
@@ -198,7 +293,7 @@ class IdentityDocumentForm(BootstrapFormMixin, forms.ModelForm):
 
 
 class UserPreferenceForm(BootstrapFormMixin, forms.ModelForm):
-    """Personal appearance/locale preferences - the Preferences tab."""
+    """Personal appearance/locale preferences — the Preferences tab."""
 
     class Meta:
         model = UserPreference
@@ -210,7 +305,7 @@ class UserPreferenceForm(BootstrapFormMixin, forms.ModelForm):
 
 class NotificationPreferenceForm(BootstrapFormMixin, forms.ModelForm):
     """
-    Every NotificationPreference field, via Meta.fields - not a
+    Every NotificationPreference field, via Meta.fields — not a
     hand-maintained list like the earlier version's `fields = [...]`
     (which only covered 3 of the model's 9 booleans and left the rest
     permanently unreachable from the UI). Adding a field to the model
@@ -235,7 +330,7 @@ class NotificationPreferenceForm(BootstrapFormMixin, forms.ModelForm):
 class InviteEmployeeForm(BootstrapFormMixin, forms.Form):
     """
     Owner fills in a name/phone/role for a new employee. This creates an
-    Invitation, not an account directly - the employee sets their own
+    Invitation, not an account directly — the employee sets their own
     password by following the invite link (see AcceptInvitationForm /
     AcceptInvitationView). "Owner" is deliberately excluded from the role
     choices here: minting a co-owner is a deliberate action taken in

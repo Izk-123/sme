@@ -7,7 +7,7 @@
   <p class="text-center small text-muted">Get ChumaFlow set up for your business</p>
 </div>
 
-<form class="row g-3 needs-validation" method="post" enctype="multipart/form-data" novalidate>
+<form class="row g-3 needs-validation" method="post" novalidate>
   {% csrf_token %}
 
   {% if form.non_field_errors %}
@@ -35,11 +35,50 @@
     {% endif %}
   </div>
 
+  {# ------------------------------------------------------------------ #}
+  {# Verification channel: drives which contact field is shown below.   #}
+  {# The form's own clean() enforces the "required iff picked" rule;    #}
+  {# the JS at the bottom of this template is purely presentational —   #}
+  {# the form submits correctly even with JS disabled (the wrong field  #}
+  {# just shows up alongside the right one).                            #}
+  {# ------------------------------------------------------------------ #}
   <div class="col-12">
+    <label class="form-label fw-semibold d-block">
+      {{ form.verification_channel.label }}
+      <span class="text-danger">*</span>
+    </label>
+    <div class="d-flex gap-4">
+      {% for radio in form.verification_channel %}
+        <div class="form-check">
+          {{ radio.tag }}
+          <label class="form-check-label" for="{{ radio.id_for_label }}">{{ radio.choice_label }}</label>
+        </div>
+      {% endfor %}
+    </div>
+    {% if form.verification_channel.errors %}
+      <div class="invalid-feedback d-block"><i class="bi bi-exclamation-circle me-1"></i>{{ form.verification_channel.errors|striptags }}</div>
+    {% endif %}
+    <div class="form-text">We'll send a confirmation link so we know the account is really yours.</div>
+  </div>
+
+  <div class="col-12" id="signup-email-field">
     <label for="{{ form.email.id_for_label }}" class="form-label fw-semibold">Your email</label>
     {{ form.email }}
     {% if form.email.errors %}
       <div class="invalid-feedback d-block"><i class="bi bi-exclamation-circle me-1"></i>{{ form.email.errors|striptags }}</div>
+    {% endif %}
+  </div>
+
+  <div class="col-12" id="signup-phone-field">
+    <label for="{{ form.phone_number.id_for_label }}" class="form-label fw-semibold">
+      {{ form.phone_number.label }}
+    </label>
+    {{ form.phone_number }}
+    {% if form.phone_number.errors %}
+      <div class="invalid-feedback d-block"><i class="bi bi-exclamation-circle me-1"></i>{{ form.phone_number.errors|striptags }}</div>
+    {% endif %}
+    {% if form.phone_number.help_text %}
+      <div class="form-text">{{ form.phone_number.help_text }}</div>
     {% endif %}
   </div>
 
@@ -96,4 +135,33 @@
     </p>
   </div>
 </form>
+
+<script>
+  // Toggle the email / phone fields based on the verification channel
+  // radio. Purely cosmetic — the form's own clean() enforces which
+  // contact field is required, so this works even if JS is disabled
+  // (the wrong field just shows up alongside the right one, with a
+  // validation error if the user ignores it).
+  (function () {
+    const emailField = document.getElementById("signup-email-field");
+    const phoneField = document.getElementById("signup-phone-field");
+
+    function sync() {
+      const picked = document.querySelector(
+        'input[name="verification_channel"]:checked'
+      );
+      const value = picked ? picked.value : "email";
+      emailField.style.display = value === "email"    ? "" : "none";
+      phoneField.style.display = value === "whatsapp" ? "" : "none";
+    }
+
+    document
+      .querySelectorAll('input[name="verification_channel"]')
+      .forEach(function (radio) {
+        radio.addEventListener("change", sync);
+      });
+
+    sync();
+  })();
+</script>
 {% endblock %}
