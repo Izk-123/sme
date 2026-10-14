@@ -1,71 +1,99 @@
-{% extends "base/base.html" %}
-{% load money %}
-{% block page_title %}Customers{% endblock %}
-{% block content %}
-
-<!-- ========================= HEADER & ACTIONS ========================= -->
-<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
-  <div>
-    <h2 class="mb-0 fw-bold">Customers</h2>
-    <small class="text-muted">{{ customers|length }} customer{{ customers|length|pluralize }}</small>
-  </div>
-  <div class="d-flex gap-2">
-    <a href="#" class="btn btn-success btn-sm">
-      <i class="bi bi-person-plus me-1"></i> Add Customer
-    </a>
-    <a href="{% url 'payment_add' %}" class="btn btn-primary btn-sm">
-      <i class="bi bi-cash-coin me-1"></i> Record Payment
-    </a>
-  </div>
-</div>
-
-<!-- ========================= CUSTOMERS TABLE ========================= -->
-{% if customers %}
-  <div class="card">
-    <div class="card-body">
-      <table class="table table-hover datatable table-stack">
-        <thead>
-          <tr>
-            <th>Name</th>
-            <th>Phone</th>
-            <th>Location</th>
-            <th>Outstanding Balance</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for customer in customers %}
-            <tr>
-              <td class="fw-bold">{{ customer.name }}</td>
-              <td>{{ customer.phone|default:"—" }}</td>
-              <td>{{ customer.location|default:"—" }}</td>
-              <td class="fw-bold {% if customer.outstanding_balance > 0 %}text-danger{% else %}text-success{% endif %}">
-                {% money customer.outstanding_balance %}
-              </td>
-              <td>
-                <a href="{% url 'customer_detail' customer.pk %}"
-                   class="btn btn-outline-secondary btn-sm" title="View customer">
-                  <i class="bi bi-eye me-1"></i><span class="d-none d-lg-inline">View</span>
-                </a>
-              </td>
-            </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-  </div>
+{% extends "base/base.html" %}
+{% load money %}
+{% block page_title %}Customers{% endblock %}
+{% block content %}
+
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+  <div>
+    <h2 class="mb-0 fw-bold">Customers</h2>
+    <small class="text-muted">
+      {{ customers|length }} customer{{ customers|length|pluralize }}{% if not showing_all %} active{% endif %}
+    </small>
+  </div>
+  <div class="d-flex gap-2 align-items-center">
+    {% if inactive_count %}
+      {% if showing_all %}
+        <a href="{% url 'customer_list' %}" class="btn btn-outline-secondary btn-sm">
+          <i class="bi bi-eye-slash me-1"></i> Hide inactive
+        </a>
+      {% else %}
+        <a href="{% url 'customer_list' %}?show=all" class="btn btn-outline-secondary btn-sm">
+          <i class="bi bi-eye me-1"></i> Show {{ inactive_count }} inactive
+        </a>
+      {% endif %}
+    {% endif %}
+    <a href="{% url 'customer_add' %}" class="btn btn-success btn-sm">
+      <i class="bi bi-person-plus me-1"></i> Add Customer
+    </a>
+    <a href="{% url 'payment_add' %}" class="btn btn-primary btn-sm">
+      <i class="bi bi-cash-coin me-1"></i> Record Payment
+    </a>
+  </div>
+</div>
+
+{% if customers %}
+  <div class="card">
+    <div class="card-body">
+      <table class="table table-hover datatable table-stack">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Phone</th>
+            <th>Location</th>
+            <th>Outstanding Balance</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for customer in customers %}
+            <tr {% if not customer.is_active %}class="opacity-75"{% endif %}>
+              <td class="fw-bold">{{ customer.name }}</td>
+              <td>
+                {% if customer.phone %}
+                  <a href="tel:{{ customer.phone }}" class="cf-link-slide">{{ customer.phone }}</a>
+                {% else %}—{% endif %}
+              </td>
+              <td>{{ customer.location|default:"—" }}</td>
+              <td class="fw-bold {% if customer.outstanding_balance > 0 %}text-danger{% else %}text-success{% endif %}">
+                {% money customer.outstanding_balance %}
+              </td>
+              <td>
+                {% if customer.is_active %}
+                  <span class="badge bg-success-subtle text-success-emphasis">Active</span>
+                {% else %}
+                  <span class="badge bg-secondary-subtle text-secondary-emphasis">Inactive</span>
+                {% endif %}
+              </td>
+              <td>
+                <a href="{% url 'customer_detail' customer.pk %}"
+                   class="btn btn-outline-secondary btn-sm" title="View customer">
+                  <i class="bi bi-eye me-1"></i><span class="d-none d-lg-inline">View</span>
+                </a>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
 {% else %}
   {% url 'customer_add' as add_url %}
   <div class="card">
     <div class="card-body">
-      {% include "components/_empty_state.html" with
-         icon="bi-people"
-         title="No customers yet"
-         message="Add customers so you can track credit, sales, and outstanding balances."
-         action_url=add_url
-         action_label="Add your first customer" %}
+      {% if showing_all %}
+        {% include "components/_empty_state.html" with icon="bi-people" title="No customers yet" message="Add customers so you can track credit, sales, and outstanding balances." action_url=add_url action_label="Add your first customer" %}
+      {% else %}
+        <div class="text-center py-5">
+          <i class="bi bi-people" style="font-size: 2.5rem; color: var(--text-muted); opacity: 0.5;"></i>
+          <p class="text-muted mt-3 mb-3">All your customers are deactivated.</p>
+          <a href="{% url 'customer_list' %}?show=all" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-eye me-1"></i> Show inactive customers
+          </a>
+        </div>
+      {% endif %}
     </div>
   </div>
-{% endif %}
-
+{% endif %}
+
 {% endblock %}

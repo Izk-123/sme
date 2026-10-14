@@ -1,14 +1,11 @@
 """Product and stock forms for ChumaFlow."""
 from django import forms
-
 from suppliers.models import Supplier
-
 from .models import Product
 
 
 class ProductForm(forms.ModelForm):
-    """Product create/edit form. Cost price is required — without it, real
-    profit cannot be calculated."""
+    """Product create/edit. Cost price is required so profit isn't a guess."""
 
     class Meta:
         model = Product
@@ -29,8 +26,6 @@ class ProductForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Require cost_price at entry time — a product without a cost can
-        # never contribute to real profit.
         self.fields["cost_price"].required = True
         self.fields["cost_price"].help_text = (
             "What you paid per unit. Used to calculate your real profit."
@@ -38,7 +33,14 @@ class ProductForm(forms.ModelForm):
 
 
 class ReceiveStockForm(forms.Form):
-    """Receive stock against a supplier — optionally links to one."""
+    """
+    Receive stock against an optional supplier.
+
+    `unit_cost` is optional. When provided, the product's cost_price is
+    updated to a weighted average of old and new stock — so a shop whose
+    supplier just raised prices sees future profit figures reflect that,
+    without retroactively changing past sales.
+    """
 
     product = forms.ModelChoiceField(
         queryset=Product.objects.none(),
@@ -49,6 +51,13 @@ class ReceiveStockForm(forms.Form):
         min_value=1,
         label="Quantity to receive",
         widget=forms.NumberInput(attrs={"class": "form-control", "min": 1}),
+    )
+    unit_cost = forms.DecimalField(
+        max_digits=12, decimal_places=2,
+        min_value=0, required=False,
+        label="Unit cost (optional)",
+        help_text="If entered, updates this product's cost price (weighted average).",
+        widget=forms.NumberInput(attrs={"class": "form-control", "step": "0.01"}),
     )
     supplier = forms.ModelChoiceField(
         queryset=Supplier.objects.none(),
@@ -61,9 +70,9 @@ class ReceiveStockForm(forms.Form):
         self.organization = kwargs.pop("organization", None)
         super().__init__(*args, **kwargs)
         if self.organization:
-            self.fields["product"].queryset = Product.objects.filter(
-                organization=self.organization
-            ).order_by("name")
-            self.fields["supplier"].queryset = Supplier.objects.filter(
-                organization=self.organization
-            ).order_by("name")
+            self.fields["product"].queryset = (
+                Product.objects.filter(organization=self.organization).order_by("name")
+            )
+            self.fields["supplier"].queryset = (
+                Supplier.objects.filter(organization=self.organization).order_by("name")
+            )

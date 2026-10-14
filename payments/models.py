@@ -12,7 +12,6 @@ to a generic FK, or a separate model alongside this one), not replaced.
 import uuid
 
 from django.db import models
-
 from subscriptions.models import Subscription, SubscriptionPlan
 
 

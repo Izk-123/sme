@@ -54,6 +54,26 @@
             {% endif %}
           </div>
 
+          <!-- Unit cost (optional).
+               If entered, the product's cost_price is updated to a
+               weighted average of old and new stock — see
+               ReceiveStockView.form_valid. Left blank, the existing
+               cost is kept unchanged. -->
+          <div class="mb-3">
+            <label for="id_unit_cost" class="form-label fw-semibold">
+              Unit cost <span class="text-muted fw-normal">(optional)</span>
+            </label>
+            {{ form.unit_cost }}
+            <div class="form-text">
+              What you paid per unit this time. If entered, ChumaFlow
+              blends it with the product's existing cost using a weighted
+              average of old and new stock.
+            </div>
+            {% if form.unit_cost.errors %}
+              <div class="text-danger small mt-1">{{ form.unit_cost.errors|striptags }}</div>
+            {% endif %}
+          </div>
+
           <!-- Supplier -->
           <div class="mb-3">
             <label for="id_supplier" class="form-label fw-semibold">Supplier <span class="text-muted fw-normal">(optional)</span></label>
@@ -134,7 +154,8 @@
       }
     });
 
-    // Re-bind after HTMX swaps product select
+    // Re-bind after HTMX swaps the product select. Note: this listener
+    // fires on every htmx swap in the document, so the id check matters.
     document.body.addEventListener('htmx:afterSwap', function (evt) {
       if (evt.detail.target.id === 'product-select-wrapper') {
         const newSelect = document.getElementById('id_product');

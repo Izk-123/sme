@@ -63,12 +63,10 @@
               </td>
               <td>
                 <div class="d-flex gap-1">
-                  <a href="{% url 'product_edit' product.pk %}"
-                     class="btn btn-outline-secondary btn-sm" title="Edit">
+                  <a href="{% url 'product_edit' product.pk %}" class="btn btn-outline-secondary btn-sm" title="Edit">
                     <i class="bi bi-pencil"></i>
                   </a>
-                  <a href="{% url 'receive_stock' %}"
-                     class="btn btn-outline-secondary btn-sm" title="Receive stock">
+                  <a href="{% url 'receive_stock' %}" class="btn btn-outline-secondary btn-sm" title="Receive stock">
                     <i class="bi bi-box-seam"></i>
                   </a>
                 </div>
@@ -83,12 +81,7 @@
   {% url 'product_add' as add_url %}
   <div class="card">
     <div class="card-body">
-      {% include "components/_empty_state.html" with
-         icon="bi-box-seam"
-         title="No products yet"
-         message="Add your first product so you can start selling. It takes about 30 seconds."
-         action_url=add_url
-         action_label="Add your first product" %}
+      {% include "components/_empty_state.html" with icon="bi-box-seam" title="No products yet" message="Add your first product so you can start selling. It takes about 30 seconds." action_url=add_url action_label="Add your first product" %}
     </div>
   </div>
 {% endif %}

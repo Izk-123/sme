@@ -1,25 +1,36 @@
-{# ==========================================================================
-   Reusable empty state.
-   Usage:
-     {% url 'product_add' as add_url %}
-     {% include "components/_empty_state.html" with
-        icon="bi-box-seam"
-        title="No products yet"
-        message="Add your first product so you can start selling. Takes about 30 seconds."
-        action_url=add_url
-        action_label="Add your first product" %}
-   ========================================================================== #}
+{% comment %}
+Reusable empty state.
+
+Usage — everything on ONE line (Django tags can't span lines):
+
+  {% url 'product_add' as add_url %}
+  {% include "components/_empty_state.html" with icon="bi-box-seam" title="No products yet" message="Add your first product so you can start selling." action_url=add_url action_label="Add your first product" %}
+
+Every argument is optional — sensible defaults are used.
+{% endcomment %}
+
 <div class="cf-empty-state text-center py-5">
-  <div class="cf-empty-icon mb-3">
+
+  <div class="cf-empty-icon mb-3"
+       style="width: 72px; height: 72px; margin: 0 auto; border-radius: 50%;
+              background: var(--cf-flow-teal-soft); color: var(--cf-flow-teal);
+              display: flex; align-items: center; justify-content: center;
+              font-size: 2rem;">
     <i class="bi {{ icon|default:'bi-inbox' }}"></i>
   </div>
-  <h5 class="mb-2">{{ title|default:"Nothing here yet" }}</h5>
+
+  <h5 class="mb-2 fw-bold">{{ title|default:"Nothing here yet" }}</h5>
+
   {% if message %}
-    <p class="text-muted mb-4 mx-auto" style="max-width: 420px;">{{ message }}</p>
+    <p class="text-muted mb-4 mx-auto" style="max-width: 420px; line-height: 1.55;">
+      {{ message }}
+    </p>
   {% endif %}
+
   {% if action_url and action_label %}
     <a href="{{ action_url }}" class="btn btn-primary">
       <i class="bi bi-plus-lg me-1"></i> {{ action_label }}
     </a>
   {% endif %}
+
 </div>

@@ -25,6 +25,9 @@ readonly PROJECT_DIR="/home/project/sme"
 readonly VENV_DIR="${PROJECT_DIR}/venv"
 readonly ENV_FILE="${PROJECT_DIR}/.env"
 readonly NGINX_CONF="/etc/nginx/sites-available/sme"
+# Largest upload nginx will accept. nginx defaults to 1M, which rejects ordinary phone photos
+# with "413 Request Entity Too Large". Keep this a little ABOVE the limit enforced in Django forms.
+readonly MAX_UPLOAD_SIZE="${MAX_UPLOAD_SIZE:-10M}"
 
 readonly GIT_REPO="https://github.com/Izk-123/sme.git"
 readonly GIT_BRANCH="main"
@@ -177,6 +180,26 @@ backup_files() {
     [[ -f "${PROJECT_DIR}/requirements.txt" ]]   && cp "${PROJECT_DIR}/requirements.txt"   "${BACKUP_DIR}/requirements.txt.backup"
     [[ -f "${PROJECT_DIR}/db.sqlite3" ]]         && cp "${PROJECT_DIR}/db.sqlite3"         "${BACKUP_DIR}/db.sqlite3.backup"
     [[ -f "${PROJECT_DIR}/config/settings.py" ]] && cp "${PROJECT_DIR}/config/settings.py" "${BACKUP_DIR}/settings.py.backup"
+    # PostgreSQL is the production database, so it must be backed up too.
+    # Without this, `migrate` (and the data migrations) run with no way back.
+    local pg_name pg_user pg_pass pg_host pg_port
+    pg_name=$(grep -E '^DB_NAME='     "$ENV_FILE" | cut -d= -f2- || true)
+    pg_user=$(grep -E '^DB_USER='     "$ENV_FILE" | cut -d= -f2- || true)
+    pg_pass=$(grep -E '^DB_PASSWORD=' "$ENV_FILE" | cut -d= -f2- || true)
+    pg_host=$(grep -E '^DB_HOST='     "$ENV_FILE" | cut -d= -f2- || true)
+    pg_port=$(grep -E '^DB_PORT='     "$ENV_FILE" | cut -d= -f2- || true)
+    if [[ -n "$pg_name" && -n "$pg_user" ]] && command -v pg_dump &>/dev/null; then
+        if PGPASSWORD="$pg_pass" pg_dump -h "${pg_host:-localhost}" -p "${pg_port:-5432}" \
+              -U "$pg_user" -Fc "$pg_name" > "${BACKUP_DIR}/postgres_${pg_name}.dump"; then
+            log "  PostgreSQL dump saved."
+        else
+            error_exit "pg_dump failed. Refusing to continue without a database backup."
+        fi
+    else
+        log "  WARNING: pg_dump not found or DB settings missing. No PostgreSQL backup was taken."
+    fi
+    chmod 700 "$BACKUP_DIR"   # the backup holds .env and database dumps
+
     [[ -d "${PROJECT_DIR}/.git" ]] && git -C "$PROJECT_DIR" rev-parse HEAD > "${BACKUP_DIR}/git_head.txt" 2>/dev/null || true
 
     log "Backup complete."
@@ -365,9 +388,9 @@ update_env_file() {
         echo "  ──────────────────────────────────────────────────────────"
         echo ""
         read -rp "  WHATSAPP_PHONE_NUMBER_ID (press Enter to keep current): " new_phone
-        read -rp "  WHATSAPP_ACCESS_TOKEN (press Enter to keep current): " new_token
+        read -rsp "  WHATSAPP_ACCESS_TOKEN (hidden, Enter to keep current): " new_token; echo
         read -rp "  WHATSAPP_VERIFY_TOKEN (e.g., chumaflow_verify_2026): " new_verify
-        read -rp "  WHATSAPP_APP_SECRET (press Enter to keep current): " new_secret
+        read -rsp "  WHATSAPP_APP_SECRET (hidden, Enter to keep current): " new_secret; echo
 
         [[ -n "$new_phone" ]] && upsert_var "WHATSAPP_PHONE_NUMBER_ID" "$new_phone"
         [[ -n "$new_token" ]] && upsert_var "WHATSAPP_ACCESS_TOKEN" "$new_token"
@@ -435,6 +458,18 @@ PY
 # -------------------------------
 # Nginx (fixed sed — no delimiter collision)
 # -------------------------------
+ensure_upload_limit() {
+    log "  Setting client_max_body_size ${MAX_UPLOAD_SIZE}..."
+    if grep -qE '^[[:space:]]*client_max_body_size' "$NGINX_CONF"; then
+        # already present: just update the value (avoids a "duplicate directive" error)
+        sed -i -E "s|^([[:space:]]*client_max_body_size[[:space:]]+)[^;]*;|\\1${MAX_UPLOAD_SIZE};|" "$NGINX_CONF"
+    else
+        # add it right after each server_name line
+        sed -i -E "s|^([[:space:]]*)(server_name[[:space:]]+[^;]*;)|\\1\\2\n\\1client_max_body_size ${MAX_UPLOAD_SIZE};|" "$NGINX_CONF"
+    fi
+    grep -n 'client_max_body_size' "$NGINX_CONF" | sed 's/^/    /' | tee -a "$LOG_FILE"
+}
+
 update_nginx_config() {
     log "Updating Nginx server_name (SSL cert paths will be handled by Certbot)..."
 
@@ -459,6 +494,8 @@ update_nginx_config() {
         /ssl_certificate/ { print; next }
         { gsub(old1, new); gsub(old2, new); print }
     ' "$NGINX_CONF" > "${NGINX_CONF}.tmp" && mv "${NGINX_CONF}.tmp" "$NGINX_CONF"
+
+    ensure_upload_limit
 
     log "  --- Current server_name / host lines ---"
     grep -nE 'server_name|if \(\$host' "$NGINX_CONF" | sed 's/^/    /' | tee -a "$LOG_FILE"

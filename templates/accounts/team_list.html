@@ -2,7 +2,6 @@
 {% block page_title %}Your Team{% endblock %}
 {% block content %}
 
-<!-- ========================= HEADER ========================= -->
 <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
   <div>
     <h2 class="mb-0 fw-bold">Team</h2>
@@ -13,7 +12,6 @@
   </a>
 </div>
 
-<!-- ========================= TEAM TABLE ========================= -->
 {% if memberships %}
   <div class="card">
     <div class="card-body">
@@ -43,8 +41,7 @@
               <td>
                 <form method="post" action="{% url 'toggle_employee_active' membership.pk %}" style="display:inline;">
                   {% csrf_token %}
-                  <button type="submit"
-                          class="btn btn-outline-secondary btn-sm"
+                  <button type="submit" class="btn btn-outline-secondary btn-sm"
                           title="{% if membership.is_active %}Deactivate{% else %}Reactivate{% endif %}">
                     <i class="bi bi-{% if membership.is_active %}pause{% else %}play{% endif %} me-1"></i>
                     <span class="d-none d-lg-inline">
@@ -63,12 +60,7 @@
   {% url 'invite_employee' as invite_url %}
   <div class="card">
     <div class="card-body">
-      {% include "components/_empty_state.html" with
-         icon="bi-people"
-         title="Just you so far"
-         message="Invite your cashier, stock clerk, or accountant. They get their own login and see only what their role allows."
-         action_url=invite_url
-         action_label="Invite your first employee" %}
+      {% include "components/_empty_state.html" with icon="bi-people" title="Just you so far" message="Invite your cashier, stock clerk, or accountant. They get their own login and see only what their role allows." action_url=invite_url action_label="Invite your first employee" %}
     </div>
   </div>
 {% endif %}
