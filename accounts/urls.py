@@ -4,27 +4,53 @@ from django.urls import path
 from . import views
 
 urlpatterns = [
+    # ---------------------------------------------------------------------
+    # Local auth (username + password).
+    # ---------------------------------------------------------------------
     path("signup/", views.SignupView.as_view(), name="signup"),
     path("login/", views.BusinessLoginView.as_view(), name="login"),
     path("logout/", LogoutView.as_view(), name="logout"),
     path("change-password/", views.ChangePasswordView.as_view(), name="change_password"),
+
+    # ---------------------------------------------------------------------
+    # Post-login routing.
+    #
+    # Both the local LoginView (via get_success_url) and django-allauth
+    # (via LOGIN_REDIRECT_URL) point at post_login_router. It decides
+    # between:
+    #     /complete-signup/  →  new Google user with no business yet
+    #     /onboarding/       →  business exists but hasn't finished setup
+    #     /dashboard/        →  normal, fully set-up account
+    # ---------------------------------------------------------------------
+    path("post-login/", views.PostLoginRouterView.as_view(), name="post_login_router"),
+    path("complete-signup/", views.CompleteSignupView.as_view(), name="complete_signup"),
+
+    # ---------------------------------------------------------------------
+    # The single "my account" page.
+    # ---------------------------------------------------------------------
     path("profile/", views.ProfileRedirectView.as_view(), name="profile"),
     path("settings/", views.SettingsView.as_view(), name="settings"),
 
-    # Team management (owner-only)
+    # ---------------------------------------------------------------------
+    # Team management (owner-only).
+    # ---------------------------------------------------------------------
     path("team/", views.TeamListView.as_view(), name="team_list"),
     path("team/invite/", views.InviteEmployeeView.as_view(), name="invite_employee"),
     path("team/invite/success/", views.InviteSuccessView.as_view(), name="invite_success"),
     path("team/<int:pk>/toggle-active/", views.ToggleEmployeeActiveView.as_view(), name="toggle_employee_active"),
 
-    # Invitation acceptance (public)
+    # ---------------------------------------------------------------------
+    # Invitation acceptance (public).
+    # ---------------------------------------------------------------------
     path("invite/<str:token>/", views.AcceptInvitationView.as_view(), name="accept_invitation"),
 
+    # ---------------------------------------------------------------------
     # Verification. These two literal paths MUST be registered before
     # verify-email/<str:token>/ below — the str converter is greedy
     # enough to match "required" and "resend" as token values otherwise,
     # which would route both to VerifyEmailView and show "link isn't
     # valid" instead of the intended page.
+    # ---------------------------------------------------------------------
     path(
         "verify-email/required/",
         views.VerifyEmailRequiredView.as_view(),
