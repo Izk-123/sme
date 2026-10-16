@@ -1,10 +1,56 @@
-Django==5.2.15
-channels==4.2.0
-channels-redis==4.2.0
-daphne==4.1.2
-reportlab==4.3.0
-openpyxl==3.1.5
-python-dotenv==1.1.0
-Pillow==11.1.0
-django-unfold==0.2.6
-psycopg2-binary==2.9.10
+# =============================================================================
+# ChumaFlow — production dependencies (unpinned)
+#
+# Kept deliberately unpinned so `pip install -r requirements.txt` always
+# pulls current security patches. If a specific version ever needs to be
+# held back (rare), pin only that line and add a comment explaining why.
+#
+# Sorted by role, not alphabetically, so the file reads as documentation.
+# =============================================================================
+
+# --- Core web framework -----------------------------------------------------
+Django
+python-dotenv
+
+# --- Authentication & social sign-in ---------------------------------------
+#
+# django-allauth handles the OAuth dance for "Continue with Google".
+# The [socialaccount] extra pulls in the additional deps that provider
+# flows require — without it, the provider modules don't import.
+django-allauth[socialaccount]>=65.0
+
+# --- Admin theme -----------------------------------------------------------
+django-unfold
+
+# --- Async / WebSocket (real-time notifications) ---------------------------
+channels
+channels-redis
+daphne
+redis
+
+# --- Production HTTP serving -----------------------------------------------
+gunicorn
+whitenoise
+
+# --- Database --------------------------------------------------------------
+psycopg2-binary
+
+# --- Media handling --------------------------------------------------------
+Pillow
+
+# --- Reporting / exports ---------------------------------------------------
+reportlab
+openpyxl
+
+# --- Outbound HTTP ---------------------------------------------------------
+#
+# requests   → WhatsApp Cloud API (verification links, receipts)
+# aiohttp    → available for any async fetch work in consumers
+requests
+aiohttp
+
+# --- SMS / legacy WhatsApp (being phased out in favour of the Cloud API) ---
+twilio
+
+# --- JWT (used by some third-party integrations) ---------------------------
+PyJWT
