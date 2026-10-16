@@ -94,11 +94,21 @@
               <td class="money">{% money sale.total %}</td>
               <td>{{ sale.get_payment_method_display }}</td>
               <td>
+<<<<<<< HEAD
+                {% comment %}
+                  Status is a rough proxy until Sale has an amount_paid
+                  field. "Paid" here means "not a credit sale" — it does
+                  not distinguish a fully-settled credit sale from a
+                  partly-paid one. That distinction needs a link between
+                  Sale and Payment, which the model doesn't have yet.
+                {% endcomment %}
+=======
                 {# Status is a rough proxy until Sale has an amount_paid
                    field. "Paid" here means "not a credit sale" — it does
                    not distinguish a fully-settled credit sale from a
                    partly-paid one. That distinction needs a link between
                    Sale and Payment, which the model doesn't have yet. #}
+>>>>>>> e3b67a5 (new files)
                 {% if sale.payment_method == 'credit' %}
                   <span class="badge bg-warning text-dark">Due</span>
                 {% else %}

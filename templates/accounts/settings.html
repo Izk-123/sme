@@ -1,379 +1,1058 @@
 {% extends "base/base.html" %}
 {% block page_title %}Settings{% endblock %}
 {% block breadcrumb %}<li class="breadcrumb-item active">Settings</li>{% endblock %}
+
 {% block content %}
 
-<div class="row g-4">
+{# ====================================================================== #}
+{# Page-scoped styles.                                                    #}
+{#                                                                        #}
+{# Everything here is specific to the settings layout — it isn't          #}
+{# reused anywhere else — so it lives with the template rather than       #}
+{# bloating app.css. All class names are prefixed cf-settings- to keep    #}
+{# the namespace tidy.                                                    #}
+{#                                                                        #}
+{# The mobile-first rule: base styles describe the phone layout, and      #}
+{# every @media block *widens* from there. Nothing starts at desktop.     #}
+{# ====================================================================== #}
+<style>
+  /* ------------------------------------------------------------------
+     Tab navigation.
+     Mobile: horizontal scroll strip of icon-pill links.
+     lg+:    reverts to the original vertical list-group look.
+     ------------------------------------------------------------------ */
 
-  <!-- ========================= SIDEBAR ========================= -->
-  <div class="col-lg-3">
+  .cf-settings-nav {
+    display: flex;
+    gap: 0.35rem;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding-bottom: 0.25rem;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+    scroll-snap-type: x proximity;
+  }
+  .cf-settings-nav::-webkit-scrollbar { display: none; }
+
+  .cf-settings-nav__item {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.55rem 0.95rem;
+    border-radius: 999px;
+    background: var(--bg-surface-alt, #EEF6F5);
+    color: var(--text-body, #3F5A5D);
+    font-size: 0.85rem;
+    font-weight: 600;
+    white-space: nowrap;
+    scroll-snap-align: start;
+    border: 1.5px solid transparent;
+    transition:
+      background   180ms cubic-bezier(0.22, 1, 0.36, 1),
+      color        180ms cubic-bezier(0.22, 1, 0.36, 1),
+      border-color 180ms cubic-bezier(0.22, 1, 0.36, 1),
+      transform    180ms cubic-bezier(0.22, 1, 0.36, 1);
+    text-decoration: none;
+  }
+  .cf-settings-nav__item i {
+    font-size: 1rem;
+    color: var(--cf-flow-teal, #12A5A0);
+    flex-shrink: 0;
+  }
+  .cf-settings-nav__item:hover,
+  .cf-settings-nav__item:focus-visible {
+    background: var(--cf-flow-teal-soft, #D8F0EE);
+    color: var(--cf-deep-teal, #0A2F35);
+    transform: translateY(-1px);
+    outline: none;
+  }
+  .cf-settings-nav__item.active {
+    background: var(--cf-flow-teal, #12A5A0);
+    color: #fff;
+    border-color: var(--cf-flow-teal, #12A5A0);
+    box-shadow: 0 6px 16px -6px rgba(18, 165, 160, 0.6);
+  }
+  .cf-settings-nav__item.active i { color: #fff; }
+
+  @media (min-width: 992px) {
+    .cf-settings-nav {
+      flex-direction: column;
+      overflow: visible;
+      gap: 0;
+      padding-bottom: 0;
+    }
+    .cf-settings-nav__item {
+      border-radius: 10px;
+      padding: 0.7rem 0.9rem;
+      width: 100%;
+      background: transparent;
+      font-size: 0.9rem;
+    }
+    .cf-settings-nav__item + .cf-settings-nav__item {
+      margin-top: 2px;
+    }
+    .cf-settings-nav__item:hover {
+      transform: none;
+    }
+    .cf-settings-nav__item.active {
+      background: var(--cf-flow-teal-soft, #D8F0EE);
+      color: var(--cf-deep-teal, #0A2F35);
+      border-color: transparent;
+      box-shadow: none;
+    }
+    .cf-settings-nav__item.active i {
+      color: var(--cf-flow-teal, #12A5A0);
+    }
+  }
+
+  /* ------------------------------------------------------------------
+     Sticky sidebar on desktop.
+
+     The page (body) scrolls; the settings sidebar stays put. On mobile
+     the tab strip is horizontal at the top of the page and scrolls
+     normally — only apply this from lg up.
+
+     align-self: flex-start is the load-bearing line. Bootstrap's .row
+     is a flex container, so columns default to align-self: stretch and
+     fill the row's full height. A stretched column can't be sticky —
+     it's already as tall as the scroll container — so the column must
+     shrink to its content first.
+
+     max-height + overflow-y: auto handles the pathological case where
+     the sidebar is taller than the viewport (7 tabs × ~50px each is
+     close on a short laptop screen). Without it, the bottom tabs would
+     be unreachable.
+     ------------------------------------------------------------------ */
+  @media (min-width: 992px) {
+    .cf-settings-sidebar-col {
+      position: sticky;
+      top: 80px;                          /* 60px header + 20px gap */
+      align-self: flex-start;
+      max-height: calc(100vh - 100px);    /* 80px top + 20px bottom breathing room */
+      overflow-y: auto;
+      scrollbar-width: thin;
+      scrollbar-color: var(--border-color, #D6E5E3) transparent;
+    }
+    .cf-settings-sidebar-col::-webkit-scrollbar { width: 4px; }
+    .cf-settings-sidebar-col::-webkit-scrollbar-thumb {
+      background: var(--border-color, #D6E5E3);
+      border-radius: 2px;
+    }
+  }
+
+  /* ------------------------------------------------------------------
+     Section header inside each tab-pane.
+     Icon tile + title + optional description, stacked on mobile so the
+     icon never pushes the title off the edge of a narrow screen.
+     ------------------------------------------------------------------ */
+
+  .cf-settings-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.85rem;
+    margin-bottom: 1.25rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--border-color, #D6E5E3);
+  }
+  .cf-settings-header__icon {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    background: var(--cf-flow-teal-soft, #D8F0EE);
+    color: var(--cf-flow-teal, #12A5A0);
+    font-size: 1.25rem;
+  }
+  .cf-settings-header__body { min-width: 0; flex: 1; }
+  .cf-settings-header__title {
+    margin: 0;
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--text-heading, #0A2F35);
+    line-height: 1.3;
+  }
+  .cf-settings-header__desc {
+    margin: 0.15rem 0 0;
+    font-size: 0.82rem;
+    color: var(--text-muted, #7C9B99);
+    line-height: 1.45;
+  }
+
+  /* ------------------------------------------------------------------
+     Empty state — icon in a soft circle, one line, optional CTA.
+     ------------------------------------------------------------------ */
+
+  .cf-settings-empty {
+    text-align: center;
+    padding: 2rem 1rem;
+    border: 1.5px dashed var(--border-color, #D6E5E3);
+    border-radius: 14px;
+    background: var(--bg-surface-alt, #EEF6F5);
+    margin-bottom: 1rem;
+  }
+  .cf-settings-empty__icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: var(--cf-flow-teal-soft, #D8F0EE);
+    color: var(--cf-flow-teal, #12A5A0);
+    font-size: 1.5rem;
+    margin-bottom: 0.65rem;
+  }
+  .cf-settings-empty__title {
+    margin: 0;
+    font-size: 0.92rem;
+    font-weight: 700;
+    color: var(--text-heading, #0A2F35);
+  }
+  .cf-settings-empty__hint {
+    margin: 0.2rem 0 0;
+    font-size: 0.8rem;
+    color: var(--text-muted, #7C9B99);
+  }
+
+  /* ------------------------------------------------------------------
+     List item card — used for phones, IDs, memberships.
+     Reads as a row on mobile, but stacks its own internals instead of
+     relying on a table's column layout.
+     ------------------------------------------------------------------ */
+
+  .cf-settings-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.85rem;
+    padding: 0.85rem 0.95rem;
+    border: 1px solid var(--border-color, #D6E5E3);
+    border-radius: 12px;
+    background: var(--bg-surface, #fff);
+    margin-bottom: 0.5rem;
+    transition: border-color 180ms ease, transform 180ms ease;
+  }
+  .cf-settings-item:hover {
+    border-color: var(--cf-flow-teal, #12A5A0);
+  }
+  .cf-settings-item__icon {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    background: var(--bg-surface-alt, #EEF6F5);
+    color: var(--cf-flow-teal, #12A5A0);
+    font-size: 1rem;
+  }
+  .cf-settings-item__body { min-width: 0; flex: 1; }
+  .cf-settings-item__title {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-heading, #0A2F35);
+    margin: 0;
+    word-break: break-word;
+  }
+  .cf-settings-item__meta {
+    font-size: 0.78rem;
+    color: var(--text-muted, #7C9B99);
+    margin: 0.15rem 0 0;
+  }
+  .cf-settings-item__badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+    margin-top: 0.35rem;
+  }
+  .cf-settings-item__badges .badge {
+    font-size: 0.7rem;
+    font-weight: 600;
+    padding: 0.3em 0.65em;
+  }
+
+  /* ------------------------------------------------------------------
+     Theme radio tiles (Preferences tab).
+     ------------------------------------------------------------------ */
+
+  .cf-theme-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.6rem;
+  }
+  .cf-theme-tile {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    padding: 1rem 0.5rem;
+    border: 1.5px solid var(--border-color, #D6E5E3);
+    border-radius: 12px;
+    background: var(--bg-surface, #fff);
+    cursor: pointer;
+    text-align: center;
+    transition:
+      border-color 180ms ease,
+      background   180ms ease,
+      transform    180ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .cf-theme-tile:hover {
+    border-color: var(--cf-flow-teal, #12A5A0);
+    transform: translateY(-1px);
+  }
+  .cf-theme-tile input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+  }
+  .cf-theme-tile i {
+    font-size: 1.35rem;
+    color: var(--text-muted, #7C9B99);
+  }
+  .cf-theme-tile span {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--text-body, #3F5A5D);
+  }
+  .cf-theme-tile:has(input:checked) {
+    border-color: var(--cf-flow-teal, #12A5A0);
+    background: var(--cf-flow-teal-soft, #D8F0EE);
+  }
+  .cf-theme-tile:has(input:checked) i {
+    color: var(--cf-flow-teal, #12A5A0);
+  }
+  .cf-theme-tile:has(input:focus-visible) {
+    box-shadow: 0 0 0 3px rgba(18, 165, 160, 0.22);
+  }
+
+  /* ------------------------------------------------------------------
+     Notification toggle rows.
+     ------------------------------------------------------------------ */
+
+  .cf-toggle-row {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.7rem 0;
+    border-bottom: 1px solid var(--border-color, #D6E5E3);
+  }
+  .cf-toggle-row:last-child { border-bottom: 0; }
+  .cf-toggle-row__label {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text-body, #3F5A5D);
+    margin: 0;
+    line-height: 1.4;
+  }
+  .cf-toggle-row__hint {
+    font-size: 0.76rem;
+    color: var(--text-muted, #7C9B99);
+    margin: 0.1rem 0 0;
+  }
+  .cf-toggle-row .form-check {
+    margin: 0;
+    padding: 0;
+    flex-shrink: 0;
+  }
+  .cf-toggle-row .form-check-input {
+    margin: 0;
+    width: 2.4em;
+    height: 1.3em;
+    cursor: pointer;
+  }
+
+  /* ------------------------------------------------------------------
+     Security rows.
+     ------------------------------------------------------------------ */
+
+  .cf-security-row {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    padding: 1rem 0;
+    border-bottom: 1px solid var(--border-color, #D6E5E3);
+  }
+  .cf-security-row:last-child { border-bottom: 0; }
+  @media (min-width: 576px) {
+    .cf-security-row {
+      flex-direction: row;
+      align-items: center;
+      justify-content: space-between;
+    }
+  }
+  .cf-security-row__title {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-heading, #0A2F35);
+    margin: 0;
+  }
+  .cf-security-row__desc {
+    font-size: 0.8rem;
+    color: var(--text-muted, #7C9B99);
+    margin: 0.15rem 0 0;
+    word-break: break-word;
+  }
+
+  /* ------------------------------------------------------------------
+     Section grouping (Notifications / Preferences internal headings).
+     ------------------------------------------------------------------ */
+
+  .cf-group-heading {
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+    color: var(--text-muted, #7C9B99);
+    margin: 0 0 0.35rem;
+  }
+  .cf-group {
+    padding: 0.9rem 1rem;
+    border: 1px solid var(--border-color, #D6E5E3);
+    border-radius: 12px;
+    background: var(--bg-surface, #fff);
+    margin-bottom: 1rem;
+  }
+
+  /* ------------------------------------------------------------------
+     Save button — full-width under sm, inline above.
+     ------------------------------------------------------------------ */
+
+  .cf-save-btn {
+    width: 100%;
+  }
+  @media (min-width: 576px) {
+    .cf-save-btn { width: auto; }
+  }
+
+  /* ------------------------------------------------------------------
+     Profile photo — mobile alignment.
+
+     On desktop the widget sits in the right-hand form column (lg-9)
+     and is left-aligned to match the other inputs. On mobile there is
+     no second column — the field label stacks above, and the dropzone
+     would sit alone in a wide row, stranded against the left edge.
+
+     Two rules:
+
+       * Center the widget on mobile so it reads as the focal point of
+         the section. Undone at md+ so desktop keeps the aligned look.
+
+       * Widen the meta row's max-width on mobile, so the filename and
+         size hint can use more of the available row rather than being
+         squeezed into the dropzone's 220px column.
+
+     Scoped to `max-width: 767.98px` because the underlying widget is
+     reusable — the desktop look is correct wherever the widget appears,
+     and only the mobile presentation needs adjusting.
+
+     The `display: flex` + `width: fit-content` combination is what
+     makes auto margins work. `inline-flex` doesn't respect auto margins
+     horizontally (it participates in inline layout, so margins don't
+     absorb free space). Switching to block-level flex while pinning the
+     width to the content keeps the dropzone's intrinsic size and lets
+     the auto margins center it.
+     ------------------------------------------------------------------ */
+  @media (max-width: 767.98px) {
+    .cf-photo-drop {
+      display: flex;
+      width: fit-content;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .cf-photo-drop__meta {
+      max-width: 240px;
+    }
+  }
+</style>
+
+<div class="row g-3 g-lg-4">
+
+  {# ================================================================== #}
+  {# SIDEBAR / TAB NAV                                                   #}
+  {#                                                                    #}
+  {# Same element on mobile and desktop — CSS reshapes it. The           #}
+  {# id="settings-tab" and href="#xxx" pairs must stay, because the     #}
+  {# page script at the bottom (and the URL-hash deep-link handler)     #}
+  {# query for them.                                                     #}
+  {#                                                                    #}
+  {# cf-settings-sidebar-col makes the column sticky from lg up — see   #}
+  {# the @media (min-width: 992px) block above for why align-self:      #}
+  {# flex-start is required for that to work inside a flex row.         #}
+  {# ================================================================== #}
+  <div class="col-12 col-lg-3 cf-settings-sidebar-col">
     <div class="card">
       <div class="card-body p-2">
-        <div class="list-group list-group-flush" id="settings-tab" role="tablist">
-          <a href="#profile" class="list-group-item list-group-item-action active d-flex align-items-center gap-2" data-bs-toggle="list" role="tab">
-            <i class="bi bi-person"></i> Profile
+        <nav class="cf-settings-nav" id="settings-tab" role="tablist">
+          <a href="#profile" class="cf-settings-nav__item active" data-bs-toggle="list" role="tab">
+            <i class="bi bi-person"></i><span>Profile</span>
           </a>
-          <a href="#contact" class="list-group-item list-group-item-action d-flex align-items-center gap-2" data-bs-toggle="list" role="tab">
-            <i class="bi bi-phone"></i> Contact
+          <a href="#contact" class="cf-settings-nav__item" data-bs-toggle="list" role="tab">
+            <i class="bi bi-phone"></i><span>Contact</span>
           </a>
-          <a href="#identity" class="list-group-item list-group-item-action d-flex align-items-center gap-2" data-bs-toggle="list" role="tab">
-            <i class="bi bi-person-vcard"></i> Identity
+          <a href="#identity" class="cf-settings-nav__item" data-bs-toggle="list" role="tab">
+            <i class="bi bi-person-vcard"></i><span>Identity</span>
           </a>
-          <a href="#security" class="list-group-item list-group-item-action d-flex align-items-center gap-2" data-bs-toggle="list" role="tab">
-            <i class="bi bi-shield-lock"></i> Security
+          <a href="#security" class="cf-settings-nav__item" data-bs-toggle="list" role="tab">
+            <i class="bi bi-shield-lock"></i><span>Security</span>
           </a>
-          <a href="#notifications" class="list-group-item list-group-item-action d-flex align-items-center gap-2" data-bs-toggle="list" role="tab">
-            <i class="bi bi-bell"></i> Notifications
+          <a href="#notifications" class="cf-settings-nav__item" data-bs-toggle="list" role="tab">
+            <i class="bi bi-bell"></i><span>Notifications</span>
           </a>
-          <a href="#preferences" class="list-group-item list-group-item-action d-flex align-items-center gap-2" data-bs-toggle="list" role="tab">
-            <i class="bi bi-palette"></i> Preferences
+          <a href="#preferences" class="cf-settings-nav__item" data-bs-toggle="list" role="tab">
+            <i class="bi bi-palette"></i><span>Preferences</span>
           </a>
-          <a href="#businesses" class="list-group-item list-group-item-action d-flex align-items-center gap-2" data-bs-toggle="list" role="tab">
-            <i class="bi bi-building"></i> Businesses
+          <a href="#businesses" class="cf-settings-nav__item" data-bs-toggle="list" role="tab">
+            <i class="bi bi-building"></i><span>Businesses</span>
           </a>
-        </div>
+        </nav>
       </div>
     </div>
   </div>
 
-  <!-- ========================= MAIN CONTENT ========================= -->
-  <div class="col-lg-9">
+  {# ================================================================== #}
+  {# MAIN CONTENT                                                        #}
+  {# ================================================================== #}
+  <div class="col-12 col-lg-9">
     <div class="card">
       <div class="card-body pt-3">
+
         <div class="tab-content">
 
-          <!-- Profile -->
+          {# ============================================================ #}
+          {# PROFILE                                                       #}
+          {# ============================================================ #}
           <div class="tab-pane fade show active" id="profile">
-            <h5 class="card-title">Personal profile</h5>
+
+            <header class="cf-settings-header">
+              <span class="cf-settings-header__icon"><i class="bi bi-person"></i></span>
+              <div class="cf-settings-header__body">
+                <h2 class="cf-settings-header__title">Personal profile</h2>
+                <p class="cf-settings-header__desc">
+                  Your name, photo, and personal details. Visible only to you and
+                  the businesses you belong to.
+                </p>
+              </div>
+            </header>
+
             {% include "accounts/_profile_form.html" with form=profile_form %}
           </div>
 
-          <!-- Contact -->
+          {# ============================================================ #}
+          {# CONTACT                                                       #}
+          {# ============================================================ #}
           <div class="tab-pane fade" id="contact">
-            <h5 class="card-title">Contact information</h5>
-            <div class="rounded p-3 mb-4 small d-flex align-items-start gap-2"
-                 style="background: var(--cf-mist); border: 1px solid var(--border-color); color: var(--text-body);">
-              <i class="bi bi-info-circle flex-shrink-0 mt-1" style="color: var(--cf-flow-teal);"></i>
-              <div>Phone verification (SMS/WhatsApp) isn't set up yet — numbers show as unverified until a provider is connected.</div>
+
+            <header class="cf-settings-header">
+              <span class="cf-settings-header__icon"><i class="bi bi-telephone"></i></span>
+              <div class="cf-settings-header__body">
+                <h2 class="cf-settings-header__title">Contact information</h2>
+                <p class="cf-settings-header__desc">
+                  Numbers we can reach you on. One is marked primary and used for
+                  sign-in recovery and WhatsApp messages.
+                </p>
+              </div>
+            </header>
+
+            <div class="alert d-flex align-items-start gap-2 mb-4"
+                 style="background: var(--cf-flow-teal-soft); border: 1px solid var(--cf-flow-teal); color: var(--cf-deep-teal);">
+              <i class="bi bi-info-circle flex-shrink-0 mt-1"></i>
+              <div class="small">
+                SMS and WhatsApp verification isn't wired up yet — numbers stay
+                marked "unverified" until a provider is connected.
+              </div>
             </div>
 
+            <h6 class="cf-group-heading">Your numbers</h6>
+
             {% if phone_numbers %}
-              <table class="table table-hover table-stack">
-                <thead>
-                  <tr>
-                    <th>Number</th>
-                    <th>Type</th>
-                    <th class="text-end">Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {% for phone in phone_numbers %}
-                    <tr>
-                      <td class="fw-semibold">{{ phone.number }}</td>
-                      <td class="text-muted small">{{ phone.get_type_display }}</td>
-                      <td class="text-end">
-                        {% if phone.is_primary %}
-                          <span class="badge" style="background: var(--cf-flow-teal); color: #fff;">Primary</span>
-                        {% endif %}
-                        {% if phone.is_verified %}
-                          <span class="badge bg-success">Verified</span>
-                        {% else %}
-                          <span class="badge bg-secondary">Unverified</span>
-                        {% endif %}
-                      </td>
-                    </tr>
-                  {% endfor %}
-                </tbody>
-              </table>
+              {% for phone in phone_numbers %}
+                <div class="cf-settings-item">
+                  <span class="cf-settings-item__icon">
+                    <i class="bi bi-{% if phone.type == 'whatsapp' %}whatsapp{% elif phone.type == 'work' %}briefcase{% else %}phone{% endif %}"></i>
+                  </span>
+                  <div class="cf-settings-item__body">
+                    <p class="cf-settings-item__title">{{ phone.number }}</p>
+                    <p class="cf-settings-item__meta">{{ phone.get_type_display }}</p>
+                    <div class="cf-settings-item__badges">
+                      {% if phone.is_primary %}
+                        <span class="badge" style="background: var(--cf-flow-teal); color: #fff;">Primary</span>
+                      {% endif %}
+                      {% if phone.is_verified %}
+                        <span class="badge bg-success">Verified</span>
+                      {% else %}
+                        <span class="badge bg-secondary">Unverified</span>
+                      {% endif %}
+                    </div>
+                  </div>
+                </div>
+              {% endfor %}
             {% else %}
-              <div class="text-center py-4">
-                <i class="bi bi-phone" style="font-size: 2rem; color: var(--text-muted); opacity: 0.4;"></i>
-                <p class="text-muted small mt-2 mb-0">No phone numbers added yet.</p>
+              <div class="cf-settings-empty">
+                <span class="cf-settings-empty__icon"><i class="bi bi-phone"></i></span>
+                <p class="cf-settings-empty__title">No phone numbers yet</p>
+                <p class="cf-settings-empty__hint">Add one below so we can reach you.</p>
               </div>
             {% endif %}
 
-            <h6 class="mt-4 mb-3 fw-semibold">Add a phone number</h6>
-            <form method="post">
+            <h6 class="cf-group-heading mt-4">Add a number</h6>
+            <form method="post" class="cf-group">
               {% csrf_token %}
               <input type="hidden" name="form_name" value="phone">
+
               {% if phone_form.non_field_errors %}
-                <div class="alert alert-danger">{{ phone_form.non_field_errors|striptags }}</div>
+                <div class="alert alert-danger py-2 small">{{ phone_form.non_field_errors|striptags }}</div>
               {% endif %}
+
               <div class="row g-3">
                 {% for field in phone_form %}
-                  <div class="col-md-4">
-                    <label for="{{ field.id_for_label }}" class="form-label fw-semibold">{{ field.label }}</label>
+                  <div class="col-12 col-md-4">
+                    <label for="{{ field.id_for_label }}" class="form-label fw-semibold small">
+                      {{ field.label }}
+                    </label>
                     {{ field }}
                     {% if field.errors %}
-                      <div class="invalid-feedback d-block"><i class="bi bi-exclamation-circle me-1"></i>{{ field.errors|striptags }}</div>
+                      <div class="invalid-feedback d-block small">
+                        <i class="bi bi-exclamation-circle me-1"></i>{{ field.errors.0 }}
+                      </div>
                     {% endif %}
                   </div>
                 {% endfor %}
               </div>
-              <button type="submit" class="btn btn-primary btn-sm mt-3">
+
+              <button type="submit" class="btn btn-primary btn-sm mt-3 cf-save-btn">
                 <i class="bi bi-plus-lg me-1"></i> Add phone
               </button>
             </form>
           </div>
 
-          <!-- Identity -->
+          {# ============================================================ #}
+          {# IDENTITY                                                      #}
+          {# ============================================================ #}
           <div class="tab-pane fade" id="identity">
-            <h5 class="card-title">Identity documents</h5>
-            <p class="text-muted small">Optional. Only add these if your business needs them verified — see your business's Team page for who can view the underlying document.</p>
+
+            <header class="cf-settings-header">
+              <span class="cf-settings-header__icon"><i class="bi bi-person-vcard"></i></span>
+              <div class="cf-settings-header__body">
+                <h2 class="cf-settings-header__title">Identity documents</h2>
+                <p class="cf-settings-header__desc">
+                  Optional. Add these only if a business you belong to needs them
+                  on file — the underlying image is only visible to its owner.
+                </p>
+              </div>
+            </header>
+
+            <h6 class="cf-group-heading">Documents on file</h6>
 
             {% if identities %}
-              <table class="table table-hover table-stack">
-                <thead>
-                  <tr>
-                    <th>Type</th>
-                    <th>Number</th>
-                    <th class="text-end">Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {% for doc in identities %}
-                    <tr>
-                      <td class="fw-semibold">{{ doc.get_document_type_display }}</td>
-                      <td><code>{{ doc.masked_number }}</code></td>
-                      <td class="text-end">
-                        {% if doc.is_verified %}
-                          <span class="badge bg-success">Verified</span>
-                        {% else %}
-                          <span class="badge bg-secondary">Unverified</span>
-                        {% endif %}
-                      </td>
-                    </tr>
-                  {% endfor %}
-                </tbody>
-              </table>
+              {% for doc in identities %}
+                <div class="cf-settings-item">
+                  <span class="cf-settings-item__icon"><i class="bi bi-card-text"></i></span>
+                  <div class="cf-settings-item__body">
+                    <p class="cf-settings-item__title">{{ doc.get_document_type_display }}</p>
+                    <p class="cf-settings-item__meta"><code>{{ doc.masked_number }}</code></p>
+                    <div class="cf-settings-item__badges">
+                      {% if doc.is_verified %}
+                        <span class="badge bg-success">Verified</span>
+                      {% else %}
+                        <span class="badge bg-secondary">Unverified</span>
+                      {% endif %}
+                    </div>
+                  </div>
+                </div>
+              {% endfor %}
             {% else %}
-              <div class="text-center py-4">
-                <i class="bi bi-person-vcard" style="font-size: 2rem; color: var(--text-muted); opacity: 0.4;"></i>
-                <p class="text-muted small mt-2 mb-0">No documents added yet.</p>
+              <div class="cf-settings-empty">
+                <span class="cf-settings-empty__icon"><i class="bi bi-person-vcard"></i></span>
+                <p class="cf-settings-empty__title">No documents yet</p>
+                <p class="cf-settings-empty__hint">Add one below if it's needed.</p>
               </div>
             {% endif %}
 
-            <h6 class="mt-4 mb-3 fw-semibold">Add a document</h6>
-            <form method="post" enctype="multipart/form-data">
+            <h6 class="cf-group-heading mt-4">Add a document</h6>
+            <form method="post" enctype="multipart/form-data" class="cf-group">
               {% csrf_token %}
               <input type="hidden" name="form_name" value="identity">
+
               {% if identity_form.non_field_errors %}
-                <div class="alert alert-danger">{{ identity_form.non_field_errors|striptags }}</div>
+                <div class="alert alert-danger py-2 small">{{ identity_form.non_field_errors|striptags }}</div>
               {% endif %}
+
               <div class="row g-3">
                 {% for field in identity_form %}
-                  <div class="col-md-6">
-                    <label for="{{ field.id_for_label }}" class="form-label fw-semibold">{{ field.label }}</label>
+                  <div class="col-12 col-md-6">
+                    <label for="{{ field.id_for_label }}" class="form-label fw-semibold small">
+                      {{ field.label }}
+                    </label>
                     {{ field }}
                     {% if field.errors %}
-                      <div class="invalid-feedback d-block"><i class="bi bi-exclamation-circle me-1"></i>{{ field.errors|striptags }}</div>
+                      <div class="invalid-feedback d-block small">
+                        <i class="bi bi-exclamation-circle me-1"></i>{{ field.errors.0 }}
+                      </div>
                     {% endif %}
                   </div>
                 {% endfor %}
               </div>
-              <button type="submit" class="btn btn-primary btn-sm mt-3">
+
+              <button type="submit" class="btn btn-primary btn-sm mt-3 cf-save-btn">
                 <i class="bi bi-check2-circle me-1"></i> Save document
               </button>
             </form>
           </div>
 
-          <!-- Security -->
+          {# ============================================================ #}
+          {# SECURITY                                                      #}
+          {# ============================================================ #}
           <div class="tab-pane fade" id="security">
-            <h5 class="card-title">Security</h5>
 
-            <div class="d-flex justify-content-between align-items-center py-3 border-bottom flex-wrap gap-2">
-              <div>
-                <div class="fw-semibold">Password</div>
-                <div class="text-muted small">Change your login password.</div>
+            <header class="cf-settings-header">
+              <span class="cf-settings-header__icon"><i class="bi bi-shield-lock"></i></span>
+              <div class="cf-settings-header__body">
+                <h2 class="cf-settings-header__title">Security</h2>
+                <p class="cf-settings-header__desc">
+                  How you sign in, and how we reach you if something changes.
+                </p>
               </div>
-              <a href="{% url 'change_password' %}" class="btn btn-outline-primary btn-sm">
-                <i class="bi bi-key me-1"></i> Change password
-              </a>
-            </div>
+            </header>
 
-            <div class="d-flex justify-content-between align-items-center py-3 border-bottom flex-wrap gap-2">
-              <div>
-                <div class="fw-semibold">Email verification</div>
-                <div class="text-muted small">
-                  {% if user.email %}
-                    {{ user.email }}
-                    {% if profile.email_verified %}
-                      <span class="badge bg-success ms-1">Verified</span>
-                    {% else %}
-                      <span class="badge bg-secondary ms-1">Unverified</span>
-                    {% endif %}
-                  {% else %}
-                    No email on file — add one on the Profile tab.
-                  {% endif %}
+            <h6 class="cf-group-heading">Sign-in</h6>
+            <div class="cf-group">
+              <div class="cf-security-row">
+                <div>
+                  <p class="cf-security-row__title">Password</p>
+                  <p class="cf-security-row__desc">Change your login password.</p>
+                </div>
+                <a href="{% url 'change_password' %}" class="btn btn-outline-primary btn-sm">
+                  <i class="bi bi-key me-1"></i> Change password
+                </a>
+              </div>
+
+              <div class="cf-security-row">
+                <div>
+                  <p class="cf-security-row__title">Username</p>
+                  <p class="cf-security-row__desc"><code>{{ user.username }}</code></p>
                 </div>
               </div>
-              {% if user.email and not profile.email_verified %}
-                <form method="post" action="{% url 'resend_verification_email' %}">
-                  {% csrf_token %}
-                  <button type="submit" class="btn btn-outline-primary btn-sm">
-                    <i class="bi bi-envelope me-1"></i> Resend email
-                  </button>
-                </form>
-              {% endif %}
-            </div>
 
-            <div class="d-flex justify-content-between align-items-center py-3 border-bottom flex-wrap gap-2">
-              <div>
-                <div class="fw-semibold">Two-factor authentication</div>
-                <div class="text-muted small">Coming soon.</div>
+              <div class="cf-security-row">
+                <div>
+                  <p class="cf-security-row__title">Two-factor authentication</p>
+                  <p class="cf-security-row__desc">Coming soon.</p>
+                </div>
+                <button class="btn btn-outline-secondary btn-sm" disabled>
+                  <i class="bi bi-lock me-1"></i> Enable
+                </button>
               </div>
-              <button class="btn btn-outline-secondary btn-sm" disabled>
-                <i class="bi bi-lock me-1"></i> Enable
-              </button>
             </div>
 
-            <div class="py-3">
-              <div class="fw-semibold mb-2">Username</div>
-              <code>{{ user.username }}</code>
+            {# ============================================================ #}
+            {# RECOVERY EMAIL                                                #}
+            {#                                                                #}
+            {# Two flags drive what this section shows:                       #}
+            {#                                                                #}
+            {#   profile.email_verified         → contact confirmed by        #}
+            {#                                     ANY channel (email or       #}
+            {#                                     WhatsApp). Gates the app.   #}
+            {#                                                                #}
+            {#   profile.email_address_verified → the EMAIL ADDRESS itself     #}
+            {#                                     was proven. Requires an     #}
+            {#                                     email-delivered link.       #}
+            {#                                     Required for Google linking.#}
+            {#                                                                #}
+            {# This section is about the email address, so it reads the        #}
+            {# second flag. A user who verified by WhatsApp sees "Not          #}
+            {# verified" here and is offered the button that lets them fix     #}
+            {# that — `?force=email` overrides their stored channel preference #}
+            {# and sends the link by email, which is the only way to flip      #}
+            {# `email_address_verified`.                                       #}
+            {# ============================================================ #}
+
+            <h6 class="cf-group-heading">Recovery email</h6>
+            <div class="cf-group">
+              <div class="cf-security-row">
+                <div>
+                  <p class="cf-security-row__title">Email on file</p>
+                  {% if user.email %}
+                    <p class="cf-security-row__desc">
+                      {{ user.email }}
+                      {% if profile.email_address_verified %}
+                        <span class="badge bg-success ms-1">Verified</span>
+                      {% else %}
+                        <span class="badge bg-warning text-dark ms-1">Not verified</span>
+                      {% endif %}
+                    </p>
+                    {% if not profile.email_address_verified %}
+                      <p class="cf-security-row__desc small mt-1"
+                         style="color: var(--text-muted);">
+                        Verifying this address lets you sign in with Google.
+                        We'll send you a link by email.
+                      </p>
+                    {% endif %}
+                  {% else %}
+                    <p class="cf-security-row__desc">
+                      No email yet — add one on the Profile tab.
+                    </p>
+                  {% endif %}
+                </div>
+                {% if user.email and not profile.email_address_verified %}
+                  <form method="post"
+                        action="{% url 'resend_verification_email' %}?force=email">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-outline-primary btn-sm">
+                      <i class="bi bi-envelope-check me-1"></i> Verify my email
+                    </button>
+                  </form>
+                {% endif %}
+              </div>
             </div>
           </div>
 
-          <!-- Notifications -->
+          {# ============================================================ #}
+          {# NOTIFICATIONS                                                 #}
+          {# ============================================================ #}
           <div class="tab-pane fade" id="notifications">
-            <h5 class="card-title">Notification settings</h5>
+
+            <header class="cf-settings-header">
+              <span class="cf-settings-header__icon"><i class="bi bi-bell"></i></span>
+              <div class="cf-settings-header__body">
+                <h2 class="cf-settings-header__title">Notifications</h2>
+                <p class="cf-settings-header__desc">
+                  What we tell you about, and how. Only affects your account.
+                </p>
+              </div>
+            </header>
+
             <form method="post">
               {% csrf_token %}
               <input type="hidden" name="form_name" value="notifications">
-              <div class="row g-4">
 
-                <div class="col-md-6">
-                  <h6 class="text-muted text-uppercase small fw-bold mb-3" style="letter-spacing: 0.5px;">Sales &amp; Inventory</h6>
-                  <div class="form-check mb-2">
+              <h6 class="cf-group-heading">Sales &amp; inventory</h6>
+              <div class="cf-group">
+                <div class="cf-toggle-row">
+                  <div>
+                    <p class="cf-toggle-row__label">Daily sales summary</p>
+                    <p class="cf-toggle-row__hint">A round-up each evening.</p>
+                  </div>
+                  <div class="form-check form-switch">
                     {{ notification_form.daily_sales_summary }}
-                    <label class="form-check-label" for="{{ notification_form.daily_sales_summary.id_for_label }}">Daily sales summary</label>
                   </div>
-                  <div class="form-check mb-2">
+                </div>
+
+                <div class="cf-toggle-row">
+                  <div>
+                    <p class="cf-toggle-row__label">Low stock alerts</p>
+                    <p class="cf-toggle-row__hint">When a product dips below its threshold.</p>
+                  </div>
+                  <div class="form-check form-switch">
                     {{ notification_form.low_stock_alert }}
-                    <label class="form-check-label" for="{{ notification_form.low_stock_alert.id_for_label }}">Low stock alerts</label>
                   </div>
-                  <div class="form-check mb-2">
+                </div>
+
+                <div class="cf-toggle-row">
+                  <div>
+                    <p class="cf-toggle-row__label">Out-of-stock alerts</p>
+                    <p class="cf-toggle-row__hint">When a product hits zero.</p>
+                  </div>
+                  <div class="form-check form-switch">
                     {{ notification_form.out_of_stock_alert }}
-                    <label class="form-check-label" for="{{ notification_form.out_of_stock_alert.id_for_label }}">Out-of-stock alerts</label>
                   </div>
-                </div>
-
-                <div class="col-md-6">
-                  <h6 class="text-muted text-uppercase small fw-bold mb-3" style="letter-spacing: 0.5px;">Customers</h6>
-                  <div class="form-check mb-2">
-                    {{ notification_form.payment_overdue }}
-                    <label class="form-check-label" for="{{ notification_form.payment_overdue.id_for_label }}">Payment overdue</label>
-                  </div>
-                  <div class="form-check mb-2">
-                    {{ notification_form.customer_payment_received }}
-                    <label class="form-check-label" for="{{ notification_form.customer_payment_received.id_for_label }}">Customer payment received</label>
-                  </div>
-                </div>
-
-                <div class="col-md-6">
-                  <h6 class="text-muted text-uppercase small fw-bold mb-3" style="letter-spacing: 0.5px;">Security</h6>
-                  <div class="form-check mb-2">
-                    {{ notification_form.new_login_alert }}
-                    <label class="form-check-label" for="{{ notification_form.new_login_alert.id_for_label }}">New login</label>
-                  </div>
-                  <div class="form-check mb-2">
-                    {{ notification_form.password_changed_alert }}
-                    <label class="form-check-label" for="{{ notification_form.password_changed_alert.id_for_label }}">Password changed</label>
-                  </div>
-                </div>
-
-                <div class="col-md-6">
-                  <h6 class="text-muted text-uppercase small fw-bold mb-3" style="letter-spacing: 0.5px;">Channels</h6>
-                  <div class="form-check mb-2">
-                    {{ notification_form.push_notifications }}
-                    <label class="form-check-label" for="{{ notification_form.push_notifications.id_for_label }}">Push notifications</label>
-                  </div>
-                  <div class="form-check mb-2">
-                    {{ notification_form.email_notifications }}
-                    <label class="form-check-label" for="{{ notification_form.email_notifications.id_for_label }}">Email</label>
-                  </div>
-                </div>
-
-                <div class="col-12 mt-3">
-                  <button type="submit" class="btn btn-primary">
-                    <i class="bi bi-check2-circle me-1"></i> Save notification settings
-                  </button>
                 </div>
               </div>
+
+              <h6 class="cf-group-heading">Customers</h6>
+              <div class="cf-group">
+                <div class="cf-toggle-row">
+                  <div>
+                    <p class="cf-toggle-row__label">Payment overdue</p>
+                    <p class="cf-toggle-row__hint">When a customer's balance is past due.</p>
+                  </div>
+                  <div class="form-check form-switch">
+                    {{ notification_form.payment_overdue }}
+                  </div>
+                </div>
+
+                <div class="cf-toggle-row">
+                  <div>
+                    <p class="cf-toggle-row__label">Payment received</p>
+                    <p class="cf-toggle-row__hint">When a customer pays.</p>
+                  </div>
+                  <div class="form-check form-switch">
+                    {{ notification_form.customer_payment_received }}
+                  </div>
+                </div>
+              </div>
+
+              <h6 class="cf-group-heading">Security</h6>
+              <div class="cf-group">
+                <div class="cf-toggle-row">
+                  <div>
+                    <p class="cf-toggle-row__label">New sign-in</p>
+                    <p class="cf-toggle-row__hint">Whenever your account is accessed from a new device.</p>
+                  </div>
+                  <div class="form-check form-switch">
+                    {{ notification_form.new_login_alert }}
+                  </div>
+                </div>
+
+                <div class="cf-toggle-row">
+                  <div>
+                    <p class="cf-toggle-row__label">Password changed</p>
+                    <p class="cf-toggle-row__hint">A confirmation after any password change.</p>
+                  </div>
+                  <div class="form-check form-switch">
+                    {{ notification_form.password_changed_alert }}
+                  </div>
+                </div>
+              </div>
+
+              <h6 class="cf-group-heading">Delivery channels</h6>
+              <div class="cf-group">
+                <div class="cf-toggle-row">
+                  <div>
+                    <p class="cf-toggle-row__label">Push notifications</p>
+                    <p class="cf-toggle-row__hint">In-app and browser notifications.</p>
+                  </div>
+                  <div class="form-check form-switch">
+                    {{ notification_form.push_notifications }}
+                  </div>
+                </div>
+
+                <div class="cf-toggle-row">
+                  <div>
+                    <p class="cf-toggle-row__label">Email</p>
+                    <p class="cf-toggle-row__hint">Send the same alerts to your email.</p>
+                  </div>
+                  <div class="form-check form-switch">
+                    {{ notification_form.email_notifications }}
+                  </div>
+                </div>
+              </div>
+
+              <button type="submit" class="btn btn-primary cf-save-btn">
+                <i class="bi bi-check2-circle me-1"></i> Save notifications
+              </button>
             </form>
           </div>
 
-          <!-- Preferences -->
+          {# ============================================================ #}
+          {# PREFERENCES                                                   #}
+          {# ============================================================ #}
           <div class="tab-pane fade" id="preferences">
-            <h5 class="card-title">Preferences</h5>
+
+            <header class="cf-settings-header">
+              <span class="cf-settings-header__icon"><i class="bi bi-palette"></i></span>
+              <div class="cf-settings-header__body">
+                <h2 class="cf-settings-header__title">Preferences</h2>
+                <p class="cf-settings-header__desc">
+                  Appearance and locale. Only affects you — not the rest of
+                  your team.
+                </p>
+              </div>
+            </header>
+
             <form method="post">
               {% csrf_token %}
               <input type="hidden" name="form_name" value="preferences">
 
-              <div class="mb-4">
-                <label class="form-label fw-semibold d-block">Appearance</label>
+              <h6 class="cf-group-heading">Appearance</h6>
+              <div class="cf-theme-grid mb-4">
                 {% for radio in preference_form.theme %}
-                  <div class="form-check form-check-inline">
+                  <label class="cf-theme-tile" for="{{ radio.id_for_label }}">
                     {{ radio.tag }}
-                    <label class="form-check-label" for="{{ radio.id_for_label }}">{{ radio.choice_label }}</label>
-                  </div>
+                    <i class="bi bi-{% if radio.data.value == 'dark' %}moon-stars{% elif radio.data.value == 'light' %}sun{% else %}circle-half{% endif %}"></i>
+                    <span>{{ radio.choice_label }}</span>
+                  </label>
                 {% endfor %}
-                <div class="form-text">Only affects you — not the rest of your team.</div>
               </div>
 
-              <div class="row g-3">
-                <div class="col-md-6">
-                  <label for="{{ preference_form.language.id_for_label }}" class="form-label fw-semibold">Language</label>
-                  {{ preference_form.language }}
+              <h6 class="cf-group-heading">Language &amp; region</h6>
+              <div class="cf-group">
+                <div class="row g-3">
+                  <div class="col-12 col-md-6">
+                    <label for="{{ preference_form.language.id_for_label }}" class="form-label fw-semibold small">
+                      Language
+                    </label>
+                    {{ preference_form.language }}
+                  </div>
+                  <div class="col-12 col-md-6">
+                    <label for="{{ preference_form.timezone.id_for_label }}" class="form-label fw-semibold small">
+                      Timezone
+                    </label>
+                    {{ preference_form.timezone }}
+                  </div>
                 </div>
-                <div class="col-md-6">
-                  <label for="{{ preference_form.timezone.id_for_label }}" class="form-label fw-semibold">Timezone</label>
-                  {{ preference_form.timezone }}
+              </div>
+
+              <h6 class="cf-group-heading">Density</h6>
+              <div class="cf-group">
+                <div class="cf-toggle-row">
+                  <div>
+                    <p class="cf-toggle-row__label">Compact mode</p>
+                    <p class="cf-toggle-row__hint">
+                      Reduce whitespace across tables and lists.
+                    </p>
+                  </div>
+                  <div class="form-check form-switch">
+                    {{ preference_form.compact_mode }}
+                  </div>
                 </div>
               </div>
 
-              <div class="form-check mt-4">
-                {{ preference_form.compact_mode }}
-                <label class="form-check-label" for="{{ preference_form.compact_mode.id_for_label }}">
-                  Compact density
-                  <div class="small text-muted">Reduce whitespace across tables and lists.</div>
-                </label>
-              </div>
-
-              <button type="submit" class="btn btn-primary mt-4">
+              <button type="submit" class="btn btn-primary cf-save-btn">
                 <i class="bi bi-check2-circle me-1"></i> Save preferences
               </button>
             </form>
           </div>
 
-          <!-- Businesses -->
+          {# ============================================================ #}
+          {# BUSINESSES                                                    #}
+          {# ============================================================ #}
           <div class="tab-pane fade" id="businesses">
-            <h5 class="card-title">Businesses you belong to</h5>
-            <table class="table table-hover table-stack">
-              <thead>
-                <tr>
-                  <th>Business</th>
-                  <th>Role</th>
-                  <th class="text-end">Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {% for membership in memberships %}
-                  <tr>
-                    <td class="fw-semibold">{{ membership.organization.name }}</td>
-                    <td>{{ membership.role.name }}</td>
-                    <td class="text-end">
-                      {% if membership.is_active %}
-                        <span class="badge bg-success">Active</span>
-                      {% else %}
-                        <span class="badge bg-secondary">Inactive</span>
-                      {% endif %}
-                    </td>
-                  </tr>
-                {% empty %}
-                  <tr><td colspan="3" class="text-center text-muted py-4">No memberships yet.</td></tr>
-                {% endfor %}
-              </tbody>
-            </table>
+
+            <header class="cf-settings-header">
+              <span class="cf-settings-header__icon"><i class="bi bi-building"></i></span>
+              <div class="cf-settings-header__body">
+                <h2 class="cf-settings-header__title">Businesses you belong to</h2>
+                <p class="cf-settings-header__desc">
+                  Every organisation this account is a member of, and the role
+                  you hold in each.
+                </p>
+              </div>
+            </header>
+
+            {% for membership in memberships %}
+              <div class="cf-settings-item">
+                <span class="cf-settings-item__icon">
+                  <i class="bi bi-building"></i>
+                </span>
+                <div class="cf-settings-item__body">
+                  <p class="cf-settings-item__title">{{ membership.organization.name }}</p>
+                  <p class="cf-settings-item__meta">{{ membership.role.name }}</p>
+                  <div class="cf-settings-item__badges">
+                    {% if membership.is_active %}
+                      <span class="badge bg-success">Active</span>
+                    {% else %}
+                      <span class="badge bg-secondary">Inactive</span>
+                    {% endif %}
+                  </div>
+                </div>
+              </div>
+            {% empty %}
+              <div class="cf-settings-empty">
+                <span class="cf-settings-empty__icon"><i class="bi bi-building"></i></span>
+                <p class="cf-settings-empty__title">No memberships yet</p>
+                <p class="cf-settings-empty__hint">
+                  You'll appear here once you join a business.
+                </p>
+              </div>
+            {% endfor %}
           </div>
 
         </div>
@@ -383,13 +1062,39 @@
 </div>
 
 <script>
+  // ---------------------------------------------------------------------
+  // Deep-link handler: if the URL carries a hash (#security, #notifications,
+  // …), activate the matching tab on load. The query target is unchanged
+  // from the previous version because the container still has
+  // id="settings-tab" and the links still use href="#section".
+  //
+  // After activating, scroll the active pill into view so a user landing
+  // on a mobile deep link sees which tab is selected (the strip may be
+  // scrolled such that the active pill is off-screen otherwise).
+  // ---------------------------------------------------------------------
   document.addEventListener('DOMContentLoaded', function () {
-    if (window.location.hash) {
-      var target = document.querySelector('#settings-tab a[href="' + window.location.hash + '"]');
-      if (target) {
-        new bootstrap.Tab(target).show();
-      }
+    if (!window.location.hash) return;
+
+    var target = document.querySelector(
+      '#settings-tab a[href="' + window.location.hash + '"]'
+    );
+    if (!target) return;
+
+    if (window.bootstrap && bootstrap.Tab) {
+      new bootstrap.Tab(target).show();
     }
+
+    // Give Bootstrap a tick to apply .active before we scroll.
+    setTimeout(function () {
+      var active = document.querySelector('#settings-tab .cf-settings-nav__item.active');
+      if (active && active.scrollIntoView) {
+        active.scrollIntoView({
+          behavior: 'smooth',
+          block: 'nearest',
+          inline: 'center',
+        });
+      }
+    }, 60);
   });
 </script>
 

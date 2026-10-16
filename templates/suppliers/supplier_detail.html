@@ -34,7 +34,15 @@
           </div>
         </div>
 
-        <!-- Balance highlight -->
+        <!--
+          Balance highlight.
+
+          This is the SAME number shown on the supplier list — it comes
+          from Supplier.outstanding_balance, which is recomputed by
+          suppliers/signals.py whenever a purchase, expense, or payment
+          changes. The combined_total below (purchases + expenses only)
+          will differ by exactly the sum of payments made.
+        -->
         <div class="rounded p-3 mb-3"
              style="background: var(--cf-mist); border: 1px solid var(--border-color);">
           <div class="small text-muted text-uppercase fw-semibold mb-1" style="letter-spacing: 0.5px;">
@@ -72,12 +80,26 @@
           {% endif %}
         </dl>
 
-        <!-- Actions -->
+        <!--
+          Actions.
+
+          Receive Stock  → sales app's receive_stock view (adds a
+                           'purchase' StockMovement, which the signal
+                           picks up and rolls into outstanding_balance).
+          Record Payment → SupplierPaymentCreateView, pre-selecting
+                           this supplier via ?supplier=<pk>.
+          Edit           → SupplierUpdateView.
+        -->
         <div class="d-flex gap-2 mt-4 pt-3 border-top">
           <a href="{% url 'receive_stock' %}" class="btn btn-primary btn-sm flex-grow-1">
             <i class="bi bi-box-seam me-1"></i> Receive Stock
           </a>
-          <a href="#" class="btn btn-outline-secondary btn-sm" title="Edit supplier">
+          <a href="{% url 'supplier_payment_add' %}?supplier={{ supplier.pk }}"
+             class="btn btn-outline-success btn-sm" title="Record a payment to this supplier">
+            <i class="bi bi-cash-coin"></i>
+          </a>
+          <a href="{% url 'supplier_edit' supplier.pk %}"
+             class="btn btn-outline-secondary btn-sm" title="Edit supplier">
             <i class="bi bi-pencil"></i>
           </a>
         </div>
@@ -88,6 +110,43 @@
 
   <!-- ========================= PURCHASE HISTORY ========================= -->
   <div class="col-lg-8">
+
+    <!--
+      Totals strip. Uses stock_total / expense_total / combined_total
+      from SupplierDetailView.get_context_data(), which now share the
+      cost_price-falls-back-to-price expression with the model's
+      update_balance() — so these figures and outstanding_balance
+      above always reconcile (payments are the only difference).
+    -->
+    <div class="row g-3 mb-4">
+      <div class="col-sm-4">
+        <div class="card text-center h-100">
+          <div class="card-body py-3">
+            <div class="small text-muted text-uppercase fw-semibold">Purchases</div>
+            <div class="h6 mb-0 fw-bold">{% money stock_total %}</div>
+          </div>
+        </div>
+      </div>
+      <div class="col-sm-4">
+        <div class="card text-center h-100">
+          <div class="card-body py-3">
+            <div class="small text-muted text-uppercase fw-semibold">Expenses</div>
+            <div class="h6 mb-0 fw-bold">{% money expense_total %}</div>
+          </div>
+        </div>
+      </div>
+      <div class="col-sm-4">
+        <div class="card text-center h-100">
+          <div class="card-body py-3">
+            <div class="small text-muted text-uppercase fw-semibold">Total billed</div>
+            <div class="h6 mb-0 fw-bold" style="color: var(--cf-gold-dark);">
+              {% money combined_total %}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div class="card h-100">
       <div class="card-body">
         <h5 class="card-title d-flex align-items-center gap-2">
@@ -136,6 +195,7 @@
         {% endif %}
       </div>
     </div>
+
   </div>
 
 </div>

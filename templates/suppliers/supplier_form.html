@@ -1,0 +1,176 @@
+{% extends "base/base.html" %}
+{% load money %}
+
+{% comment %}
+  Supplier create / edit form.
+
+  One template, two views: SupplierCreateView and SupplierUpdateView
+  both render this file. The only things that differ between the two
+  modes are cosmetic — page title, header, submit-button label — and
+  every one of those is keyed off `form.instance.pk`:
+
+      form.instance.pk is None  →  create mode
+      form.instance.pk is set   →  edit mode
+
+  Why not two templates: the field loop, error rendering, widget
+  classes, and layout are identical. Splitting would mean maintaining
+  two copies of the same per-field block, and the first time someone
+  adds a field to SupplierForm they'd have to remember to touch both.
+  The conditional strings below are a small tax on that.
+
+  Mirrors customer_form.html structurally — same centered card, same
+  per-field loop, same error rendering — so both "add" pages feel
+  like the same screen with different fields.
+{% endcomment %}
+
+{% comment %}
+  NOTE: the conditional is INSIDE the block, not wrapping it.
+  Django resolves {% block %} at parse time — two {% block page_title %}
+  tags in mutually-exclusive {% if %} branches still trip
+  "'block' tag with name 'page_title' appears more than once".
+  Only one block tag; the fork happens at render.
+{% endcomment %}
+{% block page_title %}{% if form.instance.pk %}Edit {{ form.instance.name }}{% else %}Add Supplier{% endif %}{% endblock %}
+
+{% block content %}
+
+<!-- ========================= BACK BUTTON ========================= -->
+{# On edit we came from the detail page, so go back there. #}
+<div class="mb-3">
+  {% if form.instance.pk %}
+    <a href="{% url 'supplier_detail' form.instance.pk %}"
+       class="btn btn-outline-secondary btn-sm">
+      <i class="bi bi-arrow-left me-1"></i> Back to Supplier
+    </a>
+  {% else %}
+    <a href="{% url 'supplier_list' %}"
+       class="btn btn-outline-secondary btn-sm">
+      <i class="bi bi-arrow-left me-1"></i> Back to Suppliers
+    </a>
+  {% endif %}
+</div>
+
+<div class="row justify-content-center">
+  <div class="col-md-8 col-lg-6">
+    <div class="card shadow-sm">
+      <div class="card-body">
+
+        <!-- ----------------------- HEADER ----------------------- -->
+        <div class="d-flex align-items-center gap-3 mb-4">
+          <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
+               style="width: 44px; height: 44px; background: var(--cf-gold-soft); color: var(--cf-gold-dark); font-size: 1.2rem;">
+            <i class="bi {% if form.instance.pk %}bi-pencil{% else %}bi-truck{% endif %}"></i>
+          </div>
+          <div>
+            <h5 class="mb-0 fw-bold">
+              {% if form.instance.pk %}
+                Edit Supplier
+              {% else %}
+                Add Supplier
+              {% endif %}
+            </h5>
+            <small class="text-muted">
+              {% if form.instance.pk %}
+                Update this supplier's contact details.
+              {% else %}
+                Track who you buy from and what you owe them.
+              {% endif %}
+            </small>
+          </div>
+        </div>
+
+        <!-- ----------------------- FORM ----------------------- -->
+        {% comment %}
+          novalidate turns off the browser's native validation bubble
+          so Django's server-side errors — rendered inline below each
+          input — are the single source of truth. Without it you get
+          two competing error UIs on some browsers.
+        {% endcomment %}
+        <form method="post" novalidate>
+          {% csrf_token %}
+
+          {% comment %}
+            Non-field errors. SupplierForm currently has no clean()
+            that raises them, but any future form-level validation
+            (e.g. "a supplier with this phone already exists") lands
+            here. Rendering the block unconditionally means you never
+            have to remember to add it later when that validation
+            appears.
+          {% endcomment %}
+          {% if form.non_field_errors %}
+            <div class="alert alert-danger d-flex align-items-start gap-2 mb-4" role="alert">
+              <i class="bi bi-exclamation-triangle-fill mt-1"></i>
+              <div>{{ form.non_field_errors|striptags }}</div>
+            </div>
+          {% endif %}
+
+          {# ---- Per-field loop ---- #}
+          {% for field in form %}
+            <div class="mb-3">
+
+              {% comment %}
+                Label. The required asterisk is driven by the form's
+                own required flag, so it stays accurate if the model
+                or form changes — no hard-coded "*" to drift out of
+                sync.
+              {% endcomment %}
+              <label for="{{ field.id_for_label }}" class="form-label fw-semibold">
+                {{ field.label }}
+                {% if field.field.required %}
+                  <span class="text-danger" aria-hidden="true">*</span>
+                {% endif %}
+              </label>
+
+              {# The input itself. Widget classes come from SupplierForm.Meta.widgets. #}
+              {{ field }}
+
+              {% comment %}
+                Field-level errors, rendered inline right under the
+                input that caused them. striptags collapses Django's
+                <ul><li> wrapper into plain text so it reads as a
+                sentence next to the field rather than as a bulleted
+                list inside a form row.
+              {% endcomment %}
+              {% if field.errors %}
+                <div class="text-danger small mt-1">
+                  <i class="bi bi-exclamation-circle me-1"></i>{{ field.errors|striptags }}
+                </div>
+              {% endif %}
+
+              {% comment %}
+                Help text comes from the form definition. Rendering
+                it unconditionally means any future field with help
+                text just works, no template edit required.
+              {% endcomment %}
+              {% if field.help_text %}
+                <div class="form-text mt-1">{{ field.help_text }}</div>
+              {% endif %}
+
+            </div>
+          {% endfor %}
+
+          <!-- ----------------------- ACTIONS ----------------------- -->
+          <div class="d-flex gap-2 mt-4 pt-3 border-top">
+            <button type="submit" class="btn btn-primary flex-grow-1">
+              <i class="bi bi-check2-circle me-1"></i>
+              {% if form.instance.pk %}Save Changes{% else %}Save Supplier{% endif %}
+            </button>
+
+            {% if form.instance.pk %}
+              <a href="{% url 'supplier_detail' form.instance.pk %}"
+                 class="btn btn-outline-secondary">Cancel</a>
+            {% else %}
+              <a href="{% url 'supplier_list' %}"
+                 class="btn btn-outline-secondary">Cancel</a>
+            {% endif %}
+          </div>
+
+        </form>
+        <!-- END FORM -->
+
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

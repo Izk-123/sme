@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 {% extends "base/base.html" %}
 {% block page_title %}Your Team{% endblock %}
 {% block content %}
@@ -65,4 +66,73 @@
   </div>
 {% endif %}
 
+=======
+{% extends "base/base.html" %}
+{% block page_title %}Your Team{% endblock %}
+{% block content %}
+
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+  <div>
+    <h2 class="mb-0 fw-bold">Team</h2>
+    <small class="text-muted">{{ memberships|length }} member{{ memberships|length|pluralize }}</small>
+  </div>
+  <a href="{% url 'invite_employee' %}" class="btn btn-primary btn-sm">
+    <i class="bi bi-person-plus me-1"></i> Invite Employee
+  </a>
+</div>
+
+{% if memberships %}
+  <div class="card">
+    <div class="card-body">
+      <table class="table table-hover datatable table-stack">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Role</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for membership in memberships %}
+            <tr>
+              <td class="fw-bold">{{ membership.user.profile.display_name|default:membership.user.username }}</td>
+              <td class="text-break">{{ membership.user.email|default:"—" }}</td>
+              <td>{{ membership.role.name }}</td>
+              <td>
+                {% if membership.is_active %}
+                  <span class="badge bg-success">Active</span>
+                {% else %}
+                  <span class="badge bg-secondary">Inactive</span>
+                {% endif %}
+              </td>
+              <td>
+                <form method="post" action="{% url 'toggle_employee_active' membership.pk %}" style="display:inline;">
+                  {% csrf_token %}
+                  <button type="submit" class="btn btn-outline-secondary btn-sm"
+                          title="{% if membership.is_active %}Deactivate{% else %}Reactivate{% endif %}">
+                    <i class="bi bi-{% if membership.is_active %}pause{% else %}play{% endif %} me-1"></i>
+                    <span class="d-none d-lg-inline">
+                      {% if membership.is_active %}Deactivate{% else %}Activate{% endif %}
+                    </span>
+                  </button>
+                </form>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+{% else %}
+  {% url 'invite_employee' as invite_url %}
+  <div class="card">
+    <div class="card-body">
+      {% include "components/_empty_state.html" with icon="bi-people" title="Just you so far" message="Invite your cashier, stock clerk, or accountant. They get their own login and see only what their role allows." action_url=invite_url action_label="Invite your first employee" %}
+    </div>
+  </div>
+{% endif %}
+
+>>>>>>> e3b67a5 (new files)
 {% endblock %}

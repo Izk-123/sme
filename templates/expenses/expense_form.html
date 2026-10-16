@@ -9,6 +9,16 @@
         <form method="post" novalidate>
           {% csrf_token %}
 
+          {% comment %}
+            Suggestions for the free-text category field. Empty is fine —
+            the user just types a new name and it's created on save.
+          {% endcomment %}
+          <datalist id="expense-category-options">
+            {% for name in form.category_names %}
+              <option value="{{ name }}"></option>
+            {% endfor %}
+          </datalist>
+
           {% for field in form %}
             <div class="mb-3">
               <label for="{{ field.id_for_label }}" class="form-label fw-semibold">

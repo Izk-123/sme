@@ -1,0 +1,107 @@
+{% comment %}
+Drag-and-drop profile photo widget — rendered by
+accounts.forms.ProfilePhotoWidget.
+
+  Styles:    static/css/app.css  →  section "29. Profile photo dropzone"
+  Behaviour: static/js/app.js    →  "Block 4 — CHUMAFLOW profile photo dropzone"
+
+Path resolution note: the widget's template_name is
+"accounts/widgets/profile_photo_drop.html", which resolves through the
+full TEMPLATES configuration (DIRS + APP_DIRS) once
+FORM_RENDERER = 'django.forms.renderers.TemplatesSetting' is set in
+config/settings.py. That means this file may live at either:
+    <project>/accounts/templates/accounts/widgets/profile_photo_drop.html
+    <project>/templates/accounts/widgets/profile_photo_drop.html
+
+The native file input stays in the DOM (visually hidden via the
+.cf-photo-drop__input class, NOT display:none) so the form still works
+with JS disabled and stays accessible to screen readers. The whole
+circle is a label pointing at that input, so clicking anywhere on it
+opens the OS file picker natively.
+
+Comment-syntax reminder: Django's single-line comment form cannot span
+multiple lines — anything longer than one line must use the block
+form used at the top of this file. Block comments do NOT nest, so this
+header must never contain the literal open/close tag pair it is
+describing.
+{% endcomment %}
+
+<div class="cf-photo-drop{% if widget.is_initial %} has-photo{% endif %}"
+     data-cf-photo-drop>
+
+  {% comment %}
+  Square canvas. Wraps just the circle so the remove button's absolute
+  positioning is relative to the dropzone, not the wider meta row below.
+  {% endcomment %}
+  <div class="cf-photo-drop__canvas">
+
+    <label for="{{ widget.attrs.id }}"
+           class="cf-photo-drop__zone"
+           tabindex="0">
+
+      {% comment %}
+      Live preview. Server-side: the currently-saved photo. JS overwrites
+      background-image when a new file is picked or dropped, and toggles
+      .has-photo to fade it in.
+      {% endcomment %}
+      <span class="cf-photo-drop__preview"
+            data-cf-photo-preview
+            {% if widget.is_initial %}style="background-image: url('{{ widget.value.url }}')"{% endif %}></span>
+
+      {# Empty state — hidden by CSS once .has-photo is present. #}
+      <span class="cf-photo-drop__empty" aria-hidden="true">
+        <i class="bi bi-camera-fill"></i>
+        <span class="cf-photo-drop__hint">Add photo</span>
+      </span>
+
+      {# Hover / focus overlay — only visible when a photo is present. #}
+      <span class="cf-photo-drop__overlay" aria-hidden="true">
+        <i class="bi bi-arrow-repeat"></i>
+        <span>Change</span>
+      </span>
+    </label>
+
+    {% comment %}
+    The actual form control. attrs.html dumps widget.attrs, which
+    includes id, class="cf-photo-drop__input", and accept.
+    {% endcomment %}
+    <input type="{{ widget.type }}"
+           name="{{ widget.name }}"
+           {% include "django/forms/widgets/attrs.html" %}>
+
+    {% comment %}
+    Remove button — only rendered when a photo is already saved. Toggles
+    the hidden "clear" checkbox that Django's ClearableFileInput uses to
+    signal "delete the stored file".
+    {% endcomment %}
+    {% if widget.is_initial %}
+      <button type="button"
+              class="cf-photo-drop__remove"
+              data-cf-photo-remove
+              aria-label="Remove photo"
+              title="Remove photo">
+        <i class="bi bi-x-lg"></i>
+      </button>
+      <input type="checkbox"
+             name="{{ widget.checkbox_name }}"
+             id="{{ widget.checkbox_id }}"
+             class="cf-photo-drop__clear"
+             data-cf-photo-clear
+             tabindex="-1"
+             aria-hidden="true">
+    {% endif %}
+
+  </div>
+
+  {% comment %}
+  Filename feedback + allowed-formats hint. JS updates the filename
+  span live as the user picks / drops files.
+  {% endcomment %}
+  <div class="cf-photo-drop__meta">
+    <span class="cf-photo-drop__filename" data-cf-photo-filename>
+      {% if widget.is_initial %}Current photo{% endif %}
+    </span>
+    <span class="cf-photo-drop__help">JPG, PNG · max 5 MB</span>
+  </div>
+
+</div>

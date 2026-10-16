@@ -1,0 +1,82 @@
+{% extends "base/base_auth.html" %}
+{% block title %}One last thing — ChumaFlow{% endblock %}
+
+{% block auth_content %}
+<div class="pt-4 pb-2">
+  <h5 class="card-title text-center pb-0 fs-4 fw-bold">One last thing</h5>
+  <p class="text-center small text-muted">
+    We've got your name and email from Google. What's your business called?
+  </p>
+</div>
+
+{% comment %}
+Shown to a user who just completed Google sign-in but has no
+Membership yet. If Google returned a first or last name, those fields
+are absent from the form and this page is a single business-name
+question — which is what most users will see.
+{% endcomment %}
+
+<form method="post" class="row g-3">
+  {% csrf_token %}
+
+  {% if form.non_field_errors %}
+    <div class="col-12">
+      <div class="alert alert-danger d-flex align-items-start gap-2">
+        <i class="bi bi-exclamation-circle-fill mt-1"></i>
+        <div>{{ form.non_field_errors|striptags }}</div>
+      </div>
+    </div>
+  {% endif %}
+
+  {% comment %}
+Only render the name fields if the form says they're required —
+CompleteSignupForm sets required=True only when the profile is
+missing them. When Google gave us the name, these blocks are skipped
+entirely, so the user sees only the business field.
+  {% endcomment %}
+  {% if form.first_name.field.required %}
+    <div class="col-6">
+      <label for="{{ form.first_name.id_for_label }}" class="form-label fw-semibold">First name</label>
+      {{ form.first_name }}
+      {% if form.first_name.errors %}
+        <div class="invalid-feedback d-block"><i class="bi bi-exclamation-circle me-1"></i>{{ form.first_name.errors.0 }}</div>
+      {% endif %}
+    </div>
+  {% endif %}
+
+  {% if form.last_name.field.required %}
+    <div class="col-6">
+      <label for="{{ form.last_name.id_for_label }}" class="form-label fw-semibold">Last name</label>
+      {{ form.last_name }}
+      {% if form.last_name.errors %}
+        <div class="invalid-feedback d-block"><i class="bi bi-exclamation-circle me-1"></i>{{ form.last_name.errors.0 }}</div>
+      {% endif %}
+    </div>
+  {% endif %}
+
+  <div class="col-12">
+    <label for="{{ form.business_name.id_for_label }}" class="form-label fw-semibold">
+      Business name <span class="text-danger">*</span>
+    </label>
+    {{ form.business_name }}
+    {% if form.business_name.errors %}
+      <div class="invalid-feedback d-block"><i class="bi bi-exclamation-circle me-1"></i>{{ form.business_name.errors.0 }}</div>
+    {% endif %}
+    <div class="form-text">
+      We'll set up a fresh workspace for this business. You can invite
+      team members and pick modules in the next step.
+    </div>
+  </div>
+
+  <div class="col-12 mt-3">
+    <button type="submit" class="btn btn-primary w-100">
+      <i class="bi bi-rocket-takeoff me-1"></i> Create my workspace
+    </button>
+  </div>
+</form>
+
+<p class="small text-center text-muted mt-4 mb-0">
+  Already have a business here?
+  <a href="{% url 'post_login_router' %}" class="fw-semibold">Go to my dashboard</a>
+</p>
+{% endblock %}
