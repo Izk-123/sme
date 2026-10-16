@@ -1,5 +1,23 @@
 # core/views.py
-from core.permissions import SubscriptionWriteRequiredMixin
+"""
+Dashboard, action menus, and the onboarding wizard.
+
+The two most delicate pieces here are:
+
+  * DashboardView — role-gated links, KPI aggregation, trend data.
+    Nothing surprising structurally, but easy to N+1 or to leave a
+    query unbounded once the org has real data. Read the comments on
+    the individual queries if you touch them.
+
+  * OnboardingStepView — advances the owner through the wizard and,
+    on the final step, flips Organization.onboarding_completed so
+    nothing sends them back here. That flag is read by three separate
+    places (this view, OnboardingWizardView, and
+    accounts.views.PostLoginRouterView) and they must all agree about
+    what "finished" means — hence the dedicated field instead of
+    inferring completion from enabled_modules.
+"""
+
 from datetime import timedelta
 
 from django.contrib.auth import get_user_model
@@ -9,12 +27,17 @@ from django.shortcuts import redirect, render
 from django.utils import timezone
 from django.views.generic import TemplateView, View
 
+from core.permissions import SubscriptionWriteRequiredMixin
 from customers.models import Customer
 from expenses.models import Expense
 from organizations.models import Organization
 from sales.models import Product, Sale, SaleItem
 from subscriptions.models import SubscriptionPlan
 
+
+# =============================================================================
+# Helpers
+# =============================================================================
 
 def _month_sequence(end_date, months_back):
     """
@@ -34,6 +57,10 @@ def _month_sequence(end_date, months_back):
         sequence.append((y, m))
     return sequence
 
+
+# =============================================================================
+# Dashboard
+# =============================================================================
 
 class DashboardView(LoginRequiredMixin, TemplateView):
     template_name = "core/dashboard.html"
@@ -260,6 +287,10 @@ class DashboardKPIPartialView(LoginRequiredMixin, TemplateView):
         return context
 
 
+# =============================================================================
+# Action menus
+# =============================================================================
+
 class ActionMenuView(LoginRequiredMixin, TemplateView):
     template_name = "core/action_menu.html"
 
@@ -268,54 +299,116 @@ class MoreMenuView(LoginRequiredMixin, TemplateView):
     template_name = "core/more_menu.html"
 
 
+# =============================================================================
+# Onboarding wizard
+# =============================================================================
+
 class OnboardingWizardView(LoginRequiredMixin, TemplateView):
+    """
+    Landing page for the wizard. Its only job is to redirect users who
+    have already finished it — everyone else falls through to step 1,
+    which the wizard template renders.
+
+    The completion check reads `Organization.onboarding_completed`, NOT
+    `enabled_modules`. The old check would loop anyone who finished the
+    wizard without selecting any modules back into step 1 on every
+    login, because `enabled_modules == []` and "not onboarded" were
+    indistinguishable. See the field docstring in organizations/models.py
+    for why those two signals are deliberately separate.
+    """
+
     template_name = "core/onboarding/wizard.html"
 
     def get(self, request, *args, **kwargs):
-        # Guard against org being None (e.g. a superuser with no
-        # Membership yet) - request.user.organization.enabled_modules
-        # used to crash here with AttributeError.
         org = request.organization
-        if org and org.enabled_modules:
+        # `org` can legitimately be None for a superuser with no
+        # Membership. Fall through to the wizard in that case — it's
+        # harmless and better than an error page.
+        if org and org.onboarding_completed:
             return redirect("home")
         return super().get(request, *args, **kwargs)
 
 
 class OnboardingStepView(LoginRequiredMixin, SubscriptionWriteRequiredMixin, View):
+    """
+    Drives the multi-step wizard. Each POST handles the data for the
+    step it was called on, then renders (or redirects to) the next step.
+
+    Steps, in order:
+        1  Business type
+        2  Business size
+        3  Enabled modules
+        4  Invite the first employee (optional — "Skip" leaves it blank)
+        5  Summary / "you're all set"
+
+    The key side effect is on step 5's POST: flipping
+    Organization.onboarding_completed to True. That's what stops
+    OnboardingWizardView and accounts.views.PostLoginRouterView from
+    sending the user back here.
+
+    Both GET and POST refuse to run once the flag is set, so a stale
+    bookmark or a browser Back button can't drop a finished user into
+    an old step.
+    """
+
     def get(self, request, step):
+        # Defensive: if the wizard is already done, don't let a stale
+        # bookmark re-open it. The check reads the same flag the wizard
+        # landing page and the post-login router read, so all three
+        # agree about what "finished" means.
+        org = request.organization
+        if org and org.onboarding_completed:
+            return redirect("home")
+
         context = {}
         if step == 5:
-            # Set by step 4 below, popped once so a page refresh can't re-show it.
+            # Set by step 4 below, popped once so a page refresh can't
+            # re-show it. (Step 4's invite is optional, so this is often
+            # None — that's fine, the template handles it.)
             context["invite_link"] = request.session.pop("onboarding_invite_link", None)
         return render(request, f"core/onboarding/step_{step}.html", context)
 
     def post(self, request, step):
         org = request.organization
         if not org:
+            # No org to onboard — a superuser without a Membership,
+            # most likely. Nothing sensible to do here but send them
+            # home, where the ROLE_LINKS early-return handles it.
+            return redirect("home")
+
+        # Same defensive check as GET above. If the wizard is already
+        # finished, ignore a straggling POST (double-submit, bookmark
+        # replay, etc.) and send the user to the dashboard.
+        if org.onboarding_completed:
             return redirect("home")
 
         step_context = {}
 
         if step == 1:
             business_type = request.POST.get("business_type")
-            # Validate against the real choices - previously any string
+            # Validate against the real choices — previously any string
             # from the POST body was written straight through.
             if business_type in dict(org.BUSINESS_TYPES):
                 org.business_type = business_type
                 org.save(update_fields=["business_type"])
+
         elif step == 2:
             business_size = request.POST.get("business_size")
             if business_size in dict(org.SIZE_CHOICES):
                 org.business_size = business_size
                 org.save(update_fields=["business_size"])
+
         elif step == 3:
             modules = request.POST.getlist("modules")
             org.enabled_modules = modules
             org.save(update_fields=["enabled_modules"])
+
         elif step == 4:
             # Optional: create a real Invitation, same as the Team page's
-            # InviteEmployeeView - see accounts.models.Invitation. Silently
-            # skipped if left blank, since this step is optional ("Skip").
+            # InviteEmployeeView — see accounts.models.Invitation.
+            # Silently skipped if left blank, since this step is optional
+            # ("Skip"). The generated link is stashed in the session so
+            # step 5 can display it once.
             full_name = request.POST.get("full_name", "").strip()
             role_slug = request.POST.get("role", "")
             if full_name and role_slug:
@@ -324,7 +417,9 @@ class OnboardingStepView(LoginRequiredMixin, SubscriptionWriteRequiredMixin, Vie
                 from accounts.models import Invitation, Role
 
                 role = (
-                    Role.objects.filter(Q(organization__isnull=True) | Q(organization=org), slug=role_slug)
+                    Role.objects
+                    .filter(Q(organization__isnull=True) | Q(organization=org),
+                            slug=role_slug)
                     .exclude(slug="owner")
                     .first()
                 )
@@ -339,9 +434,21 @@ class OnboardingStepView(LoginRequiredMixin, SubscriptionWriteRequiredMixin, Vie
                     request.session["onboarding_invite_link"] = request.build_absolute_uri(
                         reverse("accept_invitation", kwargs={"token": invitation.token})
                     )
+
         elif step == 5:
+            # Final step. Mark the org as onboarded, then send the owner
+            # to the dashboard. From this point on:
+            #   * OnboardingWizardView.get() redirects here.
+            #   * PostLoginRouterView.get() routes to /dashboard/.
+            #   * This view's GET and POST both bail out above.
+            # All four checks read the same flag, so they can't disagree.
+            org.onboarding_completed = True
+            org.save(update_fields=["onboarding_completed"])
             return redirect("home")
 
+        # Advance to the next step. Steps 1–4 fall through to here with
+        # a plain render; step 5 never reaches this point because it
+        # returned above.
         next_step = step + 1
         if next_step > 5:
             return redirect("home")
@@ -350,9 +457,10 @@ class OnboardingStepView(LoginRequiredMixin, SubscriptionWriteRequiredMixin, Vie
         return render(request, f"core/onboarding/step_{next_step}.html", step_context)
 
 
-# ------------------------------------------------------------------------------
-# ChumaFlow public landing page
-# ------------------------------------------------------------------------------
+# =============================================================================
+# Public landing page
+# =============================================================================
+
 class LandingPageView(TemplateView):
     """
     Public landing page.

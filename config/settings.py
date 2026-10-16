@@ -15,6 +15,7 @@ Optional:
     USE_REDIS=True/False, REDIS_HOST, REDIS_PORT
     CSRF_TRUSTED_ORIGINS=https://yourdomain.com
     EMAIL_* , PAYCHANGU_* , WHATSAPP_* , BASE_URL, SECURE_SSL_REDIRECT
+    GOOGLE_OAUTH_CLIENT_ID, GOOGLE_OAUTH_CLIENT_SECRET
 """
 
 import os
@@ -88,6 +89,25 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
 
+    # Sites framework. Required by django-allauth: it identifies "this
+    # site" when constructing OAuth callback URLs and outgoing mail.
+    # A single Site row (id=1) is created by the initial migration —
+    # edit its domain in the Django admin so it matches your host.
+    'django.contrib.sites',
+
+    # Form rendering app. Required because we set FORM_RENDERER to
+    # TemplatesSetting — the built-in widget templates (attrs.html etc.)
+    # resolve through this app.
+    'django.forms',
+
+    # django-allauth — the OAuth dance lives here. Only used for
+    # social sign-in; our own /signup/ and /login/ pages stay in charge
+    # of the local (username + password) flows.
+    'allauth',
+    'allauth.account',
+    'allauth.socialaccount',
+    'allauth.socialaccount.providers.google',
+
     # Third-party / async
     'channels',
 
@@ -114,14 +134,128 @@ UNFOLD = {
 
 
 # =============================================================================
+# 3b. FORM RENDERING
+# =============================================================================
+#
+# Django has TWO template engines running side by side:
+#
+#   1. The main one from TEMPLATES below. Used for normal page renders
+#      (base.html, login.html, settings.html, …). It sees BOTH the
+#      project-root `templates/` directory (via DIRS) AND every app's
+#      `templates/` directory (via APP_DIRS).
+#
+#   2. The FORM RENDERER's engine. Used when Django renders a form
+#      widget's own template — e.g. ProfilePhotoWidget.template_name
+#      → "accounts/widgets/profile_photo_drop.html".
+#
+# By default the form renderer builds its own mini-engine with
+# `DIRS=[]` and `APP_DIRS=True`, so it can find templates inside app
+# `templates/` folders but NOT anything in the project-root
+# `templates/` directory. It also starts with empty OPTIONS, which
+# means no context_processors and no `builtins` — a widget template
+# that does {% load money %} would blow up under the default renderer
+# even if it was findable.
+#
+# Switching to TemplatesSetting makes the form renderer delegate to
+# django.template.loader.get_template(), which uses the FULL TEMPLATES
+# configuration above. Widgets then resolve exactly like every other
+# template in the project: same DIRS, same APP_DIRS, same builtins,
+# same context processors.
+#
+# The one requirement: 'django.forms' must be in INSTALLED_APPS
+# (done above), or the built-in widget templates (attrs.html etc.)
+# stop resolving.
+#
+FORM_RENDERER = 'django.forms.renderers.TemplatesSetting'
+
+
+# =============================================================================
 # 4. AUTHENTICATION & USER MODEL
 # =============================================================================
 
 AUTH_USER_MODEL = "accounts.User"
 
 LOGIN_URL = "login"
-LOGIN_REDIRECT_URL = "home"
+LOGIN_REDIRECT_URL = "post_login_router"
 LOGOUT_REDIRECT_URL = "login"
+
+
+# =============================================================================
+# 4b. AUTH BACKENDS & SOCIAL SIGN-IN
+# =============================================================================
+
+AUTHENTICATION_BACKENDS = [
+    # Default Django backend — handles username + password.
+    'django.contrib.auth.backends.ModelBackend',
+    # allauth backend — handles social sign-in and its own sessions.
+    'allauth.account.auth_backends.AuthenticationBackend',
+]
+
+# Sites framework ID. On a fresh project there's exactly one Site row
+# (id=1, domain="example.com"). Change its domain to your real host in
+# the Django admin (/admin/sites/site/1/change/) before testing Google
+# sign-in — allauth builds the OAuth callback URL from it, so if it
+# still says example.com, Google will redirect there and nothing works.
+SITE_ID = 1
+
+# --- allauth behaviour ------------------------------------------------------
+#
+# We are not using allauth's own login or signup pages, only its social
+# provider plumbing. The flags below enforce that intent.
+ACCOUNT_LOGIN_METHODS = {'email'}          # not used, but avoids warnings
+ACCOUNT_SIGNUP_FIELDS = []                 # we never call allauth's signup form
+ACCOUNT_EMAIL_VERIFICATION = 'none'        # our own verification owns this
+ACCOUNT_UNIQUE_EMAIL = True
+
+# Point allauth at our templates for the third-party error page and the
+# social signup conflict page.
+ACCOUNT_ADAPTER = 'accounts.adapters.ChumaFlowAccountAdapter'
+SOCIALACCOUNT_ADAPTER = 'accounts.adapters.ChumaFlowSocialAdapter'
+
+# Let allauth create a brand-new User from the Google payload. We then
+# top up the profile (in the adapter) and, if the new user has no
+# Membership yet, route them through /complete-signup/ to pick a
+# business name. See accounts.adapters.ChumaFlowSocialAdapter.
+SOCIALACCOUNT_AUTO_SIGNUP = True
+
+# CRITICAL — careful account linking.
+#
+# Allauth's default would connect a Google identity to an existing
+# ChumaFlow account by matching email addresses. That's unsafe: a
+# person can type victim@example.com into our signup form, never
+# verify it, and abandon the account. Later somebody else registers
+# a Google account for the same address (Google verifies it, so
+# they're provably the owner NOW) and allauth would silently hand
+# them access to the first person's ChumaFlow account.
+#
+# We disable allauth's auto-link entirely. Linking happens only inside
+# ChumaFlowSocialAdapter.pre_social_login(), and only when BOTH sides
+# have verified the email.
+SOCIALACCOUNT_EMAIL_AUTHENTICATION = False
+SOCIALACCOUNT_EMAIL_AUTHENTICATION_AUTO_CONNECT = False
+
+# Ask Google only for the scopes we actually consume.
+SOCIALACCOUNT_PROVIDERS = {
+    'google': {
+        'APP': {
+            'client_id': os.getenv('GOOGLE_OAUTH_CLIENT_ID', ''),
+            'secret':    os.getenv('GOOGLE_OAUTH_CLIENT_SECRET', ''),
+            'key':       '',
+        },
+        'SCOPE': ['profile', 'email'],
+        # online = no refresh token, which is all we need. We are
+        # identifying users, not acting on their behalf.
+        'AUTH_PARAMS': {
+            'access_type': 'online',
+            # Force the account chooser even if the user is already
+            # signed into one Google account — avoids the "signed
+            # into the wrong account" surprise on shared devices.
+            'prompt': 'select_account',
+        },
+        # PKCE hardens the code exchange against interception.
+        'OAUTH_PKCE_ENABLED': True,
+    },
+}
 
 
 # =============================================================================
@@ -135,6 +269,10 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+
+    # allauth must sit right after AuthenticationMiddleware: it attaches
+    # request.user-facing state that our own middleware below reads.
+    'allauth.account.middleware.AccountMiddleware',
 
     # Custom middleware — order matters
     'core.middleware.CurrentMembershipMiddleware',
