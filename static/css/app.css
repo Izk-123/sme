@@ -1,18 +1,50 @@
 /**
-* Template Name: NiceAdmin - v2.2.2
-* Template URL: https://bootstrapmade.com/nice-admin-bootstrap-admin-html-template/
-* Author: BootstrapMade.com
-* License: https://bootstrapmade.com/license/
-*
-* ChumaFlow customization:
-*   - Brand palette (deep teal / flow teal / gold / mist)
-*   - Motion system: entrance, hover, exit + scroll reveals
-*   - Responsive table → card stack on mobile
-*   - Form & search system
-*/
+ * Template Name: NiceAdmin - v2.2.2
+ * Template URL: https://bootstrapmade.com/nice-admin-bootstrap-admin-html-template/
+ * Author: BootstrapMade.com
+ * License: https://bootstrapmade.com/license/
+ *
+ * ChumaFlow customization:
+ *   - Brand palette (deep teal / flow teal / gold / mist)
+ *   - Motion system: entrance, hover, exit + scroll reveals
+ *   - Responsive table → card stack on mobile
+ *   - Form & search system
+ *   - Profile photo dropzone
+ *
+ * Table of contents:
+ *   1.  General
+ *   2.  Main
+ *   3.  Page title
+ *   4.  Back to top button
+ *   5.  Bootstrap overrides
+ *   6.  Header
+ *   7.  Header nav
+ *   8.  Sidebar
+ *   9.  Dashboard
+ *   10. Icons list page
+ *   11. Profile page
+ *   12. F.A.Q page
+ *   13. Contact
+ *   14. Error 404
+ *   15. Footer
+ *   16. ChumaFlow brand palette
+ *   17. ChumaFlow brand surface overrides
+ *   18. Keyframes
+ *   19. Reveal system
+ *   20. Entrance animations
+ *   21. Hover animations
+ *   22. Exit animations
+ *   23. Ambient animations
+ *   24. Accessibility
+ *   25. Responsive tables → cards on mobile
+ *   26. ChumaFlow form & search system
+ *   27. Record Sale mobile bottom bar
+ *   28. Empty state
+ *   29. Profile photo dropzone
+ */
 
 /*--------------------------------------------------------------
-# General
+# 1. General
 --------------------------------------------------------------*/
 :root {
   scroll-behavior: smooth;
@@ -39,7 +71,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 /*--------------------------------------------------------------
-# Main
+# 2. Main
 --------------------------------------------------------------*/
 #main {
   margin-top: 60px;
@@ -51,7 +83,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 /*--------------------------------------------------------------
-# Page Title
+# 3. Page Title
 --------------------------------------------------------------*/
 .pagetitle { margin-bottom: 10px; }
 .pagetitle h1 {
@@ -62,7 +94,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 /*--------------------------------------------------------------
-# Back to top button
+# 4. Back to top button
 --------------------------------------------------------------*/
 .back-to-top {
   position: fixed;
@@ -86,7 +118,7 @@ h1, h2, h3, h4, h5, h6 {
 .back-to-top.active { visibility: visible; opacity: 1; }
 
 /*--------------------------------------------------------------
-# Override some default Bootstrap stylings
+# 5. Override some default Bootstrap stylings
 --------------------------------------------------------------*/
 .dropdown-menu {
   border-radius: 4px;
@@ -227,7 +259,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 /*--------------------------------------------------------------
-# Header
+# 6. Header
 --------------------------------------------------------------*/
 .logo { line-height: 1; }
 @media (min-width: 1200px) { .logo { width: 280px; } }
@@ -291,7 +323,7 @@ h1, h2, h3, h4, h5, h6 {
 .header .search-form button i { color: #012970; }
 
 /*--------------------------------------------------------------
-# Header Nav
+# 7. Header Nav
 --------------------------------------------------------------*/
 .header-nav ul { list-style: none; }
 .header-nav > ul { margin: 0; padding: 0; gap: 6px; }
@@ -372,7 +404,7 @@ h1, h2, h3, h4, h5, h6 {
 .header-nav .profile .dropdown-item:hover { background-color: #f6f9ff; }
 
 /*--------------------------------------------------------------
-# Sidebar
+# 8. Sidebar
 --------------------------------------------------------------*/
 .sidebar {
   position: fixed;
@@ -451,7 +483,7 @@ h1, h2, h3, h4, h5, h6 {
 .sidebar-nav .nav-content a.active i { background-color: #4154f1; }
 
 /*--------------------------------------------------------------
-# Dashboard
+# 9. Dashboard
 --------------------------------------------------------------*/
 .dashboard .filter { position: absolute; right: 0px; top: 15px; }
 .dashboard .filter .icon {
@@ -553,7 +585,7 @@ h1, h2, h3, h4, h5, h6 {
 .dashboard .top-selling img { border-radius: 5px; max-width: 60px; }
 
 /*--------------------------------------------------------------
-# Icons list page
+# 10. Icons list page
 --------------------------------------------------------------*/
 .iconslist {
   display: grid;
@@ -583,7 +615,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 /*--------------------------------------------------------------
-# Profile page
+# 11. Profile page
 --------------------------------------------------------------*/
 .profile .profile-card img { max-width: 120px; }
 .profile .profile-card h2 {
@@ -609,13 +641,13 @@ h1, h2, h3, h4, h5, h6 {
 .profile .profile-edit img { max-width: 120px; }
 
 /*--------------------------------------------------------------
-# F.A.Q Page
+# 12. F.A.Q Page
 --------------------------------------------------------------*/
 .faq .basic h6 { font-size: 18px; font-weight: 600; color: #4154f1; }
 .faq .basic p { color: #6980aa; }
 
 /*--------------------------------------------------------------
-# Contact
+# 13. Contact
 --------------------------------------------------------------*/
 .contact .info-box { padding: 28px 30px; }
 .contact .info-box i { font-size: 38px; line-height: 0; color: #4154f1; }
@@ -687,7 +719,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 /*--------------------------------------------------------------
-# Error 404
+# 14. Error 404
 --------------------------------------------------------------*/
 .error-404 { padding: 30px; }
 .error-404 h1 {
@@ -703,7 +735,7 @@ h1, h2, h3, h4, h5, h6 {
 @media (min-width: 992px) { .error-404 img { max-width: 50%; } }
 
 /*--------------------------------------------------------------
-# Footer
+# 15. Footer
 --------------------------------------------------------------*/
 .footer {
   padding: 20px 0;
@@ -715,7 +747,7 @@ h1, h2, h3, h4, h5, h6 {
 .footer .credits { padding-top: 5px; text-align: center; font-size: 13px; color: #012970; }
 
 /* =============================================================
-   ChumaFlow brand palette
+# 16. ChumaFlow brand palette
    ============================================================= */
 :root {
   --cf-deep-teal:      #0A2F35;
@@ -872,7 +904,7 @@ a:hover { color: var(--cf-flow-teal-dark); }
 .profile .profile-edit label { color: var(--text-muted); }
 
 /* ==========================================================================
-   CHUMAFLOW — brand surface overrides
+# 17. ChumaFlow brand surface overrides
    ========================================================================== */
 .logo span { color: var(--cf-deep-teal); }
 [data-theme="dark"] .logo span { color: var(--text-heading); }
@@ -927,9 +959,9 @@ a:hover { color: var(--cf-flow-teal-dark); }
 .dashboard .info-card h6              { color: var(--cf-deep-teal); }
 [data-theme="dark"] .dashboard .info-card h6 { color: var(--text-heading); }
 
-/* --------------------------------------------------------------------------
-   Keyframes
-   -------------------------------------------------------------------------- */
+/* ==========================================================================
+# 18. Keyframes
+   ========================================================================== */
 @keyframes cf-fade-up    { from { opacity: 0; transform: translate3d(0, 18px, 0); } to { opacity: 1; transform: none; } }
 @keyframes cf-fade-in    { from { opacity: 0; } to { opacity: 1; } }
 @keyframes cf-fade-out   { from { opacity: 1; } to { opacity: 0; } }
@@ -963,9 +995,9 @@ a:hover { color: var(--cf-flow-teal-dark); }
   to   { background-position:  200% 0; }
 }
 
-/* --------------------------------------------------------------------------
-   Reveal system
-   -------------------------------------------------------------------------- */
+/* ==========================================================================
+# 19. Reveal system
+   ========================================================================== */
 .cf-reveal {
   opacity: 0;
   transform: translate3d(0, 18px, 0);
@@ -982,9 +1014,9 @@ a:hover { color: var(--cf-flow-teal-dark); }
 [data-reveal="right"] > .cf-reveal { transform: translate3d(24px, 0, 0); }
 [data-reveal="none"]  > .cf-reveal { transform: none; }
 
-/* --------------------------------------------------------------------------
-   Entrance
-   -------------------------------------------------------------------------- */
+/* ==========================================================================
+# 20. Entrance
+   ========================================================================== */
 .header  { animation: cf-slide-down var(--cf-dur) var(--cf-ease-out) both; }
 .sidebar { animation: cf-slide-left var(--cf-dur-slow) var(--cf-ease-out) 80ms both; }
 #main    { animation: cf-fade-up   var(--cf-dur-slow) var(--cf-ease-out) 120ms both; }
@@ -1020,9 +1052,9 @@ a:hover { color: var(--cf-flow-teal-dark); }
 .pagination .page-link       { transition: transform 140ms var(--cf-ease-out), background 180ms ease; }
 .pagination .page-link:hover { transform: translateY(-1px); }
 
-/* --------------------------------------------------------------------------
-   Hover
-   -------------------------------------------------------------------------- */
+/* ==========================================================================
+# 21. Hover
+   ========================================================================== */
 .card {
   transition:
     transform  var(--cf-dur) var(--cf-ease-out),
@@ -1123,17 +1155,17 @@ a:hover { color: var(--cf-flow-teal-dark); }
 .theme-toggle:hover .theme-icon-dark,
 .theme-toggle:hover .theme-icon-light { transform: scale(1.15); }
 
-/* --------------------------------------------------------------------------
-   Exit
-   -------------------------------------------------------------------------- */
+/* ==========================================================================
+# 22. Exit
+   ========================================================================== */
 .alert.is-exiting { animation: cf-slide-up-out 220ms var(--cf-ease-in) both; }
 .toast.is-exiting { animation: cf-fade-out 200ms var(--cf-ease-in) both; }
 .card.is-removing { animation: cf-collapse 340ms var(--cf-ease-in) forwards; overflow: hidden; }
 .row-item-exit    { animation: cf-collapse 320ms var(--cf-ease-in) forwards; overflow: hidden; }
 
-/* --------------------------------------------------------------------------
-   Ambient
-   -------------------------------------------------------------------------- */
+/* ==========================================================================
+# 23. Ambient
+   ========================================================================== */
 .cf-skeleton {
   background: linear-gradient(90deg,
     rgba(10, 47, 53, 0.06) 25%,
@@ -1167,9 +1199,9 @@ a:hover { color: var(--cf-flow-teal-dark); }
 
 [data-stagger] > .cf-reveal { transition-delay: var(--cf-delay, 0ms); }
 
-/* --------------------------------------------------------------------------
-   Accessibility
-   -------------------------------------------------------------------------- */
+/* ==========================================================================
+# 24. Accessibility
+   ========================================================================== */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.001ms !important;
@@ -1189,7 +1221,7 @@ a:hover { color: var(--cf-flow-teal-dark); }
 [data-animations="off"] .cf-reveal { opacity: 1; transform: none; }
 
 /* ==========================================================================
-   Responsive tables → cards on mobile
+# 25. Responsive tables → cards on mobile
    ========================================================================== */
 
 .table-stack {
@@ -1329,11 +1361,11 @@ a:hover { color: var(--cf-flow-teal-dark); }
 }
 
 /* ==========================================================================
-   CHUMAFLOW — form & search system
+# 26. ChumaFlow form & search system
    ========================================================================== */
 
 /* --------------------------------------------------------------------------
-   1. Base form controls
+   26.1 Base form controls
    -------------------------------------------------------------------------- */
 .form-label {
   font-weight: 600;
@@ -1444,7 +1476,7 @@ textarea:disabled {
 }
 
 /* --------------------------------------------------------------------------
-   2. Input groups
+   26.2 Input groups
    -------------------------------------------------------------------------- */
 .input-group {
   border-radius: 10px;
@@ -1500,7 +1532,7 @@ textarea:disabled {
 }
 
 /* --------------------------------------------------------------------------
-   3. Search field
+   26.3 Search field
    -------------------------------------------------------------------------- */
 .cf-search,
 .search-field {
@@ -1568,7 +1600,7 @@ textarea:disabled {
 }
 
 /* --------------------------------------------------------------------------
-   4. Filter card
+   26.4 Filter card
    -------------------------------------------------------------------------- */
 .cf-filter-card {
   border: 1px solid var(--border-color);
@@ -1599,7 +1631,7 @@ textarea:disabled {
 }
 
 /* --------------------------------------------------------------------------
-   5. DataTables polish
+   26.5 DataTables polish
    -------------------------------------------------------------------------- */
 
 /* Top/bottom shells — visually separate bars so the controls never hug
@@ -1776,7 +1808,7 @@ table.cf-hide-dt-top + .datatable-wrapper .datatable-top {
 }
 
 /* --------------------------------------------------------------------------
-   6. Header search bar
+   26.6 Header search bar
    -------------------------------------------------------------------------- */
 .header .search-form {
   position: relative;
@@ -1815,7 +1847,7 @@ table.cf-hide-dt-top + .datatable-wrapper .datatable-top {
 }
 
 /* ==========================================================================
-   Record Sale — pin the action block to the bottom on phones
+# 27. Record Sale — pin the action block to the bottom on phones
    --------------------------------------------------------------------------
    The whole right-column actions block (grand total + Complete Sale button)
    becomes a fixed bottom bar on phones. One DOM node, one HTMX target.
@@ -1846,7 +1878,9 @@ table.cf-hide-dt-top + .datatable-wrapper .datatable-top {
   }
 }
 
-/* Empty state */
+/* ==========================================================================
+# 28. Empty state
+   ========================================================================== */
 .cf-empty-state .cf-empty-icon {
   display: inline-flex;
   align-items: center;
@@ -1866,3 +1900,307 @@ table.cf-hide-dt-top + .datatable-wrapper .datatable-top {
   font-weight: 700;
 }
 
+/* ==========================================================================
+# 29. Profile photo dropzone
+   --------------------------------------------------------------------------
+   Backs accounts.forms.ProfilePhotoWidget — see the widget template at
+   accounts/templates/accounts/widgets/profile_photo_drop.html and the
+   JS at static/js/app.js → "cf-photo-drop".
+
+   The whole component is a single circular dropzone that:
+     * previews the current/picked photo as a background-image
+     * accepts files dropped directly on it
+     * shows a hover overlay + remove button when a photo is set
+
+   Placed at the end of the stylesheet on purpose — .cf-photo-drop__input
+   has the same specificity as .form-control, so ordering decides which
+   wins, and we need to win.
+   ========================================================================== */
+
+.cf-photo-drop {
+  --cf-drop-size: 160px;
+
+  position: relative;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  max-width: 220px;
+}
+
+/* ---- Square canvas ---------------------------------------------------
+   Wraps just the circle so the remove button's absolute positioning is
+   relative to the dropzone, not the wider meta row below it. */
+.cf-photo-drop__canvas {
+  position: relative;
+  width: var(--cf-drop-size);
+  height: var(--cf-drop-size);
+  flex-shrink: 0;
+}
+
+/* ---- The clickable / droppable circle -------------------------------- */
+.cf-photo-drop__zone {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  border: 2px dashed var(--border-color);
+  background:
+    radial-gradient(circle at 50% 42%,
+      rgba(18, 165, 160, 0.09) 0%,
+      transparent 65%),
+    var(--cf-mist);
+  cursor: pointer;
+  overflow: hidden;
+  isolation: isolate;
+  transition:
+    border-color 240ms var(--cf-ease-out),
+    background   240ms var(--cf-ease-out),
+    transform    260ms var(--cf-spring),
+    box-shadow   240ms var(--cf-ease-out);
+}
+
+.cf-photo-drop__zone:hover,
+.cf-photo-drop__zone:focus-visible,
+.cf-photo-drop.is-drag-over .cf-photo-drop__zone {
+  border-color: var(--cf-flow-teal);
+  border-style: solid;
+  background-color: var(--cf-flow-teal-soft);
+  box-shadow: 0 0 0 8px rgba(18, 165, 160, 0.14);
+  transform: scale(1.02);
+  outline: none;
+}
+
+.cf-photo-drop.is-drag-over .cf-photo-drop__zone {
+  transform: scale(1.06);
+  box-shadow: 0 0 0 12px rgba(18, 165, 160, 0.22);
+}
+
+/* ---- Preview layer ---------------------------------------------------
+   background-image so it can fade in over the empty-state without any
+   layout shift. JS sets background-image on file-pick / drop. */
+.cf-photo-drop__preview {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border-radius: 50%;
+  background-position: center;
+  background-size: cover;
+  background-repeat: no-repeat;
+  opacity: 0;
+  transition: opacity 320ms var(--cf-ease-out);
+  pointer-events: none;
+}
+
+.cf-photo-drop.has-photo .cf-photo-drop__preview {
+  opacity: 1;
+}
+
+/* ---- Empty-state (camera + "Add photo") ------------------------------ */
+.cf-photo-drop__empty {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  color: var(--cf-flow-teal);
+  transition: opacity 220ms var(--cf-ease-out);
+  pointer-events: none;
+}
+
+.cf-photo-drop__empty i {
+  font-size: 2.25rem;
+  line-height: 1;
+}
+
+.cf-photo-drop__hint {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.cf-photo-drop.has-photo .cf-photo-drop__empty {
+  opacity: 0;
+}
+
+/* ---- Hover / focus overlay ("Change") -------------------------------- */
+.cf-photo-drop__overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border-radius: 50%;
+  background: rgba(10, 47, 53, 0.62);
+  color: #ffffff;
+  opacity: 0;
+  transition: opacity 220ms var(--cf-ease-out);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  pointer-events: none;
+}
+
+.cf-photo-drop__overlay i {
+  font-size: 1.75rem;
+  line-height: 1;
+}
+
+.cf-photo-drop__overlay span {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.cf-photo-drop.has-photo .cf-photo-drop__zone:hover .cf-photo-drop__overlay,
+.cf-photo-drop.has-photo .cf-photo-drop__zone:focus-visible .cf-photo-drop__overlay,
+.cf-photo-drop.has-photo.is-drag-over .cf-photo-drop__overlay {
+  opacity: 1;
+}
+
+/* ---- Hidden native input --------------------------------------------
+   The sr-only technique, not display:none — a display:none file input
+   can't be clicked from its associated <label> in some browsers, and
+   it disappears entirely from the accessibility tree. !important wins
+   against the form-control styling BootstrapFormMixin would otherwise
+   apply (belt-and-braces — the widget also sets its own class first,
+   so setdefault shouldn't touch it). */
+.cf-photo-drop__input {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  min-height: 0 !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  clip-path: inset(50%) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+/* ---- Remove button --------------------------------------------------- */
+.cf-photo-drop__remove {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  z-index: 4;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border-radius: 50%;
+  border: 2px solid var(--bg-surface);
+  background: #e5484d;
+  color: #ffffff;
+  font-size: 0.7rem;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(229, 72, 77, 0.35);
+  transition:
+    transform 200ms var(--cf-spring),
+    background 200ms ease,
+    box-shadow 200ms ease;
+}
+
+.cf-photo-drop__remove:hover {
+  background: #cb2f35;
+  transform: scale(1.1);
+  box-shadow: 0 6px 16px rgba(229, 72, 77, 0.45);
+}
+
+.cf-photo-drop__remove:active {
+  transform: scale(0.94);
+}
+
+.cf-photo-drop__clear {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* ---- State animations ------------------------------------------------ */
+.cf-photo-drop.is-just-picked .cf-photo-drop__zone {
+  animation: cf-photo-pop 600ms var(--cf-spring);
+}
+
+@keyframes cf-photo-pop {
+  0%   { transform: scale(1); }
+  35%  { transform: scale(1.08); box-shadow: 0 0 0 10px rgba(18, 165, 160, 0.22); }
+  100% { transform: scale(1); }
+}
+
+.cf-photo-drop.is-invalid-drop .cf-photo-drop__zone {
+  border-color: #e5484d;
+  animation: cf-photo-shake 500ms var(--cf-ease-both);
+}
+
+@keyframes cf-photo-shake {
+  0%, 100% { transform: translateX(0); }
+  20%      { transform: translateX(-6px); }
+  40%      { transform: translateX(5px); }
+  60%      { transform: translateX(-3px); }
+  80%      { transform: translateX(2px); }
+}
+
+/* Server-side validation error state. The `has-error` class is applied
+   by _profile_form.html to the field's wrapping column, not by the
+   widget template — the widget has no access to field.errors. */
+.has-error .cf-photo-drop__zone {
+  border-color: #e5484d;
+  background-color: rgba(229, 72, 77, 0.06);
+}
+
+/* ---- Meta row (filename + help) -------------------------------------- */
+.cf-photo-drop__meta {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  width: 100%;
+  text-align: center;
+}
+
+.cf-photo-drop__filename {
+  max-width: 100%;
+  min-height: 1.2em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-heading);
+}
+
+.cf-photo-drop__help {
+  font-size: 0.7rem;
+  letter-spacing: 0.2px;
+  color: var(--text-muted);
+}
+
+/* ---- Dark theme ------------------------------------------------------ */
+[data-theme="dark"] .cf-photo-drop__zone {
+  background:
+    radial-gradient(circle at 50% 42%,
+      rgba(18, 165, 160, 0.12) 0%,
+      transparent 65%),
+    var(--bg-surface-alt);
+}
+
+[data-theme="dark"] .cf-photo-drop__remove {
+  border-color: var(--bg-surface);
+}

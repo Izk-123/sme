@@ -15,7 +15,18 @@
  *   - Notification badge pulse + bell shake
  *   - Form submit feedback
  *   - Responsive table → card stack (data-label auto-fill)
+ *   - Profile photo dropzone (drag & drop, live preview, remove)
+ *
+ * Structure:
+ *   Block 1  — NiceAdmin base + ChumaFlow base behaviour
+ *   Block 2  — ChumaFlow animation orchestrator
+ *   Block 3  — Responsive table → card stack
+ *   Block 4  — Profile photo dropzone
  */
+
+/* =========================================================================
+ * Block 1 — NiceAdmin base + ChumaFlow base behaviour
+ * ========================================================================= */
 (function() {
   "use strict";
 
@@ -303,9 +314,9 @@
 
 })();
 
-/* ==========================================================================
-   CHUMAFLOW — animation orchestrator
-   ========================================================================== */
+/* =========================================================================
+ * Block 2 — CHUMAFLOW animation orchestrator
+ * ========================================================================= */
 (function () {
   "use strict";
 
@@ -699,16 +710,16 @@
   };
 })();
 
-/* ==========================================================================
-   CHUMAFLOW — responsive table → card stack
-   --------------------------------------------------------------------------
-   Reads each <table class="table-stack">'s <thead> labels and writes them
-   onto every corresponding <td>/<th> as `data-label`, which the CSS uses
-   to render the label on mobile card view.
-
-   Survives DataTables re-renders (simple-datatables rebuilds <tbody> on
-   pagination/search, which would otherwise drop the labels).
-   ========================================================================== */
+/* =========================================================================
+ * Block 3 — CHUMAFLOW responsive table → card stack
+ * -------------------------------------------------------------------------
+ * Reads each <table class="table-stack">'s <thead> labels and writes them
+ * onto every corresponding <td>/<th> as `data-label`, which the CSS uses
+ * to render the label on mobile card view.
+ *
+ * Survives DataTables re-renders (simple-datatables rebuilds <tbody> on
+ * pagination/search, which would otherwise drop the labels).
+ * ========================================================================= */
 (function () {
   "use strict";
 
@@ -771,4 +782,227 @@
 
   window.ChumaFlow = window.ChumaFlow || {};
   window.ChumaFlow.stackTables = initStackTables;
+})();
+
+/* =========================================================================
+ * Block 4 — CHUMAFLOW profile photo dropzone
+ * -------------------------------------------------------------------------
+ * Behaviour for [data-cf-photo-drop] surfaces. See the widget template
+ * at accounts/templates/accounts/widgets/profile_photo_drop.html and
+ * the styles at app.css → "Profile photo dropzone".
+ *
+ * Handles:
+ *   - live preview on file selection
+ *   - drag & drop assignment via DataTransfer (so the real <input>
+ *     actually carries the dropped file into the form submission)
+ *   - remove / reset via the corner button, driving the hidden "clear"
+ *     checkbox that Django's ClearableFileInput uses
+ *   - client-side type and size guards, with shake-to-reject on failure
+ *
+ * Guard clauses throughout: every hook is optional. A future variant
+ * of the widget might omit the remove button or the filename span, and
+ * this code should not fall over if it does.
+ * ========================================================================= */
+(function () {
+  "use strict";
+
+  // Must match ProfileForm.MAX_PHOTO_BYTES server-side. If you bump one,
+  // bump the other — the client check is UX sugar, the server check is
+  // the real gate.
+  const MAX_BYTES = 5 * 1024 * 1024;
+  const ACCEPTED  = /^image\//i;
+
+  /* ---- helpers ------------------------------------------------------- */
+
+  function fmtSize(bytes) {
+    if (bytes < 1024) return bytes + " B";
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " KB";
+    return (bytes / (1024 * 1024)).toFixed(1) + " MB";
+  }
+
+  // Remove then re-add a class on the next frame so the browser restarts
+  // the CSS animation. Reading offsetWidth forces a synchronous reflow,
+  // which is what makes the trick work — it's not a typo.
+  function restart(el, cls, ms) {
+    el.classList.remove(cls);
+    void el.offsetWidth;
+    el.classList.add(cls);
+    if (ms) setTimeout(() => el.classList.remove(cls), ms);
+  }
+
+  function reject(wrap, message) {
+    restart(wrap, "is-invalid-drop", 600);
+    // eslint-disable-next-line no-console
+    if (message) console.info("[photo-drop]", message);
+  }
+
+  /* ---- per-dropzone setup -------------------------------------------- */
+
+  function setupDrop(wrap) {
+    if (wrap.dataset.cfPhotoReady === "1") return;
+    wrap.dataset.cfPhotoReady = "1";
+
+    const input    = wrap.querySelector(".cf-photo-drop__input");
+    const preview  = wrap.querySelector("[data-cf-photo-preview]");
+    const removeBt = wrap.querySelector("[data-cf-photo-remove]");
+    const clearBox = wrap.querySelector("[data-cf-photo-clear]");
+    const filename = wrap.querySelector("[data-cf-photo-filename]");
+
+    // Without a real input or preview surface there's nothing to wire up.
+    if (!input || !preview) return;
+
+    /* ----------------------------------------------------------------
+       1. File selection — live preview
+       ---------------------------------------------------------------- */
+    input.addEventListener("change", function () {
+      const file = input.files && input.files[0];
+
+      // No file: user opened the picker and cancelled. Leave the
+      // existing preview alone — cancelling isn't the same as removing.
+      if (!file) return;
+
+      if (!ACCEPTED.test(file.type)) {
+        reject(wrap, `Rejected '${file.name}': not an image.`);
+        input.value = "";
+        return;
+      }
+      if (file.size > MAX_BYTES) {
+        reject(wrap, `Rejected '${file.name}': ${fmtSize(file.size)} > 5 MB.`);
+        input.value = "";
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = function (e) {
+        preview.style.backgroundImage = `url("${e.target.result}")`;
+        wrap.classList.add("has-photo");
+        wrap.classList.remove("is-invalid-drop");
+        // Picking a new file cancels any pending "remove" — otherwise
+        // a user who clicked X and then picked a new photo would find
+        // their upload silently discarded on save.
+        if (clearBox) clearBox.checked = false;
+        restart(wrap, "is-just-picked", 700);
+        if (filename) filename.textContent = file.name;
+      };
+      reader.readAsDataURL(file);
+    });
+
+    /* ----------------------------------------------------------------
+       2. Drag & drop
+       ----------------------------------------------------------------
+       dragDepth tracks nested dragenter/dragleave pairs (child elements
+       fire their own). Without it, moving the cursor over the icon
+       inside the zone would flicker the drag-over state off and on
+       again. */
+
+    let dragDepth = 0;
+
+    wrap.addEventListener("dragenter", function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      dragDepth++;
+      wrap.classList.add("is-drag-over");
+    });
+
+    wrap.addEventListener("dragover", function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      // Some browsers need an explicit dropEffect for the right cursor.
+      if (e.dataTransfer) e.dataTransfer.dropEffect = "copy";
+    });
+
+    wrap.addEventListener("dragleave", function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      dragDepth = Math.max(0, dragDepth - 1);
+      if (dragDepth === 0) wrap.classList.remove("is-drag-over");
+    });
+
+    wrap.addEventListener("drop", function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      dragDepth = 0;
+      wrap.classList.remove("is-drag-over");
+
+      const dt = e.dataTransfer;
+      if (!dt || !dt.files || !dt.files.length) return;
+
+      const file = dt.files[0];
+      if (!ACCEPTED.test(file.type)) {
+        reject(wrap, `Rejected '${file.name}': not an image.`);
+        return;
+      }
+      if (file.size > MAX_BYTES) {
+        reject(wrap, `Rejected '${file.name}': ${fmtSize(file.size)} > 5 MB.`);
+        return;
+      }
+
+      // Route the dropped file through the real <input> via DataTransfer
+      // so the browser treats it exactly like a file picked through the
+      // OS dialog and the form submits it. Safari <14.1 lacks the
+      // DataTransfer constructor; we degrade to a friendly message
+      // asking the user to click instead.
+      try {
+        const transfer = new DataTransfer();
+        transfer.items.add(file);
+        input.files = transfer.files;
+        input.dispatchEvent(new Event("change", { bubbles: true }));
+      } catch (err) {
+        reject(wrap, "Drag & drop isn't supported here — click to browse.");
+      }
+    });
+
+    /* ----------------------------------------------------------------
+       3. Remove button
+       ----------------------------------------------------------------
+       Toggles the hidden clear checkbox so Django's ClearableFileInput
+       deletes the stored file on save. Also resets the preview so the
+       user sees the empty state immediately. */
+
+    if (removeBt) {
+      removeBt.addEventListener("click", function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        if (clearBox) clearBox.checked = true;
+        input.value = "";
+        preview.style.backgroundImage = "";
+        wrap.classList.remove("has-photo", "is-just-picked", "is-invalid-drop");
+        if (filename) filename.textContent = "Photo will be removed on save";
+      });
+    }
+  }
+
+  /* ---- init ---------------------------------------------------------- */
+
+  function initPhotoDrop(root) {
+    (root || document)
+      .querySelectorAll("[data-cf-photo-drop]")
+      .forEach(setupDrop);
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", () => initPhotoDrop());
+  } else {
+    initPhotoDrop();
+  }
+
+  // A dropped file outside the dropzone would otherwise navigate the
+  // browser to that file (replacing the page). Swallow those events
+  // document-wide, except inside our zones (where the handlers above
+  // already preventDefault).
+  ["dragover", "drop"].forEach(function (type) {
+    document.addEventListener(
+      type,
+      function (e) {
+        if (!e.target.closest || !e.target.closest("[data-cf-photo-drop]")) {
+          e.preventDefault();
+        }
+      },
+      { passive: false }
+    );
+  });
+
+  // Expose for HTMX swaps / future re-inits.
+  window.ChumaFlow = window.ChumaFlow || {};
+  window.ChumaFlow.photoDrop = initPhotoDrop;
 })();
