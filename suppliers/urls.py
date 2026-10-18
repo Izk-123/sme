@@ -1,8 +1,10 @@
-# suppliers/urls.py
-#
-# Order note: literal prefixes ("add/", "payments/") must come before
-# the <int:pk>/ catch-all, otherwise Django has no way to route them.
-# Django tries patterns top-down and takes the first match.
+"""
+Supplier URL routing.
+
+Order note: literal prefixes ("add/", "payments/") must come BEFORE
+the <int:pk>/ catch-all, otherwise Django can't route them — the
+< int:pk > pattern would match the string "add" and try to cast it.
+"""
 from django.urls import path
 
 from . import views

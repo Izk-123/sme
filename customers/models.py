@@ -1,27 +1,34 @@
 """
-Customers and payments.
+Customers, payments and payment allocations.
 
 Balance model
 -------------
 A customer's outstanding balance is:
 
-    opening_balance + sum(credit sales) - sum(payments received)
+    opening_balance
+  + sum(sale.total - sale.amount_paid)   # unpaid from each sale
+  - sum(payments.amount)                 # everything they've handed over
 
-`opening_balance` holds what they owed before they started using ChumaFlow
-(typed in from the paper ledger). Storing it separately means recalculating
-the balance from sales and payments can never wipe it out — which was the
-bug in the previous version, where the balance was the *only* place an
-opening figure could live, and `update_balance()` overwrote it.
+The old version filtered `sales` by `payment_method=='credit'`. That
+worked while a sale was either fully cash or fully credit, but breaks
+the moment a sale is part-paid: `payment_method` records the method
+used for the PAID portion, while `amount_paid` records how much was
+handed over. So `total - amount_paid` is what's actually owed, and
+summing that across every sale is correct regardless of the method.
 
-`outstanding_balance` is a cached copy of that calculation, kept so list
-pages don't have to aggregate on every row. Never edit it by hand or with
-`-=` inside a view; always call `update_balance()`.
+PaymentAllocation links a specific Payment to a specific Sale, used by
+the debt-ageing report so we can say which sale is still open. It does
+not participate in `calculate_balance()` — the balance is derived from
+payments directly (so overpayments count immediately as credit, even
+when there's no sale to allocate to). Allocations can therefore be
+absent without changing the balance.
 """
 from decimal import Decimal
 
 from django.conf import settings
 from django.core.validators import MinValueValidator
 from django.db import models
+from django.db.models import DecimalField, ExpressionWrapper, F, Sum
 
 from organizations.models import Organization
 
@@ -40,7 +47,7 @@ class Customer(models.Model):
     )
     outstanding_balance = models.DecimalField(
         max_digits=12, decimal_places=2, default=0,
-        help_text="Derived: opening balance + credit sales - payments. Do not edit by hand.",
+        help_text="Derived: opening balance + unpaid-from-sales - payments. Do not edit by hand.",
     )
 
     is_active = models.BooleanField(
@@ -57,30 +64,31 @@ class Customer(models.Model):
 
     def calculate_balance(self):
         """
-        Return the balance without saving it.
+        Return the live balance without saving.
 
-        Prefer this to reading `outstanding_balance` when correctness
-        matters more than speed (e.g. checking an overpayment). Read the
-        cached field for list pages, where an extra aggregate per row
-        would be wasteful.
+        Reads `total - amount_paid` on each sale, so it stays correct
+        for partial-credit sales as well as full credit/cash. Payments
+        are subtracted regardless of allocations — a prepayment counts
+        even when there's no sale to allocate it to.
         """
-        credit = self.sales.filter(payment_method="credit").aggregate(
-            total=models.Sum("total")
-        )["total"] or Decimal("0")
-
-        paid = self.payments.aggregate(
-            total=models.Sum("amount")
-        )["total"] or Decimal("0")
-
-        return self.opening_balance + credit - paid
+        unpaid_from_sales = (
+            self.sales
+            .annotate(
+                unpaid=ExpressionWrapper(
+                    F("total") - F("amount_paid"),
+                    output_field=DecimalField(max_digits=12, decimal_places=2),
+                )
+            )
+            .aggregate(t=Sum("unpaid"))["t"]
+            or Decimal("0")
+        )
+        paid = (
+            self.payments.aggregate(t=Sum("amount"))["t"]
+            or Decimal("0")
+        )
+        return self.opening_balance + unpaid_from_sales - paid
 
     def update_balance(self):
-        """
-        Recalculate and persist the cached balance.
-
-        Call this inside the same transaction as any credit sale or
-        payment, after the row that changed has been written.
-        """
         self.outstanding_balance = self.calculate_balance()
         self.save(update_fields=["outstanding_balance"])
 
@@ -101,8 +109,6 @@ class Payment(models.Model):
     )
     amount = models.DecimalField(
         max_digits=12, decimal_places=2,
-        # A zero or negative payment would either do nothing or *increase*
-        # the debt. The form enforces the same floor; this is the belt.
         validators=[MinValueValidator(Decimal("0.01"))],
     )
     payment_method = models.CharField(
@@ -122,3 +128,41 @@ class Payment(models.Model):
 
     def __str__(self):
         return f"{self.customer.name} - MK{self.amount} ({self.payment_method})"
+
+
+class PaymentAllocation(models.Model):
+    """
+    Which sale(s) a payment settled.
+
+    Populated FIFO at the moment the payment is saved (see
+    customers/services.py::allocate_payment). Used by the debt-ageing
+    report so a customer with three open sales shows each sale in its
+    own bucket rather than one lumped sum.
+    """
+    organization = models.ForeignKey(
+        Organization, on_delete=models.CASCADE, related_name="payment_allocations",
+    )
+    payment = models.ForeignKey(
+        Payment, on_delete=models.CASCADE, related_name="allocations",
+    )
+    sale = models.ForeignKey(
+        "sales.Sale", on_delete=models.CASCADE, related_name="payment_allocations",
+    )
+    amount = models.DecimalField(max_digits=12, decimal_places=2)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        # One allocation per (payment, sale) pair. A second payment
+        # against the same sale creates a new row with its own amount;
+        # a second allocation of the SAME payment to the SAME sale
+        # would be an error.
+        constraints = [
+            models.UniqueConstraint(
+                fields=["payment", "sale"],
+                name="uniq_payment_sale_allocation",
+            ),
+        ]
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.payment_id} -> Sale #{self.sale_id}: MK{self.amount}"
