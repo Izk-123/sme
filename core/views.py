@@ -16,6 +16,23 @@ The two most delicate pieces here are:
     accounts.views.PostLoginRouterView) and they must all agree about
     what "finished" means — hence the dedicated field instead of
     inferring completion from enabled_modules.
+
+First-login guidance is the other major concern:
+
+  * Welcome modal (3 slides, shown once at first login, dismissible).
+
+  * "Get started" checklist on the dashboard that ticks itself off
+    from real business data (products, costs, sales, customers,
+    expenses, staff). Built by core.getting_started.build_checklist.
+
+  * GetStartedActionView handles all three actions the user can take
+    on this guidance: mark the tour seen, dismiss the checklist, or
+    restart both from the header's "Show welcome guide" menu item.
+
+The design (per the product spec) is deliberately NOT a spotlight
+tour: on a small phone the sidebar collapses and highlighted buttons
+end up off-screen. A checklist with big buttons that open the right
+page works on any screen and teaches by doing.
 """
 
 from datetime import timedelta
@@ -23,16 +40,20 @@ from datetime import timedelta
 from django.contrib.auth import get_user_model
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db.models import F, Q, Sum
+from django.http import Http404, HttpResponse
 from django.shortcuts import redirect, render
 from django.utils import timezone
 from django.views.generic import TemplateView, View
 
+from accounts.models import UserPreference
 from core.permissions import SubscriptionWriteRequiredMixin
 from customers.models import Customer
 from expenses.models import Expense
 from organizations.models import Organization
 from sales.models import Product, Sale, SaleItem
 from subscriptions.models import SubscriptionPlan
+
+from .getting_started import build_checklist
 
 
 # =============================================================================
@@ -106,11 +127,18 @@ class DashboardView(LoginRequiredMixin, TemplateView):
         # Early return for users with no organization (e.g. a superuser
         # without a Membership yet). Nothing below this depends on the org
         # being present, so the guard must sit *before* any org-scoped query.
+        #
+        # show_welcome is explicitly False here: the welcome modal's
+        # content (esp. slide 2, which talks about owner/cashier roles
+        # and inventory) is meaningless without an organization, and
+        # showing it would burn tour_seen before the user has a
+        # business to be welcomed into.
         if not org:
             context.update({
                 "links": ROLE_LINKS.get(role, []),
                 "role": role,
                 "products_missing_cost": 0,
+                "show_welcome": False,
             })
             return context
 
@@ -223,6 +251,36 @@ class DashboardView(LoginRequiredMixin, TemplateView):
             organization=org
         ).order_by('-created_at')[:5]
 
+        # ---------- FIRST-LOGIN GUIDANCE ----------
+        #
+        # show_welcome fires once per user, regardless of role, because
+        # every role benefits from the intro. The *content* of slide 2
+        # adapts per role in the template, but the "you haven't seen this
+        # yet" check is the same flag for everyone.
+        #
+        # The checklist is owner-only: cashiers and stock clerks have a
+        # single job each (see slide 2), and putting a "add products,
+        # add customers, record an expense" checklist in front of them
+        # just adds noise to a screen that isn't theirs to complete.
+        # Dismissing the checklist on the owner's dashboard must not
+        # affect anyone else's, so the flag lives on UserPreference
+        # (user-scoped), not on Organization.
+        pref, _ = UserPreference.objects.get_or_create(user=self.request.user)
+        context["show_welcome"] = not pref.tour_seen
+
+        if role == "owner" and not pref.getting_started_dismissed:
+            checklist = build_checklist(org)
+            # An all_done checklist is redundant noise — hide it. It
+            # will re-appear only if the user restarts the tour via
+            # the header menu, at which point getting_started_dismissed
+            # is reset to False and the (still all-done) checklist
+            # would render... except the build_checklist result will
+            # also be all_done and thus suppressed. That's intentional:
+            # restart brings back the welcome modal, which is what most
+            # users mean by "show me the guide again".
+            if not checklist["all_done"]:
+                context["checklist"] = checklist
+
         context.update({
             "today_sales": today_sales,
             "today_expenses": today_expenses,
@@ -297,6 +355,65 @@ class ActionMenuView(LoginRequiredMixin, TemplateView):
 
 class MoreMenuView(LoginRequiredMixin, TemplateView):
     template_name = "core/more_menu.html"
+
+
+# =============================================================================
+# First-login guidance actions
+# =============================================================================
+
+class GetStartedActionView(LoginRequiredMixin, View):
+    """
+    One POST endpoint behind every button/link that mutates the
+    first-login guidance flags:
+
+        tour-seen  →  welcome modal finished, skipped, or closed.
+                      Fired via fetch() from the modal's
+                      `hidden.bs.modal` handler so it fires in every
+                      terminal case — not just the "Let's start" button.
+
+        dismiss    →  "Hide" on the dashboard checklist.
+
+        restart    →  "Show welcome guide" in the header dropdown.
+                      Brings BOTH the welcome modal and the checklist
+                      back by resetting both flags.
+
+    Responds with HTTP 204 (no content) when called by fetch(), and a
+    redirect to the dashboard otherwise. That split lets the modal's
+    JS call this without touching the page, while a plain form submit
+    (dismiss / restart) behaves like a normal navigation.
+    """
+
+    # Central map of action → field changes. Adding a new action is a
+    # one-line change here; adding a new field is a one-line change in
+    # every dict that needs to touch it.
+    ACTIONS = {
+        "tour-seen": {"tour_seen": True},
+        "dismiss":   {"getting_started_dismissed": True},
+        "restart":   {"tour_seen": False, "getting_started_dismissed": False},
+    }
+
+    def post(self, request, action):
+        changes = self.ACTIONS.get(action)
+        if changes is None:
+            # An unrecognised action is a client bug or a probe —
+            # treat it like a missing resource rather than silently
+            # no-op'ing. The URL itself is stable; only `action` is
+            # variable.
+            raise Http404
+
+        pref, _ = UserPreference.objects.get_or_create(user=request.user)
+        for field, value in changes.items():
+            setattr(pref, field, value)
+        # update_fields is the exact set of fields we just mutated —
+        # keeps the UPDATE statement tight and avoids racing the
+        # auto_now/auto_now_add fields if any get added later.
+        pref.save(update_fields=list(changes))
+
+        if request.headers.get("X-Requested-With") == "fetch":
+            # The welcome modal's JS only needs to know the call
+            # succeeded — no body, no redirect.
+            return HttpResponse(status=204)
+        return redirect("home")
 
 
 # =============================================================================

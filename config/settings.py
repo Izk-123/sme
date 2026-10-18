@@ -203,7 +203,7 @@ SITE_ID = 1
 # We are not using allauth's own login or signup pages, only its social
 # provider plumbing. The flags below enforce that intent.
 ACCOUNT_LOGIN_METHODS = {'email'}          # not used, but avoids warnings
-ACCOUNT_SIGNUP_FIELDS = []                 # we never call allauth's signup form
+ACCOUNT_SIGNUP_FIELDS = ['email*', 'password1*', 'password2*']                 # we never call allauth's signup form
 ACCOUNT_EMAIL_VERIFICATION = 'none'        # our own verification owns this
 ACCOUNT_UNIQUE_EMAIL = True
 
