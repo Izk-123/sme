@@ -17,7 +17,13 @@ class ExpenseCategoryAdmin(ModelAdmin):
 
 @admin.register(Expense)
 class ExpenseAdmin(ModelAdmin):
-    list_display = ("date", "organization", "category", "amount", "supplier", "created_by")
-    list_filter = ("organization", "category", "date", "supplier")
+    list_display = (
+        "date", "organization", "category", "amount",
+        "supplier", "on_credit", "payment_method", "created_by",
+    )
+    list_filter = (
+        "organization", "category", "date",
+        "supplier", "on_credit", "payment_method",
+    )
     search_fields = ("description", "supplier__name")
     list_select_related = ("category", "supplier", "organization")
