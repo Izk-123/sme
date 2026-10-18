@@ -1,0 +1,45 @@
+<div class="card border-primary mb-3">
+  <div class="card-body">
+    <div class="d-flex justify-content-between align-items-start">
+      <div>
+        <h5 class="card-title mb-1">Get started with ChumaFlow</h5>
+        <p class="text-muted small mb-2">{{ checklist.done }} of {{ checklist.total }} steps done</p>
+      </div>
+      <form method="post" action="{% url 'get_started_action' 'dismiss' %}">
+        {% csrf_token %}
+        <button class="btn btn-sm btn-link text-muted" type="submit">Hide</button>
+      </form>
+    </div>
+
+    <div class="progress mb-3" style="height: 8px;">
+      <div class="progress-bar" role="progressbar" style="width: {{ checklist.percent }}%"
+           aria-valuenow="{{ checklist.percent }}" aria-valuemin="0" aria-valuemax="100"></div>
+    </div>
+
+    <ul class="list-group list-group-flush">
+      {% for step in checklist.steps %}
+      <li class="list-group-item d-flex align-items-center justify-content-between px-0">
+        <div class="d-flex align-items-start">
+          {% if step.done %}
+            <i class="bi bi-check-circle-fill text-success fs-5 me-2"></i>
+          {% else %}
+            <i class="bi bi-circle text-muted fs-5 me-2"></i>
+          {% endif %}
+          <div>
+            <div class="{% if step.done %}text-decoration-line-through text-muted{% else %}fw-semibold{% endif %}">
+              {{ step.title }}
+            </div>
+            {% if not step.done %}<div class="small text-muted">{{ step.hint }}</div>{% endif %}
+          </div>
+        </div>
+        {% if not step.done %}
+          <a href="{{ step.url }}"
+             class="btn btn-sm {% if step == checklist.next_step %}btn-primary{% else %}btn-outline-secondary{% endif %}">
+            {% if step == checklist.next_step %}Do this now{% else %}Open{% endif %}
+          </a>
+        {% endif %}
+      </li>
+      {% endfor %}
+    </ul>
+  </div>
+</div>

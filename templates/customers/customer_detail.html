@@ -1,10 +1,9 @@
-<<<<<<< HEAD
 {% extends "base/base.html" %}
 {% load money %}
 {% block page_title %}{{ customer.name }}{% endblock %}
 {% block content %}
 
-<!-- ========================= BACK BUTTON ========================= -->
+{# Back + inactive badge #}
 <div class="mb-3 d-flex justify-content-between align-items-center">
   <a href="{% url 'customer_list' %}" class="btn btn-outline-secondary btn-sm">
     <i class="bi bi-arrow-left me-1"></i> Back to Customers
@@ -18,7 +17,7 @@
 
 <div class="row g-4">
 
-  <!-- ========================= CUSTOMER INFO ========================= -->
+  {# ===================== LEFT COLUMN: customer info ===================== #}
   <div class="col-lg-4">
     <div class="card h-100">
       <div class="card-body">
@@ -38,7 +37,19 @@
           </div>
         </div>
 
-        <!-- Balance highlight -->
+        {% comment %}
+          Balance box.
+
+          `customer.outstanding_balance` = opening_balance
+          + sum(sale.total - sale.amount_paid) - sum(payments).
+          It is maintained by Customer.update_balance(), which is
+          called from PaymentCreateView and CreateSaleView.
+
+          The "View ageing" link points to the reports app so the
+          owner can see which sales are current vs overdue — a single
+          total doesn't tell you whether a customer is 3 days or 90
+          days behind.
+        {% endcomment %}
         <div class="rounded p-3 mb-3"
              style="background: var(--cf-mist); border: 1px solid var(--border-color);">
           <div class="small text-muted text-uppercase fw-semibold mb-1"
@@ -48,11 +59,23 @@
           <div class="h4 mb-0 fw-bold {% if customer.outstanding_balance > 0 %}text-danger{% else %}text-success{% endif %}">
             {% money customer.outstanding_balance %}
           </div>
-          {% if customer.opening_balance %}
-            <div class="small text-muted mt-2 pt-2" style="border-top: 1px solid var(--border-color);">
-              <i class="bi bi-journal-text me-1"></i>
-              Includes {% money customer.opening_balance %} opening balance
-              (from before they used ChumaFlow).
+
+          {% if customer.opening_balance or customer.outstanding_balance > 0 %}
+            <div class="small text-muted mt-2 pt-2"
+                 style="border-top: 1px solid var(--border-color);">
+              {% if customer.opening_balance %}
+                <div>
+                  <i class="bi bi-journal-text me-1"></i>
+                  Includes {% money customer.opening_balance %} opening balance
+                  (from before they used ChumaFlow).
+                </div>
+              {% endif %}
+              {% if customer.outstanding_balance > 0 %}
+                <a href="{% url 'report_debt_ageing' %}" class="cf-link-slide d-inline-block mt-2">
+                  <i class="bi bi-hourglass-split me-1"></i>
+                  View ageing breakdown <i class="bi bi-arrow-right ms-1"></i>
+                </a>
+              {% endif %}
             </div>
           {% endif %}
         </div>
@@ -72,9 +95,6 @@
           <dd class="col-7 text-muted">{{ customer.created_at|date:"Y-m-d" }}</dd>
         </dl>
 
-        <!-- Actions. Record Payment is disabled when the customer is
-             inactive — the payment form's queryset also filters them out,
-             so this is defence in depth, not the only guard. -->
         <div class="d-flex gap-2 mt-4 pt-3 border-top">
           {% if customer.is_active %}
             <a href="{% url 'payment_add' %}?customer={{ customer.pk }}"
@@ -88,16 +108,13 @@
             </button>
           {% endif %}
 
-          {# TODO: wire up once CustomerUpdateView is added #}
+          {# TODO: wire up once CustomerUpdateView exists #}
           <a href="#" class="btn btn-outline-secondary btn-sm"
              title="Edit customer (coming soon)">
             <i class="bi bi-pencil"></i>
           </a>
         </div>
 
-        <!-- Activate / deactivate. Lives in a small form so the action
-             can't be triggered by a stray GET (link prefetching, a
-             browser extension, or a malicious <img> tag). -->
         <form method="post" action="{% url 'customer_toggle_active' customer.pk %}"
               class="mt-2"
               onsubmit="return confirm('{% if customer.is_active %}Deactivate{% else %}Reactivate{% endif %} {{ customer.name|escapejs }}?');">
@@ -116,10 +133,20 @@
     </div>
   </div>
 
-  <!-- ========================= HISTORY ========================= -->
+  {# ===================== RIGHT COLUMN: history ===================== #}
   <div class="col-lg-8">
 
-    <!-- Sales History -->
+    {% comment %}
+      Sales History.
+
+      Columns now show the part-payment breakdown. Before the
+      credit-sales patch, a sale was either fully paid or fully on
+      credit, so "Payment Method" was enough. With amount_paid, a
+      single sale can have MK50 paid and MK150 outstanding — showing
+      only the total would mislead the customer and the owner about
+      what's actually owed. Sale.status is the derived label
+      ('paid' | 'partial' | 'unpaid').
+    {% endcomment %}
     <div class="card mb-4">
       <div class="card-body">
         <h5 class="card-title d-flex align-items-center gap-2">
@@ -139,8 +166,10 @@
               <tr>
                 <th>Sale #</th>
                 <th>Date</th>
-                <th>Total</th>
-                <th>Payment Method</th>
+                <th class="text-end">Total</th>
+                <th class="text-end">Paid</th>
+                <th class="text-end">Outstanding</th>
+                <th>Status</th>
               </tr>
             </thead>
             <tbody>
@@ -148,8 +177,20 @@
                 <tr>
                   <td class="fw-bold">#{{ sale.pk }}</td>
                   <td class="text-muted small">{{ sale.created_at|date:"Y-m-d H:i" }}</td>
-                  <td class="money">{% money sale.total %}</td>
-                  <td>{{ sale.get_payment_method_display }}</td>
+                  <td class="text-end money">{% money sale.total %}</td>
+                  <td class="text-end money">{% money sale.amount_paid %}</td>
+                  <td class="text-end money {% if sale.outstanding > 0 %}text-danger fw-bold{% endif %}">
+                    {% money sale.outstanding %}
+                  </td>
+                  <td>
+                    {% if sale.status == "paid" %}
+                      <span class="badge bg-success">Paid</span>
+                    {% elif sale.status == "partial" %}
+                      <span class="badge bg-warning text-dark">Part</span>
+                    {% else %}
+                      <span class="badge bg-danger">Unpaid</span>
+                    {% endif %}
+                  </td>
                 </tr>
               {% endfor %}
             </tbody>
@@ -163,7 +204,15 @@
       </div>
     </div>
 
-    <!-- Payments Received -->
+    {% comment %}
+      Payments Received.
+
+      "Applied to" shows which sale(s) each payment settled, via the
+      FIFO allocation created by customers/services.allocate_payment().
+      A payment with no allocation is showing as unallocated — that's
+      either a prepayment (customer paid in advance) or an amount
+      applied against the opening balance, both of which are legitimate.
+    {% endcomment %}
     <div class="card">
       <div class="card-body">
         <h5 class="card-title d-flex align-items-center gap-2">
@@ -182,8 +231,9 @@
             <thead>
               <tr>
                 <th>Date</th>
-                <th>Amount</th>
+                <th class="text-end">Amount</th>
                 <th>Method</th>
+                <th>Applied to</th>
                 <th>Reference</th>
               </tr>
             </thead>
@@ -191,10 +241,25 @@
               {% for payment in payments %}
                 <tr>
                   <td class="text-muted small">{{ payment.created_at|date:"Y-m-d H:i" }}</td>
-                  <td class="money fw-bold" style="color: var(--cf-flow-teal);">
+                  <td class="text-end money fw-bold" style="color: var(--cf-flow-teal);">
                     {% money payment.amount %}
                   </td>
                   <td>{{ payment.get_payment_method_display }}</td>
+                  <td class="small">
+                    {% for alloc in payment.allocations.all %}
+                      <a href="#" class="text-decoration-none"
+                         title="Allocated to this sale">
+                        Sale #{{ alloc.sale_id }}
+                      </a>
+                      <span class="text-muted">({% money alloc.amount %})</span>
+                      {% if not forloop.last %}<br>{% endif %}
+                    {% empty %}
+                      <span class="text-muted"
+                            title="Prepayment or applied against opening balance">
+                        <i class="bi bi-coin me-1"></i>Credit
+                      </span>
+                    {% endfor %}
+                  </td>
                   <td class="text-muted small">{{ payment.reference|default:"—" }}</td>
                 </tr>
               {% endfor %}
@@ -212,219 +277,4 @@
   </div>
 </div>
 
-=======
-{% extends "base/base.html" %}
-{% load money %}
-{% block page_title %}{{ customer.name }}{% endblock %}
-{% block content %}
-
-<!-- ========================= BACK BUTTON ========================= -->
-<div class="mb-3 d-flex justify-content-between align-items-center">
-  <a href="{% url 'customer_list' %}" class="btn btn-outline-secondary btn-sm">
-    <i class="bi bi-arrow-left me-1"></i> Back to Customers
-  </a>
-  {% if not customer.is_active %}
-    <span class="badge bg-secondary-subtle text-secondary-emphasis">
-      <i class="bi bi-person-slash me-1"></i> Inactive
-    </span>
-  {% endif %}
-</div>
-
-<div class="row g-4">
-
-  <!-- ========================= CUSTOMER INFO ========================= -->
-  <div class="col-lg-4">
-    <div class="card h-100">
-      <div class="card-body">
-
-        <div class="d-flex align-items-center gap-3 mb-4">
-          <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
-               style="width: 56px; height: 56px; background: var(--cf-flow-teal-soft); color: var(--cf-flow-teal); font-size: 1.4rem; font-weight: 700;">
-            {{ customer.name|slice:":1"|upper }}
-          </div>
-          <div class="overflow-hidden">
-            <h5 class="mb-0 fw-bold text-truncate">{{ customer.name }}</h5>
-            {% if customer.location %}
-              <small class="text-muted">
-                <i class="bi bi-geo-alt me-1"></i>{{ customer.location }}
-              </small>
-            {% endif %}
-          </div>
-        </div>
-
-        <!-- Balance highlight -->
-        <div class="rounded p-3 mb-3"
-             style="background: var(--cf-mist); border: 1px solid var(--border-color);">
-          <div class="small text-muted text-uppercase fw-semibold mb-1"
-               style="letter-spacing: 0.5px;">
-            Outstanding balance
-          </div>
-          <div class="h4 mb-0 fw-bold {% if customer.outstanding_balance > 0 %}text-danger{% else %}text-success{% endif %}">
-            {% money customer.outstanding_balance %}
-          </div>
-          {% if customer.opening_balance %}
-            <div class="small text-muted mt-2 pt-2" style="border-top: 1px solid var(--border-color);">
-              <i class="bi bi-journal-text me-1"></i>
-              Includes {% money customer.opening_balance %} opening balance
-              (from before they used ChumaFlow).
-            </div>
-          {% endif %}
-        </div>
-
-        <dl class="row mb-0 small">
-          <dt class="col-5 text-muted fw-normal">Phone</dt>
-          <dd class="col-7">
-            {% if customer.phone %}
-              <a href="tel:{{ customer.phone }}" class="cf-link-slide">{{ customer.phone }}</a>
-            {% else %}—{% endif %}
-          </dd>
-
-          <dt class="col-5 text-muted fw-normal">Location</dt>
-          <dd class="col-7">{{ customer.location|default:"—" }}</dd>
-
-          <dt class="col-5 text-muted fw-normal">Added</dt>
-          <dd class="col-7 text-muted">{{ customer.created_at|date:"Y-m-d" }}</dd>
-        </dl>
-
-        <!-- Actions. Record Payment is disabled when the customer is
-             inactive — the payment form's queryset also filters them out,
-             so this is defence in depth, not the only guard. -->
-        <div class="d-flex gap-2 mt-4 pt-3 border-top">
-          {% if customer.is_active %}
-            <a href="{% url 'payment_add' %}?customer={{ customer.pk }}"
-               class="btn btn-primary btn-sm flex-grow-1">
-              <i class="bi bi-cash-coin me-1"></i> Record Payment
-            </a>
-          {% else %}
-            <button class="btn btn-primary btn-sm flex-grow-1" disabled
-                    title="Reactivate this customer to record a payment">
-              <i class="bi bi-cash-coin me-1"></i> Record Payment
-            </button>
-          {% endif %}
-
-          {# TODO: wire up once CustomerUpdateView is added #}
-          <a href="#" class="btn btn-outline-secondary btn-sm"
-             title="Edit customer (coming soon)">
-            <i class="bi bi-pencil"></i>
-          </a>
-        </div>
-
-        <!-- Activate / deactivate. Lives in a small form so the action
-             can't be triggered by a stray GET (link prefetching, a
-             browser extension, or a malicious <img> tag). -->
-        <form method="post" action="{% url 'customer_toggle_active' customer.pk %}"
-              class="mt-2"
-              onsubmit="return confirm('{% if customer.is_active %}Deactivate{% else %}Reactivate{% endif %} {{ customer.name|escapejs }}?');">
-          {% csrf_token %}
-          <button type="submit" class="btn btn-sm w-100
-                  {% if customer.is_active %}btn-outline-danger{% else %}btn-outline-success{% endif %}">
-            {% if customer.is_active %}
-              <i class="bi bi-person-slash me-1"></i> Deactivate customer
-            {% else %}
-              <i class="bi bi-person-check me-1"></i> Reactivate customer
-            {% endif %}
-          </button>
-        </form>
-
-      </div>
-    </div>
-  </div>
-
-  <!-- ========================= HISTORY ========================= -->
-  <div class="col-lg-8">
-
-    <!-- Sales History -->
-    <div class="card mb-4">
-      <div class="card-body">
-        <h5 class="card-title d-flex align-items-center gap-2">
-          <i class="bi bi-receipt" style="color: var(--cf-flow-teal);"></i>
-          Sales History
-          {% if sales %}
-            <span class="badge"
-                  style="background: var(--cf-flow-teal-soft); color: var(--cf-flow-teal); font-weight: 600;">
-              {{ sales|length }}
-            </span>
-          {% endif %}
-        </h5>
-
-        {% if sales %}
-          <table class="table table-hover datatable table-stack cf-hide-dt-top">
-            <thead>
-              <tr>
-                <th>Sale #</th>
-                <th>Date</th>
-                <th>Total</th>
-                <th>Payment Method</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for sale in sales %}
-                <tr>
-                  <td class="fw-bold">#{{ sale.pk }}</td>
-                  <td class="text-muted small">{{ sale.created_at|date:"Y-m-d H:i" }}</td>
-                  <td class="money">{% money sale.total %}</td>
-                  <td>{{ sale.get_payment_method_display }}</td>
-                </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        {% else %}
-          <div class="text-center py-4">
-            <i class="bi bi-receipt" style="font-size: 2rem; color: var(--text-muted); opacity: 0.5;"></i>
-            <p class="text-muted small mt-2 mb-0">No sales for this customer yet.</p>
-          </div>
-        {% endif %}
-      </div>
-    </div>
-
-    <!-- Payments Received -->
-    <div class="card">
-      <div class="card-body">
-        <h5 class="card-title d-flex align-items-center gap-2">
-          <i class="bi bi-cash-coin" style="color: var(--cf-flow-teal);"></i>
-          Payments Received
-          {% if payments %}
-            <span class="badge"
-                  style="background: var(--cf-flow-teal-soft); color: var(--cf-flow-teal); font-weight: 600;">
-              {{ payments|length }}
-            </span>
-          {% endif %}
-        </h5>
-
-        {% if payments %}
-          <table class="table table-hover datatable table-stack cf-hide-dt-top">
-            <thead>
-              <tr>
-                <th>Date</th>
-                <th>Amount</th>
-                <th>Method</th>
-                <th>Reference</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for payment in payments %}
-                <tr>
-                  <td class="text-muted small">{{ payment.created_at|date:"Y-m-d H:i" }}</td>
-                  <td class="money fw-bold" style="color: var(--cf-flow-teal);">
-                    {% money payment.amount %}
-                  </td>
-                  <td>{{ payment.get_payment_method_display }}</td>
-                  <td class="text-muted small">{{ payment.reference|default:"—" }}</td>
-                </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        {% else %}
-          <div class="text-center py-4">
-            <i class="bi bi-cash-coin" style="font-size: 2rem; color: var(--text-muted); opacity: 0.5;"></i>
-            <p class="text-muted small mt-2 mb-0">No payments recorded for this customer yet.</p>
-          </div>
-        {% endif %}
-      </div>
-    </div>
-
-  </div>
-</div>
-
->>>>>>> e3b67a5 (new files)
 {% endblock %}

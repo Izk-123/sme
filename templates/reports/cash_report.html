@@ -1,0 +1,101 @@
+{% extends "base/base.html" %}
+{% load money %}
+{% block page_title %}Cash Report{% endblock %}
+{% block content %}
+
+<div class="cf-filter-card">
+  <form method="get" class="row g-3 align-items-end">
+    <div class="col-md-3">
+      <label for="id_month" class="form-label">Month</label>{{ form.month }}
+    </div>
+    <div class="col-md-3">
+      <label for="id_year" class="form-label">Year</label>{{ form.year }}
+    </div>
+    <div class="col-md-auto">
+      <button type="submit" class="btn btn-primary">
+        <i class="bi bi-search me-1"></i> View
+      </button>
+    </div>
+  </form>
+</div>
+
+<div class="row g-3">
+  <div class="col-md-6">
+    <div class="card info-card h-100">
+      <div class="card-body">
+        <h5 class="card-title text-success">Money In</h5>
+        <h3 class="fw-bold">{% money cash_in %}</h3>
+        <small class="text-muted">
+          Cash sales {% money cash_sales %} + customer payments {% money customer_payments %}
+        </small>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-6">
+    <div class="card info-card h-100">
+      <div class="card-body">
+        <h5 class="card-title text-danger">Money Out</h5>
+        <h3 class="fw-bold">{% money cash_out %}</h3>
+        <small class="text-muted">
+          Paid expenses {% money paid_expenses %} + supplier payments {% money supplier_payments %}
+        </small>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-12">
+    <div class="card">
+      <div class="card-body">
+        <h5 class="card-title">Net Cash Movement</h5>
+        <h2 class="fw-bold {% if net_cash < 0 %}text-danger{% else %}text-success{% endif %}">
+          {% money net_cash %}
+        </h2>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="alert alert-info mt-4">
+  <strong>Not counted as cash:</strong>
+  credit sales {% money credit_sales %} and unpaid expenses {% money unpaid_expenses %}.
+  They will appear here when the money actually moves.
+</div>
+
+<div class="row g-4 mt-2">
+  <div class="col-md-6">
+    <div class="card h-100">
+      <div class="card-body">
+        <h5 class="card-title">Owed to You</h5>
+        <h3 class="fw-bold text-success mb-3">{% money total_owed_to_you %}</h3>
+        {% for c in customers_owing %}
+          <div class="d-flex justify-content-between border-bottom py-1">
+            <span>{{ c.name }}</span>
+            <span class="money">{% money c.outstanding_balance %}</span>
+          </div>
+        {% empty %}
+          <p class="text-muted small mb-0">Nobody owes you right now.</p>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-6">
+    <div class="card h-100">
+      <div class="card-body">
+        <h5 class="card-title">You Owe Suppliers</h5>
+        <h3 class="fw-bold text-danger mb-3">{% money total_you_owe %}</h3>
+        {% for s in suppliers_owed %}
+          <div class="d-flex justify-content-between border-bottom py-1">
+            <span>{{ s.name }}</span>
+            <span class="money">{% money s.outstanding_balance %}</span>
+          </div>
+        {% empty %}
+          <p class="text-muted small mb-0">You owe no suppliers right now.</p>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

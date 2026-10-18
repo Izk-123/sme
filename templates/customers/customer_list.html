@@ -7,7 +7,8 @@
   <div>
     <h2 class="mb-0 fw-bold">Customers</h2>
     <small class="text-muted">
-      {{ customers|length }} customer{{ customers|length|pluralize }}{% if not showing_all %} active{% endif %}
+      {# paginator.count = total across all pages, not this page's length #}
+      {{ paginator.count }} customer{{ paginator.count|pluralize }}{% if not showing_all %} active{% endif %}
     </small>
   </div>
   <div class="d-flex gap-2 align-items-center">
@@ -34,7 +35,12 @@
 {% if customers %}
   <div class="card">
     <div class="card-body">
-      <table class="table table-hover datatable table-stack">
+      {% comment %}
+        Removed the `datatable` class — see inventory_list.html for
+        the same reasoning. It runs client-side pagination on top of
+        Django's paginator, giving two competing pagers.
+      {% endcomment %}
+      <table class="table table-hover table-stack">
         <thead>
           <tr>
             <th>Name</th>
@@ -75,6 +81,46 @@
           {% endfor %}
         </tbody>
       </table>
+
+      {% comment %}
+        Server-side pagination. Preserves ?show=all so toggling page
+        doesn't silently revert to active-only view mid-flow.
+      {% endcomment %}
+      {% if is_paginated %}
+        <nav aria-label="Customer pages" class="mt-3">
+          <ul class="pagination pagination-sm mb-0">
+            {% if page_obj.has_previous %}
+              <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if showing_all %}&show=all{% endif %}">
+                  <i class="bi bi-chevron-left"></i> Prev
+                </a>
+              </li>
+            {% else %}
+              <li class="page-item disabled">
+                <span class="page-link"><i class="bi bi-chevron-left"></i> Prev</span>
+              </li>
+            {% endif %}
+
+            <li class="page-item disabled">
+              <span class="page-link">
+                Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+              </span>
+            </li>
+
+            {% if page_obj.has_next %}
+              <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if showing_all %}&show=all{% endif %}">
+                  Next <i class="bi bi-chevron-right"></i>
+                </a>
+              </li>
+            {% else %}
+              <li class="page-item disabled">
+                <span class="page-link">Next <i class="bi bi-chevron-right"></i></span>
+              </li>
+            {% endif %}
+          </ul>
+        </nav>
+      {% endif %}
     </div>
   </div>
 {% else %}

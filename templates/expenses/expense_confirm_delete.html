@@ -36,6 +36,15 @@
               <dd class="col-sm-8">{{ expense.supplier }}</dd>
             {% endif %}
 
+            <dt class="col-sm-4 text-muted fw-normal">Status</dt>
+            <dd class="col-sm-8">
+              {% if expense.on_credit %}
+                <span class="badge bg-warning text-dark">On credit</span>
+              {% else %}
+                <span class="badge bg-success">Paid</span>
+              {% endif %}
+            </dd>
+
             <dt class="col-sm-4 text-muted fw-normal">Amount</dt>
             <dd class="col-sm-8 fw-bold mb-0" style="color: var(--cf-gold-dark);">
               MK{{ expense.amount|floatformat:2 }}

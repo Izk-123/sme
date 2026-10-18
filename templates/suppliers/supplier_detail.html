@@ -3,7 +3,6 @@
 {% block page_title %}{{ supplier.name }}{% endblock %}
 {% block content %}
 
-<!-- ========================= BACK BUTTON ========================= -->
 <div class="mb-3">
   <a href="{% url 'supplier_list' %}" class="btn btn-outline-secondary btn-sm">
     <i class="bi bi-arrow-left me-1"></i> Back to Suppliers
@@ -12,41 +11,29 @@
 
 <div class="row g-4">
 
-  <!-- ========================= SUPPLIER INFO ========================= -->
   <div class="col-lg-4">
     <div class="card h-100">
       <div class="card-body">
 
-        <!-- Header with avatar -->
         <div class="d-flex align-items-center gap-3 mb-4">
           <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
                style="width: 56px; height: 56px; background: var(--cf-gold-soft); color: var(--cf-gold-dark); font-size: 1.4rem; font-weight: 700;">
             {{ supplier.name|slice:":1"|upper }}
           </div>
           <div class="overflow-hidden">
-            <h5 class="mb-0 fw-bold text-truncate">{{ supplier.name }}</h5>
-            {% if supplier.address %}
-              <small class="text-muted d-block text-truncate">
-                <i class="bi bi-geo-alt me-1"></i>
-                {{ supplier.address|striptags|truncatechars:40 }}
-              </small>
-            {% endif %}
+            <h5 class="mb-0 fw-bold text-truncate">
+              {{ supplier.name }}
+              {% if not supplier.is_active %}
+                <span class="badge bg-secondary ms-1" style="font-size: 0.65rem;">Inactive</span>
+              {% endif %}
+            </h5>
           </div>
         </div>
 
-        <!--
-          Balance highlight.
-
-          This is the SAME number shown on the supplier list — it comes
-          from Supplier.outstanding_balance, which is recomputed by
-          suppliers/signals.py whenever a purchase, expense, or payment
-          changes. The combined_total below (purchases + expenses only)
-          will differ by exactly the sum of payments made.
-        -->
         <div class="rounded p-3 mb-3"
              style="background: var(--cf-mist); border: 1px solid var(--border-color);">
-          <div class="small text-muted text-uppercase fw-semibold mb-1" style="letter-spacing: 0.5px;">
-            You owe
+          <div class="small text-muted text-uppercase fw-semibold mb-1">
+            {% if is_credit %}You have credit with this supplier{% else %}You owe{% endif %}
           </div>
           <div class="h4 mb-0 fw-bold {% if supplier.outstanding_balance > 0 %}text-danger{% else %}text-success{% endif %}">
             {% money supplier.outstanding_balance %}
@@ -55,23 +42,26 @@
             <div class="small text-success mt-1">
               <i class="bi bi-check-circle-fill me-1"></i>All settled
             </div>
+          {% elif is_credit %}
+            <div class="small text-muted mt-1">
+              You've paid more than was billed. Use the credit against
+              future stock or record a refund.
+            </div>
           {% endif %}
         </div>
 
-        <!-- Contact details -->
         <dl class="row mb-0 small">
+          <dt class="col-5 text-muted fw-normal">Opening balance</dt>
+          <dd class="col-7">{% money supplier.opening_balance %}</dd>
+
           <dt class="col-5 text-muted fw-normal">Phone</dt>
           <dd class="col-7">
-            {% if supplier.phone %}
-              <a href="tel:{{ supplier.phone }}" class="cf-link-slide">{{ supplier.phone }}</a>
-            {% else %}—{% endif %}
+            {% if supplier.phone %}<a href="tel:{{ supplier.phone }}">{{ supplier.phone }}</a>{% else %}—{% endif %}
           </dd>
 
           <dt class="col-5 text-muted fw-normal">Email</dt>
           <dd class="col-7 text-break">
-            {% if supplier.email %}
-              <a href="mailto:{{ supplier.email }}" class="cf-link-slide">{{ supplier.email }}</a>
-            {% else %}—{% endif %}
+            {% if supplier.email %}<a href="mailto:{{ supplier.email }}">{{ supplier.email }}</a>{% else %}—{% endif %}
           </dd>
 
           {% if supplier.address %}
@@ -80,118 +70,218 @@
           {% endif %}
         </dl>
 
-        <!--
-          Actions.
-
-          Receive Stock  → sales app's receive_stock view (adds a
-                           'purchase' StockMovement, which the signal
-                           picks up and rolls into outstanding_balance).
-          Record Payment → SupplierPaymentCreateView, pre-selecting
-                           this supplier via ?supplier=<pk>.
-          Edit           → SupplierUpdateView.
-        -->
         <div class="d-flex gap-2 mt-4 pt-3 border-top">
-          <a href="{% url 'receive_stock' %}" class="btn btn-primary btn-sm flex-grow-1">
+          <a href="{% url 'receive_stock' %}?supplier={{ supplier.pk }}"
+             class="btn btn-primary btn-sm flex-grow-1">
             <i class="bi bi-box-seam me-1"></i> Receive Stock
           </a>
           <a href="{% url 'supplier_payment_add' %}?supplier={{ supplier.pk }}"
-             class="btn btn-outline-success btn-sm" title="Record a payment to this supplier">
+             class="btn btn-outline-success btn-sm">
             <i class="bi bi-cash-coin"></i>
           </a>
           <a href="{% url 'supplier_edit' supplier.pk %}"
-             class="btn btn-outline-secondary btn-sm" title="Edit supplier">
+             class="btn btn-outline-secondary btn-sm">
             <i class="bi bi-pencil"></i>
           </a>
         </div>
-
       </div>
     </div>
   </div>
 
-  <!-- ========================= PURCHASE HISTORY ========================= -->
   <div class="col-lg-8">
 
-    <!--
-      Totals strip. Uses stock_total / expense_total / combined_total
-      from SupplierDetailView.get_context_data(), which now share the
-      cost_price-falls-back-to-price expression with the model's
-      update_balance() — so these figures and outstanding_balance
-      above always reconcile (payments are the only difference).
-    -->
     <div class="row g-3 mb-4">
-      <div class="col-sm-4">
-        <div class="card text-center h-100">
-          <div class="card-body py-3">
-            <div class="small text-muted text-uppercase fw-semibold">Purchases</div>
-            <div class="h6 mb-0 fw-bold">{% money stock_total %}</div>
-          </div>
-        </div>
+      <div class="col-sm-3">
+        <div class="card text-center h-100"><div class="card-body py-3">
+          <div class="small text-muted text-uppercase fw-semibold">Purchases</div>
+          <div class="h6 mb-0 fw-bold">{% money stock_total %}</div>
+        </div></div>
       </div>
-      <div class="col-sm-4">
-        <div class="card text-center h-100">
-          <div class="card-body py-3">
-            <div class="small text-muted text-uppercase fw-semibold">Expenses</div>
-            <div class="h6 mb-0 fw-bold">{% money expense_total %}</div>
-          </div>
-        </div>
+      <div class="col-sm-3">
+        <div class="card text-center h-100"><div class="card-body py-3">
+          <div class="small text-muted text-uppercase fw-semibold">Unpaid expenses</div>
+          <div class="h6 mb-0 fw-bold">{% money expense_total %}</div>
+        </div></div>
       </div>
-      <div class="col-sm-4">
-        <div class="card text-center h-100">
-          <div class="card-body py-3">
-            <div class="small text-muted text-uppercase fw-semibold">Total billed</div>
-            <div class="h6 mb-0 fw-bold" style="color: var(--cf-gold-dark);">
-              {% money combined_total %}
-            </div>
+      <div class="col-sm-3">
+        <div class="card text-center h-100"><div class="card-body py-3">
+          <div class="small text-muted text-uppercase fw-semibold">Payments</div>
+          <div class="h6 mb-0 fw-bold text-success">{% money payments_total %}</div>
+        </div></div>
+      </div>
+      <div class="col-sm-3">
+        <div class="card text-center h-100"><div class="card-body py-3">
+          <div class="small text-muted text-uppercase fw-semibold">Total billed</div>
+          <div class="h6 mb-0 fw-bold" style="color: var(--cf-gold-dark);">
+            {% money combined_total %}
           </div>
-        </div>
+        </div></div>
       </div>
     </div>
 
-    <div class="card h-100">
+    <!-- Purchases (now with cost per unit and line amount) -->
+    <div class="card">
       <div class="card-body">
         <h5 class="card-title d-flex align-items-center gap-2">
           <i class="bi bi-box-seam" style="color: var(--cf-gold-dark);"></i>
           Purchase History
-          {% if purchases %}
-            <span class="badge" style="background: var(--cf-gold-soft); color: var(--cf-gold-dark); font-weight: 600;">
-              {{ purchases|length }}
-            </span>
-          {% endif %}
         </h5>
 
         {% if purchases %}
-          <table class="table table-hover datatable table-stack cf-hide-dt-top">
+          <table class="table table-hover table-stack cf-hide-dt-top">
             <thead>
               <tr>
                 <th>Date</th>
                 <th>Product</th>
-                <th>Quantity</th>
+                <th class="text-end">Qty</th>
+                <th class="text-end">Cost/Unit</th>
+                <th class="text-end">Amount</th>
                 <th>Reference</th>
               </tr>
             </thead>
             <tbody>
-              {% for movement in purchases %}
+              {% for m in purchases %}
                 <tr>
-                  <td class="text-muted small">{{ movement.created_at|date:"Y-m-d H:i" }}</td>
-                  <td class="fw-bold">{{ movement.product.name }}</td>
-                  <td>
-                    <span class="badge" style="background: var(--cf-flow-teal-soft); color: var(--cf-flow-teal); font-weight: 600;">
-                      +{{ movement.quantity }}
+                  <td class="text-muted small">{{ m.created_at|date:"Y-m-d H:i" }}</td>
+                  <td class="fw-bold">{{ m.product.name }}</td>
+                  <td class="text-end">
+                    <span class="badge" style="background: var(--cf-flow-teal-soft); color: var(--cf-flow-teal);">
+                      +{{ m.quantity }}
                     </span>
                   </td>
-                  <td class="text-muted small">{{ movement.reference|default:"—" }}</td>
+                  <td class="text-end money">
+                    {% if m.unit_cost is not None %}{% money m.unit_cost %}
+                    {% else %}<span class="text-muted">—</span>{% endif %}
+                  </td>
+                  <td class="text-end money">
+                    {% if m.line_total is not None %}{% money m.line_total %}
+                    {% else %}<span class="text-muted">—</span>{% endif %}
+                  </td>
+                  <td class="text-muted small">{{ m.reference|default:"—" }}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+
+          {% if purchases.has_other_pages %}
+            <nav class="mt-3">
+              <ul class="pagination pagination-sm mb-0">
+                {% if purchases.has_previous %}
+                  <li class="page-item">
+                    <a class="page-link" href="?purchases_page={{ purchases.previous_page_number }}">Prev</a>
+                  </li>
+                {% endif %}
+                <li class="page-item disabled">
+                  <span class="page-link">{{ purchases.number }} / {{ purchases.paginator.num_pages }}</span>
+                </li>
+                {% if purchases.has_next %}
+                  <li class="page-item">
+                    <a class="page-link" href="?purchases_page={{ purchases.next_page_number }}">Next</a>
+                  </li>
+                {% endif %}
+              </ul>
+            </nav>
+          {% endif %}
+        {% else %}
+          <p class="text-muted small mb-0">No purchase records yet.</p>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Payments (NEW card) -->
+    <div class="card mt-4">
+      <div class="card-body">
+        <h5 class="card-title d-flex align-items-center gap-2">
+          <i class="bi bi-cash-coin" style="color: var(--cf-flow-teal);"></i>
+          Payments
+        </h5>
+
+        {% if payments %}
+          <table class="table table-hover table-stack cf-hide-dt-top">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th class="text-end">Amount</th>
+                <th>Method</th>
+                <th>Reference</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for p in payments %}
+                <tr>
+                  <td class="text-muted small">{{ p.date|date:"Y-m-d" }}</td>
+                  <td class="text-end money text-success fw-bold">{% money p.amount %}</td>
+                  <td>{{ p.get_method_display }}</td>
+                  <td class="text-muted small">{{ p.reference|default:"—" }}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+
+          {% if payments.has_other_pages %}
+            <nav class="mt-3">
+              <ul class="pagination pagination-sm mb-0">
+                {% if payments.has_previous %}
+                  <li class="page-item">
+                    <a class="page-link" href="?payments_page={{ payments.previous_page_number }}">Prev</a>
+                  </li>
+                {% endif %}
+                <li class="page-item disabled">
+                  <span class="page-link">{{ payments.number }} / {{ payments.paginator.num_pages }}</span>
+                </li>
+                {% if payments.has_next %}
+                  <li class="page-item">
+                    <a class="page-link" href="?payments_page={{ payments.next_page_number }}">Next</a>
+                  </li>
+                {% endif %}
+              </ul>
+            </nav>
+          {% endif %}
+        {% else %}
+          <p class="text-muted small mb-0">No payments recorded yet.</p>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Expenses (unchanged, plus on_credit column so you can see what counts) -->
+    <div class="card mt-4">
+      <div class="card-body">
+        <h5 class="card-title d-flex align-items-center gap-2">
+          <i class="bi bi-receipt" style="color: var(--cf-gold-dark);"></i>
+          Expenses Billed
+        </h5>
+
+        {% if expenses %}
+          <table class="table table-hover table-stack cf-hide-dt-top">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Category</th>
+                <th class="text-end">Amount</th>
+                <th>Status</th>
+                <th>Description</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for e in expenses %}
+                <tr>
+                  <td class="text-muted small">{{ e.date|date:"Y-m-d" }}</td>
+                  <td>{{ e.category.name|default:"—" }}</td>
+                  <td class="text-end money fw-bold">{% money e.amount %}</td>
+                  <td>
+                    {% if e.on_credit %}
+                      <span class="badge bg-warning text-dark">Unpaid</span>
+                    {% else %}
+                      <span class="badge bg-success">Paid</span>
+                    {% endif %}
+                  </td>
+                  <td class="text-muted small">{{ e.description|default:"—"|truncatechars:60 }}</td>
                 </tr>
               {% endfor %}
             </tbody>
           </table>
         {% else %}
-          <div class="text-center py-5">
-            <i class="bi bi-box" style="font-size: 2.5rem; color: var(--text-muted); opacity: 0.5;"></i>
-            <p class="text-muted small mt-2 mb-3">No purchase records for this supplier yet.</p>
-            <a href="{% url 'receive_stock' %}" class="btn btn-primary btn-sm">
-              <i class="bi bi-box-seam me-1"></i> Receive your first stock
-            </a>
-          </div>
+          <p class="text-muted small mb-0">No expenses billed by this supplier.</p>
         {% endif %}
       </div>
     </div>

@@ -3,7 +3,6 @@
 {% block page_title %}Sales{% endblock %}
 {% block content %}
 
-<!-- ========================= HERO: Today + Action ========================= -->
 <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-3">
   <div class="d-flex align-items-center gap-3">
     <div class="rounded-circle d-flex align-items-center justify-content-center"
@@ -24,7 +23,6 @@
   </a>
 </div>
 
-<!-- ========================= FILTERS ========================= -->
 <div class="cf-filter-card">
   <form method="get" id="sales-filter-form" class="row g-3 align-items-end">
     <div class="col-md-3 col-6">
@@ -56,7 +54,8 @@
       <select name="status" id="filter-status" class="form-select">
         <option value="">All</option>
         <option value="paid" {% if selected_status == 'paid' %}selected{% endif %}>Paid</option>
-        <option value="due" {% if selected_status == 'due' %}selected{% endif %}>Due (Credit)</option>
+        <option value="partial" {% if selected_status == 'partial' %}selected{% endif %}>Part-paid</option>
+        <option value="due" {% if selected_status == 'due' %}selected{% endif %}>Outstanding</option>
       </select>
     </div>
     <div class="col-12 cf-filter-actions">
@@ -70,7 +69,6 @@
   </form>
 </div>
 
-<!-- ========================= SALES TABLE ========================= -->
 {% if sales %}
   <div class="card">
     <div class="card-body">
@@ -80,7 +78,7 @@
             <th>Sale</th>
             <th>Customer</th>
             <th>Amount</th>
-            <th>Payment</th>
+            <th>Paid</th>
             <th>Status</th>
             <th>Cashier</th>
             <th>Date</th>
@@ -92,34 +90,25 @@
               <td class="fw-bold">#{{ sale.pk }}</td>
               <td>{{ sale.customer.name|default:"Walk-in" }}</td>
               <td class="money">{% money sale.total %}</td>
-              <td>{{ sale.get_payment_method_display }}</td>
+              <td class="money">{% money sale.amount_paid %}</td>
               <td>
-<<<<<<< HEAD
-                {% comment %}
-                  Status is a rough proxy until Sale has an amount_paid
-                  field. "Paid" here means "not a credit sale" — it does
-                  not distinguish a fully-settled credit sale from a
-                  partly-paid one. That distinction needs a link between
-                  Sale and Payment, which the model doesn't have yet.
-                {% endcomment %}
-=======
-                {# Status is a rough proxy until Sale has an amount_paid
-                   field. "Paid" here means "not a credit sale" — it does
-                   not distinguish a fully-settled credit sale from a
-                   partly-paid one. That distinction needs a link between
-                   Sale and Payment, which the model doesn't have yet. #}
->>>>>>> e3b67a5 (new files)
-                {% if sale.payment_method == 'credit' %}
-                  <span class="badge bg-warning text-dark">Due</span>
-                {% else %}
+                {% if sale.status == "paid" %}
                   <span class="badge bg-success">Paid</span>
+                {% elif sale.status == "partial" %}
+                  <span class="badge bg-warning text-dark">
+                    Part · {% money sale.outstanding %} due
+                  </span>
+                {% else %}
+                  <span class="badge bg-danger">
+                    Unpaid · {% money sale.outstanding %}
+                  </span>
                 {% endif %}
               </td>
               <td class="text-muted small">
                 {% if sale.created_by %}
                   {{ sale.created_by.get_full_name|default:sale.created_by.username }}
                 {% else %}
-                  <span class="text-muted" title="Recorded before cashier tracking was added">—</span>
+                  <span class="text-muted">—</span>
                 {% endif %}
               </td>
               <td class="text-muted small">{{ sale.created_at|date:"Y-m-d H:i" }}</td>
@@ -133,7 +122,7 @@
   {% url 'record_sale' as record_url %}
   <div class="card">
     <div class="card-body">
-      {% include "components/_empty_state.html" with icon="bi-receipt" title="No sales yet" message="Record your first sale to start tracking revenue — walk-in or by customer." action_url=record_url action_label="Record a sale" %}
+      {% include "components/_empty_state.html" with icon="bi-receipt" title="No sales yet" message="Record your first sale to start tracking revenue." action_url=record_url action_label="Record a sale" %}
     </div>
   </div>
 {% endif %}

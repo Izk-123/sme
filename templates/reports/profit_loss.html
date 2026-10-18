@@ -3,7 +3,6 @@
 {% block page_title %}Profit &amp; Loss{% endblock %}
 {% block content %}
 
-<!-- ========================= FILTERS ========================= -->
 <div class="cf-filter-card">
   <form method="get" class="row g-3 align-items-end">
     <div class="col-md-3">
@@ -19,85 +18,162 @@
         <i class="bi bi-search me-1"></i> View
       </button>
     </div>
-    {% if request.GET.month and request.GET.year %}
-      <div class="col-md-auto ms-md-auto">
-        <a href="{% url 'export_profit_loss_pdf' %}?month={{ request.GET.month }}&year={{ request.GET.year }}"
-           class="btn btn-danger btn-sm">
-          <i class="bi bi-filetype-pdf me-1"></i> PDF
-        </a>
-        <a href="{% url 'export_profit_loss_excel' %}?month={{ request.GET.month }}&year={{ request.GET.year }}"
-           class="btn btn-success btn-sm ms-1">
-          <i class="bi bi-file-earmark-excel me-1"></i> Excel
-        </a>
-      </div>
-    {% endif %}
+    <div class="col-md-auto ms-md-auto">
+      <a href="{% url 'export_profit_loss_pdf' %}?month={{ month }}&year={{ year }}"
+         class="btn btn-danger btn-sm">
+        <i class="bi bi-filetype-pdf me-1"></i> PDF
+      </a>
+      <a href="{% url 'export_profit_loss_excel' %}?month={{ month }}&year={{ year }}"
+         class="btn btn-success btn-sm ms-1">
+        <i class="bi bi-file-earmark-excel me-1"></i> Excel
+      </a>
+    </div>
   </form>
 </div>
 
-{% if revenue is not None %}
-  <div class="row g-4">
-
-    <!-- Revenue Card -->
-    <div class="col-md-4">
-      <div class="card info-card h-100">
-        <div class="card-body">
-          <h5 class="card-title">Revenue</h5>
-          <div class="d-flex align-items-center">
-            <div class="card-icon rounded-circle d-flex align-items-center justify-content-center me-3"
-                 style="background: var(--cf-flow-teal-soft); color: var(--cf-flow-teal);">
-              <i class="bi bi-currency-dollar"></i>
-            </div>
-            <div>
-              <h6 class="mb-0">{% money revenue %}</h6>
-            </div>
-          </div>
-        </div>
-      </div>
+{% if unknown_cost_lines > 0 %}
+  <div class="alert alert-warning d-flex align-items-start gap-2">
+    <i class="bi bi-exclamation-triangle-fill mt-1"></i>
+    <div>
+      <strong>{{ unknown_cost_lines }} sale line{{ unknown_cost_lines|pluralize }}</strong>
+      ha{{ unknown_cost_lines|pluralize:"s,ve" }} no cost recorded.
+      Profit may be too high. Set cost prices in Inventory.
     </div>
+  </div>
+{% endif %}
 
-    <!-- Expenses Card -->
-    <div class="col-md-4">
-      <div class="card info-card h-100">
-        <div class="card-body">
-          <h5 class="card-title">Expenses</h5>
-          <div class="d-flex align-items-center">
-            <div class="card-icon rounded-circle d-flex align-items-center justify-content-center me-3"
-                 style="background: var(--cf-gold-soft); color: var(--cf-gold-dark);">
-              <i class="bi bi-receipt"></i>
-            </div>
-            <div>
-              <h6 class="mb-0">{% money expenses %}</h6>
-            </div>
+<div class="row g-4">
+  <div class="col-md-4">
+    <div class="card info-card h-100">
+      <div class="card-body">
+        <h5 class="card-title">Revenue</h5>
+        <div class="d-flex align-items-center">
+          <div class="card-icon rounded-circle d-flex align-items-center justify-content-center me-3"
+               style="background: var(--cf-flow-teal-soft); color: var(--cf-flow-teal);">
+            <i class="bi bi-currency-dollar"></i>
           </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Net Profit Card -->
-    <div class="col-md-4">
-      <div class="card info-card h-100">
-        <div class="card-body">
-          <h5 class="card-title">Net Profit</h5>
-          <div class="d-flex align-items-center">
-            <div class="card-icon rounded-circle d-flex align-items-center justify-content-center me-3"
-                 style="{% if net_profit >= 0 %}background: var(--cf-flow-teal-soft); color: var(--cf-flow-teal);{% else %}background: #FDEBE7; color: #8A2E1B;{% endif %}">
-              <i class="bi bi-pie-chart"></i>
-            </div>
-            <div>
-              <h6 class="mb-0 {% if net_profit >= 0 %}{% else %}text-danger{% endif %}"
-                  style="{% if net_profit >= 0 %}color: var(--cf-flow-teal);{% endif %}">
-                {% money net_profit %}
-              </h6>
-            </div>
+          <div>
+            <h6 class="mb-0">{% money revenue %}</h6>
+            {% if gross_margin is not None %}
+              <small class="text-muted">Margin: {{ gross_margin }}%</small>
+            {% endif %}
           </div>
         </div>
       </div>
     </div>
   </div>
-{% else %}
-  <div class="alert alert-info">
-    <i class="bi bi-info-circle me-1"></i>
-    Select a month and year, then click <strong>View</strong> to generate the report.
+
+  <div class="col-md-4">
+    <div class="card info-card h-100">
+      <div class="card-body">
+        <h5 class="card-title">Cost of Goods Sold</h5>
+        <div class="d-flex align-items-center">
+          <div class="card-icon rounded-circle d-flex align-items-center justify-content-center me-3"
+               style="background: #FDEBE7; color: #8A2E1B;">
+            <i class="bi bi-box-seam"></i>
+          </div>
+          <h6 class="mb-0">{% money cogs %}</h6>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-4">
+    <div class="card info-card h-100">
+      <div class="card-body">
+        <h5 class="card-title">Gross Profit</h5>
+        <div class="d-flex align-items-center">
+          <div class="card-icon rounded-circle d-flex align-items-center justify-content-center me-3"
+               style="background: var(--cf-flow-teal-soft); color: var(--cf-flow-teal);">
+            <i class="bi bi-graph-up-arrow"></i>
+          </div>
+          <h6 class="mb-0" style="color: var(--cf-flow-teal);">{% money gross_profit %}</h6>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-6">
+    <div class="card info-card h-100">
+      <div class="card-body">
+        <h5 class="card-title">Expenses</h5>
+        <div class="d-flex align-items-center">
+          <div class="card-icon rounded-circle d-flex align-items-center justify-content-center me-3"
+               style="background: var(--cf-gold-soft); color: var(--cf-gold-dark);">
+            <i class="bi bi-receipt"></i>
+          </div>
+          <h6 class="mb-0">{% money expenses %}</h6>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-6">
+    <div class="card info-card h-100">
+      <div class="card-body">
+        <h5 class="card-title">Net Profit</h5>
+        <div class="d-flex align-items-center">
+          <div class="card-icon rounded-circle d-flex align-items-center justify-content-center me-3"
+               style="{% if net_profit >= 0 %}background: var(--cf-flow-teal-soft); color: var(--cf-flow-teal);{% else %}background: #FDEBE7; color: #8A2E1B;{% endif %}">
+            <i class="bi bi-pie-chart"></i>
+          </div>
+          <h6 class="mb-0 {% if net_profit < 0 %}text-danger{% endif %}">
+            {% money net_profit %}
+          </h6>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% if expense_categories %}
+  <div class="card mt-4">
+    <div class="card-body">
+      <h5 class="card-title">Expenses by Category</h5>
+      <table class="table table-hover">
+        <thead>
+          <tr><th>Category</th><th class="text-end">Amount</th></tr>
+        </thead>
+        <tbody>
+          {% for row in expense_categories %}
+            <tr>
+              <td>{{ row.category__name|default:"Uncategorised" }}</td>
+              <td class="text-end money">{% money row.total %}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+{% endif %}
+
+{% if product_profit %}
+  <div class="card mt-4">
+    <div class="card-body">
+      <h5 class="card-title">Top Products by Profit</h5>
+      <table class="table table-hover">
+        <thead>
+          <tr>
+            <th>Product</th>
+            <th class="text-end">Qty</th>
+            <th class="text-end">Revenue</th>
+            <th class="text-end">Cost</th>
+            <th class="text-end">Profit</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in product_profit %}
+            <tr>
+              <td>{{ row.product__name }}</td>
+              <td class="text-end">{{ row.qty }}</td>
+              <td class="text-end money">{% money row.revenue %}</td>
+              <td class="text-end money">{% money row.cost %}</td>
+              <td class="text-end money fw-bold">{% money row.profit %}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
   </div>
 {% endif %}
 

@@ -1,0 +1,87 @@
+{% extends "base/base.html" %}
+
+{% block page_title %}Record Supplier Payment{% endblock %}
+
+{% block content %}
+
+<!-- ========================= BACK BUTTON ========================= -->
+<div class="mb-3">
+  <a href="{% url 'supplier_payment_list' %}" class="btn btn-outline-secondary btn-sm">
+    <i class="bi bi-arrow-left me-1"></i> Back to Payments
+  </a>
+</div>
+
+<div class="row justify-content-center">
+  <div class="col-md-8 col-lg-6">
+    <div class="card shadow-sm">
+      <div class="card-body">
+
+        <!-- ----------------------- HEADER ----------------------- -->
+        <div class="d-flex align-items-center gap-3 mb-4">
+          <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
+               style="width: 44px; height: 44px; background: var(--cf-flow-teal-soft); color: var(--cf-flow-teal); font-size: 1.2rem;">
+            <i class="bi bi-cash-coin"></i>
+          </div>
+          <div>
+            <h5 class="mb-0 fw-bold">Record Payment</h5>
+            <small class="text-muted">
+              Record a payment made to a supplier, reducing what you owe them.
+            </small>
+          </div>
+        </div>
+
+        <!-- ----------------------- FORM ----------------------- -->
+        <form method="post" novalidate>
+          {% csrf_token %}
+
+          <!-- Non-field errors -->
+          {% if form.non_field_errors %}
+            <div class="alert alert-danger d-flex align-items-start gap-2 mb-4" role="alert">
+              <i class="bi bi-exclamation-triangle-fill mt-1"></i>
+              <div>{{ form.non_field_errors|striptags }}</div>
+            </div>
+          {% endif %}
+
+          {# ---- Per-field loop ---- #}
+          {% for field in form %}
+            <div class="mb-3">
+              <label for="{{ field.id_for_label }}" class="form-label fw-semibold">
+                {{ field.label }}
+                {% if field.field.required %}
+                  <span class="text-danger" aria-hidden="true">*</span>
+                {% endif %}
+              </label>
+
+              {{ field }}
+
+              {% if field.errors %}
+                <div class="text-danger small mt-1">
+                  <i class="bi bi-exclamation-circle me-1"></i>{{ field.errors|striptags }}
+                </div>
+              {% endif %}
+
+              {% if field.help_text %}
+                <div class="form-text mt-1">{{ field.help_text }}</div>
+              {% endif %}
+            </div>
+          {% endfor %}
+
+          <!-- ----------------------- ACTIONS ----------------------- -->
+          <div class="d-flex gap-2 mt-4 pt-3 border-top">
+            <button type="submit" class="btn btn-primary flex-grow-1">
+              <i class="bi bi-check2-circle me-1"></i> Record Payment
+            </button>
+            <a href="{% url 'supplier_payment_list' %}" class="btn btn-outline-secondary">
+              Cancel
+            </a>
+          </div>
+
+        </form>
+        <!-- END FORM -->
+
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

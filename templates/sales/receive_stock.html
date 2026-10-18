@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 {% extends "base/base.html" %}
 {% block page_title %}Receive Stock{% endblock %}
 {% block content %}
@@ -10,10 +9,18 @@
         <form method="post" id="receive-form">
           {% csrf_token %}
 
+          {% if form.non_field_errors %}
+            <div class="alert alert-danger d-flex align-items-start gap-2 mb-3">
+              <i class="bi bi-exclamation-triangle-fill mt-1"></i>
+              <div>{{ form.non_field_errors|striptags }}</div>
+            </div>
+          {% endif %}
+
           <!-- Barcode scan -->
           <div class="mb-3">
             <label for="barcode-input" class="form-label fw-semibold">
-              <i class="bi bi-upc-scan me-1"></i> Scan barcode <span class="text-muted fw-normal">(optional)</span>
+              <i class="bi bi-upc-scan me-1"></i> Scan barcode
+              <span class="text-muted fw-normal">(optional)</span>
             </label>
             <div class="input-group">
               <input type="text" id="barcode-input" class="form-control"
@@ -23,7 +30,7 @@
                      hx-target="#product-select-wrapper"
                      hx-swap="outerHTML">
               <button type="button" class="btn btn-outline-primary" id="scan-barcode-btn"
-                      aria-label="Scan barcode" title="Scan barcode">
+                      title="Scan barcode">
                 <i class="bi bi-camera"></i>
               </button>
             </div>
@@ -31,8 +38,13 @@
 
           <!-- Product select -->
           <div id="product-select-wrapper" class="mb-3">
-            <label for="id_product" class="form-label fw-semibold">Product <span class="text-danger">*</span></label>
+            <label for="id_product" class="form-label fw-semibold">
+              Product <span class="text-danger">*</span>
+            </label>
             {% include "sales/_product_select.html" with products=form.fields.product.queryset preselected=form.instance.product_id %}
+            {% if form.product.errors %}
+              <div class="text-danger small mt-1">{{ form.product.errors|striptags }}</div>
+            {% endif %}
           </div>
 
           <!-- Live stock preview -->
@@ -47,7 +59,9 @@
 
           <!-- Quantity -->
           <div class="mb-3">
-            <label for="id_quantity" class="form-label fw-semibold">Quantity to receive <span class="text-danger">*</span></label>
+            <label for="id_quantity" class="form-label fw-semibold">
+              Quantity to receive <span class="text-danger">*</span>
+            </label>
             {{ form.quantity }}
             <div class="form-text">Enter the number of units you are adding.</div>
             {% if form.quantity.errors %}
@@ -55,32 +69,49 @@
             {% endif %}
           </div>
 
-          <!-- Unit cost (optional).
-               If entered, the product's cost_price is updated to a
-               weighted average of old and new stock — see
-               ReceiveStockView.form_valid. Left blank, the existing
-               cost is kept unchanged. -->
+          <!-- Unit cost (REQUIRED now).
+               This is what you paid PER UNIT on this delivery. It's
+               separate from the product's rolling average cost — that
+               one is what profit uses, this one is what the supplier
+               balance uses. -->
           <div class="mb-3">
             <label for="id_unit_cost" class="form-label fw-semibold">
-              Unit cost <span class="text-muted fw-normal">(optional)</span>
+              Cost per unit <span class="text-danger">*</span>
             </label>
             {{ form.unit_cost }}
-            <div class="form-text">
-              What you paid per unit this time. If entered, ChumaFlow
-              blends it with the product's existing cost using a weighted
-              average of old and new stock.
-            </div>
             {% if form.unit_cost.errors %}
               <div class="text-danger small mt-1">{{ form.unit_cost.errors|striptags }}</div>
+            {% endif %}
+            {% if form.unit_cost.help_text %}
+              <div class="form-text">{{ form.unit_cost.help_text }}</div>
             {% endif %}
           </div>
 
           <!-- Supplier -->
           <div class="mb-3">
-            <label for="id_supplier" class="form-label fw-semibold">Supplier <span class="text-muted fw-normal">(optional)</span></label>
+            <label for="id_supplier" class="form-label fw-semibold">
+              Supplier <span class="text-muted fw-normal">(optional)</span>
+            </label>
             {{ form.supplier }}
             {% if form.supplier.errors %}
               <div class="text-danger small mt-1">{{ form.supplier.errors|striptags }}</div>
+            {% endif %}
+          </div>
+
+          <!-- Paid now.
+               How much of the delivery you settled on the spot. The
+               remainder becomes what you owe the supplier. Leave 0
+               for a delivery that's entirely on credit. -->
+          <div class="mb-3">
+            <label for="id_paid_now" class="form-label fw-semibold">
+              Paid now <span class="text-muted fw-normal">(optional)</span>
+            </label>
+            {{ form.paid_now }}
+            {% if form.paid_now.errors %}
+              <div class="text-danger small mt-1">{{ form.paid_now.errors|striptags }}</div>
+            {% endif %}
+            {% if form.paid_now.help_text %}
+              <div class="form-text">{{ form.paid_now.help_text }}</div>
             {% endif %}
           </div>
 
@@ -126,37 +157,36 @@
       updateStockPreview();
     }
 
-    // Camera scanner
     const scanBtn = document.getElementById('scan-barcode-btn');
     const cameraContainer = document.getElementById('camera-container');
     let html5QrCode = null;
 
-    scanBtn.addEventListener('click', function () {
-      if (cameraContainer.style.display === 'none') {
-        cameraContainer.style.display = 'block';
-        html5QrCode = new Html5Qrcode("camera-container");
-        html5QrCode.start(
-          { facingMode: "environment" },
-          { fps: 10, qrbox: { width: 250, height: 150 } },
-          function (decodedText) {
-            document.getElementById('barcode-input').value = decodedText;
-            document.getElementById('barcode-input').dispatchEvent(new Event('change'));
-            html5QrCode.stop().then(() => {
-              cameraContainer.style.display = 'none';
-              html5QrCode.clear();
-            });
-          }
-        ).catch(err => alert('Camera not available: ' + err));
-      } else {
-        html5QrCode.stop().then(() => {
-          cameraContainer.style.display = 'none';
-          html5QrCode.clear();
-        });
-      }
-    });
+    if (scanBtn) {
+      scanBtn.addEventListener('click', function () {
+        if (cameraContainer.style.display === 'none') {
+          cameraContainer.style.display = 'block';
+          html5QrCode = new Html5Qrcode("camera-container");
+          html5QrCode.start(
+            { facingMode: "environment" },
+            { fps: 10, qrbox: { width: 250, height: 150 } },
+            function (decodedText) {
+              document.getElementById('barcode-input').value = decodedText;
+              document.getElementById('barcode-input').dispatchEvent(new Event('change'));
+              html5QrCode.stop().then(() => {
+                cameraContainer.style.display = 'none';
+                html5QrCode.clear();
+              });
+            }
+          ).catch(err => alert('Camera not available: ' + err));
+        } else {
+          html5QrCode.stop().then(() => {
+            cameraContainer.style.display = 'none';
+            html5QrCode.clear();
+          });
+        }
+      });
+    }
 
-    // Re-bind after HTMX swaps the product select. Note: this listener
-    // fires on every htmx swap in the document, so the id check matters.
     document.body.addEventListener('htmx:afterSwap', function (evt) {
       if (evt.detail.target.id === 'product-select-wrapper') {
         const newSelect = document.getElementById('id_product');
@@ -169,176 +199,4 @@
   });
 </script>
 
-=======
-{% extends "base/base.html" %}
-{% block page_title %}Receive Stock{% endblock %}
-{% block content %}
-
-<div class="row justify-content-center">
-  <div class="col-md-8 col-lg-6">
-    <div class="card shadow-sm border-0">
-      <div class="card-body">
-        <form method="post" id="receive-form">
-          {% csrf_token %}
-
-          <!-- Barcode scan -->
-          <div class="mb-3">
-            <label for="barcode-input" class="form-label fw-semibold">
-              <i class="bi bi-upc-scan me-1"></i> Scan barcode <span class="text-muted fw-normal">(optional)</span>
-            </label>
-            <div class="input-group">
-              <input type="text" id="barcode-input" class="form-control"
-                     placeholder="Scan or type barcode…"
-                     hx-get="{% url 'barcode_scan_product' %}"
-                     hx-trigger="change"
-                     hx-target="#product-select-wrapper"
-                     hx-swap="outerHTML">
-              <button type="button" class="btn btn-outline-primary" id="scan-barcode-btn"
-                      aria-label="Scan barcode" title="Scan barcode">
-                <i class="bi bi-camera"></i>
-              </button>
-            </div>
-          </div>
-
-          <!-- Product select -->
-          <div id="product-select-wrapper" class="mb-3">
-            <label for="id_product" class="form-label fw-semibold">Product <span class="text-danger">*</span></label>
-            {% include "sales/_product_select.html" with products=form.fields.product.queryset preselected=form.instance.product_id %}
-          </div>
-
-          <!-- Live stock preview -->
-          <div id="stock-preview" class="alert d-none"
-               style="background: var(--cf-flow-teal-soft); border-color: var(--cf-flow-teal); color: var(--cf-deep-teal);">
-            <div class="d-flex justify-content-between">
-              <span><strong>Current:</strong> <span id="current-stock">0</span></span>
-              <i class="bi bi-arrow-right"></i>
-              <span><strong>After:</strong> <span id="new-stock">0</span></span>
-            </div>
-          </div>
-
-          <!-- Quantity -->
-          <div class="mb-3">
-            <label for="id_quantity" class="form-label fw-semibold">Quantity to receive <span class="text-danger">*</span></label>
-            {{ form.quantity }}
-            <div class="form-text">Enter the number of units you are adding.</div>
-            {% if form.quantity.errors %}
-              <div class="text-danger small mt-1">{{ form.quantity.errors|striptags }}</div>
-            {% endif %}
-          </div>
-
-          <!-- Unit cost (optional).
-               If entered, the product's cost_price is updated to a
-               weighted average of old and new stock — see
-               ReceiveStockView.form_valid. Left blank, the existing
-               cost is kept unchanged. -->
-          <div class="mb-3">
-            <label for="id_unit_cost" class="form-label fw-semibold">
-              Unit cost <span class="text-muted fw-normal">(optional)</span>
-            </label>
-            {{ form.unit_cost }}
-            <div class="form-text">
-              What you paid per unit this time. If entered, ChumaFlow
-              blends it with the product's existing cost using a weighted
-              average of old and new stock.
-            </div>
-            {% if form.unit_cost.errors %}
-              <div class="text-danger small mt-1">{{ form.unit_cost.errors|striptags }}</div>
-            {% endif %}
-          </div>
-
-          <!-- Supplier -->
-          <div class="mb-3">
-            <label for="id_supplier" class="form-label fw-semibold">Supplier <span class="text-muted fw-normal">(optional)</span></label>
-            {{ form.supplier }}
-            {% if form.supplier.errors %}
-              <div class="text-danger small mt-1">{{ form.supplier.errors|striptags }}</div>
-            {% endif %}
-          </div>
-
-          <div class="d-flex gap-2 mt-4">
-            <button type="submit" class="btn btn-primary flex-grow-1" id="submit-btn">
-              <i class="bi bi-box-seam me-1"></i> Receive Stock
-            </button>
-            <a href="{% url 'inventory_list' %}" class="btn btn-outline-secondary">Cancel</a>
-          </div>
-        </form>
-
-        <div id="camera-container" style="display:none; max-width: 400px; margin: 15px auto;"></div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<script>
-  document.addEventListener('DOMContentLoaded', function () {
-    const productSelect    = document.getElementById('id_product');
-    const quantityInput    = document.getElementById('id_quantity');
-    const stockPreview     = document.getElementById('stock-preview');
-    const currentStockSpan = document.getElementById('current-stock');
-    const newStockSpan     = document.getElementById('new-stock');
-
-    function updateStockPreview() {
-      if (!productSelect) return;
-      const selected = productSelect.options[productSelect.selectedIndex];
-      if (!selected || !selected.value) {
-        stockPreview.classList.add('d-none');
-        return;
-      }
-      const currentStock = parseInt(selected.dataset.stock) || 0;
-      const qty = parseInt(quantityInput.value) || 0;
-      currentStockSpan.textContent = currentStock;
-      newStockSpan.textContent = currentStock + qty;
-      stockPreview.classList.remove('d-none');
-    }
-
-    if (productSelect) {
-      productSelect.addEventListener('change', updateStockPreview);
-      quantityInput.addEventListener('input', updateStockPreview);
-      updateStockPreview();
-    }
-
-    // Camera scanner
-    const scanBtn = document.getElementById('scan-barcode-btn');
-    const cameraContainer = document.getElementById('camera-container');
-    let html5QrCode = null;
-
-    scanBtn.addEventListener('click', function () {
-      if (cameraContainer.style.display === 'none') {
-        cameraContainer.style.display = 'block';
-        html5QrCode = new Html5Qrcode("camera-container");
-        html5QrCode.start(
-          { facingMode: "environment" },
-          { fps: 10, qrbox: { width: 250, height: 150 } },
-          function (decodedText) {
-            document.getElementById('barcode-input').value = decodedText;
-            document.getElementById('barcode-input').dispatchEvent(new Event('change'));
-            html5QrCode.stop().then(() => {
-              cameraContainer.style.display = 'none';
-              html5QrCode.clear();
-            });
-          }
-        ).catch(err => alert('Camera not available: ' + err));
-      } else {
-        html5QrCode.stop().then(() => {
-          cameraContainer.style.display = 'none';
-          html5QrCode.clear();
-        });
-      }
-    });
-
-    // Re-bind after HTMX swaps the product select. Note: this listener
-    // fires on every htmx swap in the document, so the id check matters.
-    document.body.addEventListener('htmx:afterSwap', function (evt) {
-      if (evt.detail.target.id === 'product-select-wrapper') {
-        const newSelect = document.getElementById('id_product');
-        if (newSelect) {
-          newSelect.addEventListener('change', updateStockPreview);
-          updateStockPreview();
-        }
-      }
-    });
-  });
-</script>
-
->>>>>>> e3b67a5 (new files)
 {% endblock %}

@@ -5,92 +5,93 @@
 
 <div class="row g-4">
 
-  <!-- ========================= KPI CARDS ========================= -->
-
   <div class="col-md-6 col-lg-3">
-    <div class="card h-100">
-      <div class="card-body">
-        <div class="small text-muted text-uppercase fw-semibold mb-1" style="letter-spacing: 0.6px;">Total Sales</div>
-        <h4 class="mb-2 fw-bold">{% money current.total_sales %}</h4>
+    <div class="card h-100"><div class="card-body">
+      <div class="small text-muted text-uppercase fw-semibold mb-1">Total Sales</div>
+      <h4 class="mb-2 fw-bold">{% money current.total_sales %}</h4>
+      {% if change.sales is None %}
+        <span class="badge bg-secondary">new</span>
+      {% else %}
         <span class="badge {% if change.sales >= 0 %}bg-success{% else %}bg-danger{% endif %}">
           <i class="bi bi-arrow-{% if change.sales >= 0 %}up{% else %}down{% endif %}-right me-1"></i>
           {{ change.sales }}% vs last month
         </span>
-      </div>
-    </div>
+      {% endif %}
+    </div></div>
   </div>
 
   <div class="col-md-6 col-lg-3">
-    <div class="card h-100">
-      <div class="card-body">
-        <div class="small text-muted text-uppercase fw-semibold mb-1" style="letter-spacing: 0.6px;">Expenses</div>
-        <h4 class="mb-2 fw-bold">{% money current.total_expenses %}</h4>
+    <div class="card h-100"><div class="card-body">
+      <div class="small text-muted text-uppercase fw-semibold mb-1">Expenses</div>
+      <h4 class="mb-2 fw-bold">{% money current.total_expenses %}</h4>
+      {% if change.expenses is None %}
+        <span class="badge bg-secondary">new</span>
+      {% else %}
         <span class="badge {% if change.expenses <= 0 %}bg-success{% else %}bg-danger{% endif %}">
           <i class="bi bi-arrow-{% if change.expenses <= 0 %}down{% else %}up{% endif %}-right me-1"></i>
           {{ change.expenses }}% vs last month
         </span>
-      </div>
-    </div>
+      {% endif %}
+    </div></div>
   </div>
 
   <div class="col-md-6 col-lg-3">
-    <div class="card h-100">
-      <div class="card-body">
-        <div class="small text-muted text-uppercase fw-semibold mb-1" style="letter-spacing: 0.6px;">Gross Profit</div>
-        <h4 class="mb-2 fw-bold" style="color: var(--cf-flow-teal);">{% money current.gross_profit %}</h4>
+    <div class="card h-100"><div class="card-body">
+      <div class="small text-muted text-uppercase fw-semibold mb-1">Net Profit</div>
+      <h4 class="mb-2 fw-bold" style="color: var(--cf-flow-teal);">{% money current.net_profit %}</h4>
+      {% if change.profit is None %}
+        <span class="badge bg-secondary">new</span>
+      {% else %}
         <span class="badge {% if change.profit >= 0 %}bg-success{% else %}bg-danger{% endif %}">
           <i class="bi bi-arrow-{% if change.profit >= 0 %}up{% else %}down{% endif %}-right me-1"></i>
           {{ change.profit }}% vs last month
         </span>
-      </div>
-    </div>
+      {% endif %}
+    </div></div>
   </div>
 
   <div class="col-md-6 col-lg-3">
-    <div class="card h-100">
-      <div class="card-body">
-        <div class="small text-muted text-uppercase fw-semibold mb-1" style="letter-spacing: 0.6px;">Credit Outstanding</div>
-        <h4 class="mb-2 fw-bold" style="color: var(--cf-gold-dark);">{% money current.customer_credit %}</h4>
-        <small class="text-muted">Money owed to you</small>
-      </div>
-    </div>
+    <div class="card h-100"><div class="card-body">
+      <div class="small text-muted text-uppercase fw-semibold mb-1">Credit Outstanding</div>
+      <h4 class="mb-2 fw-bold" style="color: var(--cf-gold-dark);">{% money current.customer_credit %}</h4>
+      <small class="text-muted">Money owed to you</small>
+    </div></div>
   </div>
 
-  <!-- ========================= BUSINESS INSIGHT ========================= -->
-  <div class="col-12 mt-2">
-    <div class="card" style="border-left: 4px solid var(--cf-flow-teal);">
-      <div class="card-body">
-        <div class="d-flex align-items-start gap-3">
-          <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
-               style="width: 44px; height: 44px; background: var(--cf-flow-teal-soft); color: var(--cf-flow-teal); font-size: 1.2rem;">
-            <i class="bi bi-lightbulb"></i>
-          </div>
-          <div>
-            <h6 class="card-title mb-2" style="color: var(--cf-flow-teal);">Business Insight</h6>
-            <p class="card-text mb-0">
-              Sales are
-              <strong>{% if change.sales >= 0 %}up{% else %}down{% endif %} {{ change.sales }}%</strong>
-              compared to last month.
-              {% if change.sales > 0 and change.profit > change.sales %}
-                Your profitability is growing faster than revenue — great cost control!
-              {% elif change.sales > 0 and change.expenses > change.sales %}
-                Caution: expenses are growing faster than sales. Review variable costs.
-              {% else %}
-                Focus on boosting sales volume and reducing slow-moving stock.
-              {% endif %}
-            </p>
+  {% if change.sales is not None and change.profit is not None %}
+    <div class="col-12 mt-2">
+      <div class="card" style="border-left: 4px solid var(--cf-flow-teal);">
+        <div class="card-body">
+          <div class="d-flex align-items-start gap-3">
+            <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
+                 style="width: 44px; height: 44px; background: var(--cf-flow-teal-soft); color: var(--cf-flow-teal); font-size: 1.2rem;">
+              <i class="bi bi-lightbulb"></i>
+            </div>
+            <div>
+              <h6 class="card-title mb-2" style="color: var(--cf-flow-teal);">Business Insight</h6>
+              <p class="card-text mb-0">
+                Sales are
+                <strong>{% if change.sales >= 0 %}up{% else %}down{% endif %} {{ change.sales }}%</strong>
+                compared to last month.
+                {% if change.sales > 0 and change.profit > change.sales %}
+                  Your profitability is growing faster than revenue — great cost control!
+                {% elif change.sales > 0 and change.expenses > change.sales %}
+                  Caution: expenses are growing faster than sales. Review variable costs.
+                {% else %}
+                  Focus on boosting sales volume and reducing slow-moving stock.
+                {% endif %}
+              </p>
+            </div>
           </div>
         </div>
       </div>
     </div>
-  </div>
+  {% endif %}
 
-  <!-- ========================= EXPORT ========================= -->
   <div class="col-12 text-center">
     <a href="{% url 'export_business_pdf' %}" class="btn btn-danger">
       <i class="bi bi-filetype-pdf me-1"></i> Export PDF
     </a>
   </div>
-
 </div>
 {% endblock %}

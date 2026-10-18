@@ -24,13 +24,26 @@
         {% endfor %}
       </div>
 
-      <div class="d-flex justify-content-between mt-3 pt-3" style="border-top: 2px solid var(--border-color);">
-        <strong class="text-uppercase" style="letter-spacing: 0.5px;">Total</strong>
-        <strong class="h4 mb-0" style="color: var(--cf-flow-teal);">{% money sale.total %}</strong>
+      <div class="mt-3 pt-3" style="border-top: 2px solid var(--border-color);">
+        <div class="d-flex justify-content-between">
+          <span>Total</span>
+          <strong class="h5 mb-0" style="color: var(--cf-flow-teal);">{% money sale.total %}</strong>
+        </div>
+        <div class="d-flex justify-content-between mt-1">
+          <span>Paid now</span>
+          <span>{% money sale.amount_paid %}</span>
+        </div>
+        <div class="d-flex justify-content-between mt-1">
+          <span>Balance due</span>
+          <span class="fw-bold {% if sale.outstanding > 0 %}text-danger{% else %}text-success{% endif %}">
+            {% money sale.outstanding %}
+          </span>
+        </div>
       </div>
 
       <div class="mt-3 small text-muted">
         Payment: <span class="badge" style="background: var(--cf-mist); color: var(--cf-deep-teal);">{{ sale.get_payment_method_display }}</span>
+        {% if sale.due_date %}· Due {{ sale.due_date|date:"Y-m-d" }}{% endif %}
       </div>
 
       <div class="mt-3 d-flex gap-2">

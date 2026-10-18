@@ -1,0 +1,83 @@
+<div class="modal fade" id="welcomeModal" tabindex="-1" aria-labelledby="welcomeTitle" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-body p-4">
+
+        <div class="welcome-slide" data-slide="0">
+          <h4 id="welcomeTitle">Welcome to ChumaFlow{% if user.profile.first_name %}, {{ user.profile.first_name }}{% endif %}!</h4>
+          <p class="mt-3">Know your money. Grow your business.</p>
+          <p class="text-muted">ChumaFlow keeps track of your sales, your stock and who owes you, and shows you your profit. Here is a quick look at how to start.</p>
+        </div>
+
+        <div class="welcome-slide d-none" data-slide="1">
+          {% if role == "cashier" %}
+            <h4>Your job here</h4>
+            <p class="mt-3">Tap <strong>Record Sale</strong> every time you sell something. Choose the product, the amount, and how the customer paid. That is all.</p>
+          {% elif role == "stock_clerk" %}
+            <h4>Your job here</h4>
+            <p class="mt-3">Open <strong>Receive Stock</strong> whenever new goods arrive, so the numbers match what is on the shelf.</p>
+          {% else %}
+            <h4>Do these three things today</h4>
+            <ol class="mt-3">
+              <li><strong>Add your products</strong> with the selling price and what each one cost you.</li>
+              <li><strong>Record a sale.</strong> Your stock goes down by itself.</li>
+              <li><strong>Check your dashboard.</strong> See sales, profit and who owes you.</li>
+            </ol>
+          {% endif %}
+        </div>
+
+        <div class="welcome-slide d-none" data-slide="2">
+          <h4>Where to find things</h4>
+          <ul class="mt-3">
+            <li>Tap the <strong>menu</strong> (three lines at the top) to reach Inventory, Customers, Expenses and Reports.</li>
+            <li>The <strong>Get started</strong> box on your dashboard shows what to do next.</li>
+            <li>Stuck? WhatsApp us on <strong>[YOUR SUPPORT NUMBER]</strong>.</li>
+          </ul>
+        </div>
+
+        <div class="d-flex justify-content-between align-items-center mt-4">
+          <button type="button" class="btn btn-link text-muted" id="welcomeSkip">Skip</button>
+          <div>
+            <button type="button" class="btn btn-outline-secondary d-none" id="welcomeBack">Back</button>
+            <button type="button" class="btn btn-primary" id="welcomeNext">Next</button>
+          </div>
+        </div>
+        <div class="text-center mt-3 small text-muted" id="welcomeDots"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  var el = document.getElementById("welcomeModal");
+  var slides = el.querySelectorAll(".welcome-slide");
+  var next = document.getElementById("welcomeNext");
+  var back = document.getElementById("welcomeBack");
+  var dots = document.getElementById("welcomeDots");
+  var i = 0;
+  var modal = new bootstrap.Modal(el);
+
+  function show() {
+    slides.forEach(function (s, n) { s.classList.toggle("d-none", n !== i); });
+    back.classList.toggle("d-none", i === 0);
+    next.textContent = (i === slides.length - 1) ? "Let's start" : "Next";
+    dots.textContent = (i + 1) + " of " + slides.length;
+  }
+  function markSeen() {
+    fetch("{% url 'get_started_action' 'tour-seen' %}", {
+      method: "POST",
+      headers: { "X-CSRFToken": "{{ csrf_token }}", "X-Requested-With": "fetch" },
+      credentials: "same-origin"
+    });
+  }
+  next.addEventListener("click", function () {
+    if (i < slides.length - 1) { i += 1; show(); } else { modal.hide(); }
+  });
+  back.addEventListener("click", function () { if (i > 0) { i -= 1; show(); } });
+  document.getElementById("welcomeSkip").addEventListener("click", function () { modal.hide(); });
+  el.addEventListener("hidden.bs.modal", markSeen);   // finished OR skipped OR closed: never shows again
+  show();
+  modal.show();
+});
+</script>

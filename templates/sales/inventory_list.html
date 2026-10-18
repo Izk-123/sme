@@ -6,7 +6,11 @@
 <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
   <div>
     <h2 class="mb-0 fw-bold">Inventory</h2>
-    <small class="text-muted">{{ products|length }} product{{ products|length|pluralize }}</small>
+    <small class="text-muted">
+      {# paginator.count = total across all pages, not this page's length #}
+      {{ paginator.count }} product{{ paginator.count|pluralize }}
+      {% if request.GET.q %}(filtered){% endif %}
+    </small>
   </div>
   <div class="d-flex gap-2">
     <a href="{% url 'product_add' %}" class="btn btn-success btn-sm">
@@ -18,17 +22,36 @@
   </div>
 </div>
 
-<div class="cf-search mb-3">
+{% comment %}
+  Server-side search.
+
+  Previously this was a client-side JS filter over the rendered rows,
+  which breaks the moment the table is paginated: typing "sugar"
+  would only search the current page. This is a proper GET form so
+  InventoryListView's existing `q` filter does the work, and the
+  filter survives pagination.
+{% endcomment %}
+<form method="get" class="cf-search mb-3" role="search">
   <i class="bi bi-search"></i>
-  <input type="search" id="inventory-search"
+  <input type="search" id="inventory-search" name="q"
+         value="{{ request.GET.q|default:'' }}"
          placeholder="Search products by name, SKU or category…"
          autocomplete="off">
-</div>
+</form>
 
 {% if products %}
   <div class="card">
     <div class="card-body">
-      <table class="table table-hover datatable table-stack cf-hide-dt-top">
+      {% comment %}
+        Removed the `datatable` class — that class activates a
+        client-side DataTables instance that provides its own
+        search box and pagination. Running it on top of Django's
+        server-side paginator gives the user two competing pagers
+        and only makes rows 1–20 (of the current page) searchable.
+        `cf-hide-dt-top` stays because other pages still style it,
+        but with no `datatable` it does nothing here.
+      {% endcomment %}
+      <table class="table table-hover table-stack cf-hide-dt-top">
         <thead>
           <tr>
             <th>SKU</th>
@@ -37,7 +60,7 @@
             <th>Quantity</th>
             <th>Cost</th>
             <th>Selling Price</th>
-            <th>Stock Value</th>
+            <th>Retail Value</th>
             <th>Status</th>
             <th>Actions</th>
           </tr>
@@ -50,10 +73,11 @@
               <td>{{ product.category|default:"—" }}</td>
               <td>{{ product.stock_quantity }}</td>
               <td class="money">
-                {% if product.cost_price %}{% money product.cost_price %}{% else %}<span class="text-muted">—</span>{% endif %}
+                {% if product.cost_price %}{% money product.cost_price %}
+                {% else %}<span class="text-muted">—</span>{% endif %}
               </td>
               <td class="money">{% money product.price %}</td>
-              <td class="money">{% money product.stock_value %}</td>
+              <td class="money">{% money product.retail_value %}</td>
               <td>
                 {% if product.is_low_stock %}
                   <span class="badge bg-warning text-dark">Low Stock</span>
@@ -63,10 +87,12 @@
               </td>
               <td>
                 <div class="d-flex gap-1">
-                  <a href="{% url 'product_edit' product.pk %}" class="btn btn-outline-secondary btn-sm" title="Edit">
+                  <a href="{% url 'product_edit' product.pk %}"
+                     class="btn btn-outline-secondary btn-sm" title="Edit">
                     <i class="bi bi-pencil"></i>
                   </a>
-                  <a href="{% url 'receive_stock' %}" class="btn btn-outline-secondary btn-sm" title="Receive stock">
+                  <a href="{% url 'receive_stock' %}?product={{ product.pk }}"
+                     class="btn btn-outline-secondary btn-sm" title="Receive stock">
                     <i class="bi bi-box-seam"></i>
                   </a>
                 </div>
@@ -75,25 +101,67 @@
           {% endfor %}
         </tbody>
       </table>
+
+      {% comment %}
+        Server-side pagination. Preserves ?q= so switching to page 2
+        keeps the current search active.
+      {% endcomment %}
+      {% if is_paginated %}
+        <nav aria-label="Inventory pages" class="mt-3">
+          <ul class="pagination pagination-sm mb-0">
+            {% if page_obj.has_previous %}
+              <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if request.GET.q %}&q={{ request.GET.q|urlencode }}{% endif %}">
+                  <i class="bi bi-chevron-left"></i> Prev
+                </a>
+              </li>
+            {% else %}
+              <li class="page-item disabled">
+                <span class="page-link"><i class="bi bi-chevron-left"></i> Prev</span>
+              </li>
+            {% endif %}
+
+            <li class="page-item disabled">
+              <span class="page-link">
+                Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+              </span>
+            </li>
+
+            {% if page_obj.has_next %}
+              <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if request.GET.q %}&q={{ request.GET.q|urlencode }}{% endif %}">
+                  Next <i class="bi bi-chevron-right"></i>
+                </a>
+              </li>
+            {% else %}
+              <li class="page-item disabled">
+                <span class="page-link">Next <i class="bi bi-chevron-right"></i></span>
+              </li>
+            {% endif %}
+          </ul>
+        </nav>
+      {% endif %}
     </div>
   </div>
 {% else %}
-  {% url 'product_add' as add_url %}
-  <div class="card">
-    <div class="card-body">
-      {% include "components/_empty_state.html" with icon="bi-box-seam" title="No products yet" message="Add your first product so you can start selling. It takes about 30 seconds." action_url=add_url action_label="Add your first product" %}
+  {% if request.GET.q %}
+    <div class="card">
+      <div class="card-body text-center py-5">
+        <i class="bi bi-search" style="font-size: 2.5rem; color: var(--text-muted); opacity: 0.5;"></i>
+        <p class="text-muted mt-3 mb-3">No products match "<strong>{{ request.GET.q }}</strong>".</p>
+        <a href="{% url 'inventory_list' %}" class="btn btn-outline-secondary btn-sm">
+          <i class="bi bi-x-lg me-1"></i> Clear search
+        </a>
+      </div>
     </div>
-  </div>
+  {% else %}
+    {% url 'product_add' as add_url %}
+    <div class="card">
+      <div class="card-body">
+        {% include "components/_empty_state.html" with icon="bi-box-seam" title="No products yet" message="Add your first product so you can start selling. It takes about 30 seconds." action_url=add_url action_label="Add your first product" %}
+      </div>
+    </div>
+  {% endif %}
 {% endif %}
-
-<script>
-  document.addEventListener("input", function (e) {
-    if (e.target.id !== "inventory-search") return;
-    var q = e.target.value.trim().toLowerCase();
-    document.querySelectorAll("tbody tr").forEach(function (row) {
-      row.style.display = row.textContent.toLowerCase().indexOf(q) >= 0 ? "" : "none";
-    });
-  });
-</script>
 
 {% endblock %}

@@ -159,6 +159,25 @@
                   <i class="bi bi-question-circle"></i><span>Need Help?</span>
                 </a>
               </li>
+              
+              {% comment %}
+                ---- Show welcome guide ----
+                Resets both tour_seen and getting_started_dismissed
+                back to False, so the welcome modal AND the dashboard
+                checklist come back for this user. The header dropdown
+                is where users naturally look for "show me the thing
+                again" — which is why this lives here and not in
+                Settings. See core.views.GetStartedActionView.
+              {% endcomment %}
+              <li>
+                <form method="post" action="{% url 'get_started_action' 'restart' %}">
+                  {% csrf_token %}
+                  <button type="submit" class="dropdown-item d-flex align-items-center">
+                    <i class="bi bi-stars"></i><span>Show welcome guide</span>
+                  </button>
+                </form>
+              </li>
+              
               <li><hr class="dropdown-divider" /></li>
               <li>
                 <form method="post" action="{% url 'logout' %}" style="display: inline">
@@ -270,6 +289,14 @@
     <a href="#" class="back-to-top d-flex align-items-center justify-content-center">
       <i class="bi bi-arrow-up-short"></i>
     </a>
+
+    <!-- ========================= MODALS ========================= -->
+    <!-- 
+      Modals MUST live outside #main. The entrance animations on #main 
+      (e.g., cf-fade-up) apply a CSS `transform`, which breaks `position: fixed` 
+      for child elements, causing Bootstrap modals to render off-screen.
+    -->
+    {% block modals %}{% endblock %}
 
     <!-- ========================= VENDOR JS (CDN) ========================= -->
     <script src="https://cdn.jsdelivr.net/npm/apexcharts@3.45.0/dist/apexcharts.min.js"></script>

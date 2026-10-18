@@ -1,9 +1,52 @@
 {% extends "base/base.html" %}
 {% block page_title %}New Sale{% endblock %}
+
 {% block content %}
+<style>
+  /* Mobile enhancements (unchanged from previous version). */
+  @media (max-width: 767.98px) {
+    body:has(#sale-form) #main { padding-bottom: 260px !important; }
+    .sale-search-sticky {
+      position: sticky; top: 60px; z-index: 1020;
+      background: var(--bg-surface);
+      padding-top: 10px; padding-bottom: 10px;
+      margin-top: -10px;
+      border-bottom: 1px solid var(--border-color);
+      box-shadow: 0 4px 12px -10px rgba(0,0,0,0.1);
+    }
+    .item-row {
+      display: flex !important; flex-wrap: wrap;
+      gap: 10px !important; padding: 12px !important;
+      background: var(--bg-surface) !important;
+      border: 1px solid var(--border-color) !important;
+      border-radius: 8px;
+    }
+    .item-row > div:first-child { flex: 1 0 100%; }
+    .item-row > .input-group { flex: 1; width: auto !important; }
+    .item-row > button {
+      width: 44px; flex: 0 0 44px; height: auto;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .cf-sale-actions {
+      position: fixed !important; bottom: 0 !important;
+      left: 0; right: 0;
+      background: var(--bg-surface) !important;
+      border-top: 1px solid var(--border-color);
+      box-shadow: 0 -4px 24px rgba(10, 47, 53, 0.08);
+      padding: 12px 16px calc(12px + env(safe-area-inset-bottom)) !important;
+      z-index: 1030;
+      border-radius: 16px 16px 0 0;
+      margin: 0 !important;
+    }
+    .cf-sale-actions .card-body { padding: 0 !important; }
+  }
+</style>
 
 <form id="sale-form" hx-post="{% url 'create_sale' %}" hx-target="#result" hx-swap="innerHTML" hx-indicator="#submit-indicator">
   {% csrf_token %}
+
+  {# Idempotency: echoed back on POST. A double-tap yields one sale. #}
+  <input type="hidden" name="submission_token" value="{{ submission_token }}">
 
   <div id="recalc-trigger"
        hx-post="{% url 'calculate_totals' %}"
@@ -13,99 +56,133 @@
        hx-swap="outerHTML"></div>
 
   <div class="row g-4">
-    <!-- LEFT COLUMN: search, scan, item rows -->
+    <!-- LEFT: items -->
     <div class="col-lg-7">
       <div class="card shadow-sm border-0">
-        <div class="card-body">
-
-          <!-- Search & scan -->
-          <div class="d-flex gap-2 mb-3">
-            <div class="flex-grow-1 search-field">
-              <i class="bi bi-search text-muted"></i>
-              <input type="text" id="product-search" class="form-control"
-                     placeholder="Search product name…" autocomplete="off"
-                     style="font-size: 16px;">
+        <div class="card-body p-0 p-md-4">
+          <div class="sale-search-sticky px-3 px-md-0">
+            <div class="d-flex gap-2 mb-2">
+              <div class="flex-grow-1 search-field">
+                <i class="bi bi-search text-muted"></i>
+                <input type="text" id="product-search" class="form-control"
+                       placeholder="Search product name…" autocomplete="off"
+                       style="font-size: 16px; min-height: 48px;">
+              </div>
+              {% if barcode_enabled %}
+                <button type="button" class="btn btn-outline-primary" id="scan-btn" style="min-width: 48px; height: 48px;">
+                  <i class="bi bi-upc-scan fs-5"></i>
+                </button>
+              {% endif %}
             </div>
             {% if barcode_enabled %}
-              <button type="button" class="btn btn-outline-primary btn-sm" id="scan-btn" style="min-width: 44px;">
-                <i class="bi bi-upc-scan"></i>
-                <span class="d-none d-md-inline ms-1">Scan</span>
-              </button>
-            {% else %}
-              <a href="{% url 'upgrade_plan' %}" class="btn btn-outline-secondary btn-sm"
-                 title="Barcode scanning needs the Starter plan or above" style="min-width: 44px;">
-                <i class="bi bi-upc-scan"></i> <i class="bi bi-lock-fill ms-1"></i>
-              </a>
+              <div class="mb-2">
+                <input type="text" id="barcode-input" class="form-control"
+                       placeholder="Scan or type barcode…"
+                       hx-get="{% url 'barcode_scan' %}"
+                       hx-trigger="change"
+                       hx-target="#items"
+                       hx-swap="beforeend"
+                       hx-include="this"
+                       style="font-size: 16px; min-height: 44px;">
+              </div>
+              <div id="scanner-container" style="display:none; max-width: 400px; margin: 0 auto 15px;"></div>
             {% endif %}
           </div>
 
-          {% if barcode_enabled %}
-            <div class="mb-3">
-              <input type="text" id="barcode-input" class="form-control"
-                     placeholder="Scan or type barcode…"
-                     hx-get="{% url 'barcode_scan' %}"
-                     hx-trigger="change"
-                     hx-target="#items"
-                     hx-swap="beforeend"
-                     hx-include="this"
-                     autofocus
-                     style="font-size: 16px;">
+          <div class="px-3 px-md-0 mt-3">
+            <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-3">
+              <h5 class="card-title mb-0">Items</h5>
+              <span class="badge bg-primary rounded-pill" id="item-count">1</span>
             </div>
-            <div id="scanner-container" style="display:none; max-width: 400px; margin: 0 auto 15px;"></div>
-          {% endif %}
 
-          <h5 class="card-title border-bottom pb-2">Items</h5>
-          <div id="items" class="d-flex flex-column gap-2">
-            {% include "sales/_item_row.html" %}
+            <div id="items" class="d-flex flex-column gap-3">
+              {% include "sales/_item_row.html" %}
+            </div>
+
+            <button type="button" class="btn btn-outline-primary w-100 mt-4"
+                    hx-get="{% url 'add_item_row' %}"
+                    hx-target="#items"
+                    hx-swap="beforeend"
+                    style="min-height: 48px; border-style: dashed; border-width: 2px;">
+              <i class="bi bi-plus-lg me-1"></i> Add Product
+            </button>
           </div>
-          <button type="button" class="btn btn-outline-secondary btn-sm mt-3 w-100"
-                  hx-get="{% url 'add_item_row' %}"
-                  hx-target="#items"
-                  hx-swap="beforeend"
-                  style="min-height: 44px;">
-            <i class="bi bi-plus-lg me-1"></i> Add product
-          </button>
         </div>
       </div>
     </div>
 
-    <!-- RIGHT COLUMN: customer, payment, total + submit -->
+    <!-- RIGHT: customer, payment, amount paid, due date -->
     <div class="col-lg-5">
-      <div class="card shadow-sm border-0 h-100">
-        <div class="card-body d-flex flex-column">
-          <div class="mb-3">
-            <label for="customer" class="form-label fw-semibold">
-              <i class="bi bi-person me-1"></i> Customer
-            </label>
-            <select name="customer" id="customer" class="form-select" style="min-height: 44px; font-size: 16px;">
-              <option value="">Walk-in</option>
-              {% for c in customers %}
-                <option value="{{ c.id }}">{{ c.name }}</option>
-              {% endfor %}
-            </select>
+      <div class="card shadow-sm border-0 h-100 cf-sale-actions">
+        <div class="card-body d-flex flex-column p-3 p-md-4">
+
+          <!-- Customer + method -->
+          <div class="row g-2 mb-3 mb-md-0">
+            <div class="col-6 col-md-12 mb-md-3">
+              <label for="customer" class="form-label small fw-semibold mb-1">
+                <i class="bi bi-person me-1 text-primary"></i> Customer
+              </label>
+              <select name="customer" id="customer" class="form-select" style="min-height: 44px; font-size: 16px;">
+                <option value="">Walk-in</option>
+                {% for c in customers %}
+                  <option value="{{ c.id }}">{{ c.name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <div class="col-6 col-md-12 mb-md-3">
+              <label for="payment_method" class="form-label small fw-semibold mb-1">
+                <i class="bi bi-credit-card me-1 text-primary"></i> Payment method
+              </label>
+              <select name="payment_method" id="payment_method" class="form-select" style="min-height: 44px; font-size: 16px;">
+                <option value="cash">Cash</option>
+                <option value="airtel_money">Airtel Money</option>
+                <option value="tnm_mpamba">TNM Mpamba</option>
+                <option value="bank">Bank Transfer</option>
+                <option value="credit">Credit (nothing paid now)</option>
+              </select>
+            </div>
           </div>
 
-          <div class="mb-3">
-            <label for="payment_method" class="form-label fw-semibold">
-              <i class="bi bi-credit-card me-1"></i> Payment method
-            </label>
-            <select name="payment_method" id="payment_method" class="form-select" style="min-height: 44px; font-size: 16px;">
-              <option value="cash">Cash</option>
-              <option value="airtel_money">Airtel Money</option>
-              <option value="tnm_mpamba">TNM Mpamba</option>
-              <option value="bank">Bank Transfer</option>
-              <option value="credit">Credit</option>
-            </select>
+          <!-- Amount paid + due date -->
+          <div class="row g-2 mb-3">
+            <div class="col-6">
+              <label for="amount_paid" class="form-label small fw-semibold mb-1">
+                <i class="bi bi-cash-coin me-1 text-primary"></i> Amount paid now
+              </label>
+              <input type="number" name="amount_paid" id="amount_paid"
+                     step="0.01" min="0" placeholder="Full amount"
+                     class="form-control" style="min-height: 44px; font-size: 16px;">
+              <div class="form-text small">
+                Leave blank to record a fully paid sale. Type a lower
+                figure to record a partial payment.
+              </div>
+            </div>
+            <div class="col-6">
+              <label for="due_date" class="form-label small fw-semibold mb-1">
+                <i class="bi bi-calendar me-1 text-primary"></i> Due date
+              </label>
+              <input type="date" name="due_date" id="due_date"
+                     class="form-control" style="min-height: 44px; font-size: 16px;">
+              <div class="form-text small">
+                Optional. Used in the debt-ageing report.
+              </div>
+            </div>
           </div>
 
-          {# This block is pinned to the bottom of the viewport on phones only. #}
-          <div class="mt-auto pt-3 border-top cf-sale-actions">
-            {% include "sales/_grand_total.html" with total=0 %}
+          <!-- Totals + submit -->
+          <div class="mt-auto pt-3 border-top">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+              <span class="text-muted small text-uppercase fw-semibold" style="letter-spacing: 0.6px;">Total</span>
+              <div id="grand-total-wrapper-container">
+                {% include "sales/_grand_total.html" with total=0 %}
+              </div>
+            </div>
 
-            <button type="submit" class="btn btn-primary w-100 mt-3" id="complete-sale-btn"
-                    style="min-height: 48px; font-size: 17px;">
+            <button type="submit" class="btn btn-primary w-100" id="complete-sale-btn"
+                    style="min-height: 52px; font-size: 18px; font-weight: 600;">
               <span id="submit-indicator" class="spinner-border spinner-border-sm d-none me-2" role="status" aria-hidden="true"></span>
-              <i class="bi bi-check2-circle me-1"></i> Complete Sale
+              <i class="bi bi-check2-circle me-2 fs-5"></i> Complete Sale
             </button>
           </div>
         </div>
@@ -114,12 +191,10 @@
   </div>
 </form>
 
-<div id="result" class="mt-4"></div>
+<div id="result" class="mt-4 mb-5"></div>
 
-<!-- ==================== CLIENT-SIDE JAVASCRIPT ==================== -->
-
-<!-- 1. Product search filter -->
 <script>
+  // Product search filter.
   document.addEventListener("input", function (e) {
     if (e.target.id !== "product-search") return;
     var q = e.target.value.trim().toLowerCase();
@@ -128,26 +203,21 @@
       opt.hidden = q.length > 0 && opt.textContent.toLowerCase().indexOf(q) === -1;
     });
   });
-</script>
 
-<!-- 2. Stepper buttons -->
-<script>
+  // Stepper buttons.
   document.addEventListener('click', function (e) {
     const btn = e.target.closest('.stepper-btn');
     if (!btn) return;
     const input = btn.closest('.input-group').querySelector('input[type="number"]');
     if (!input) return;
     let val = parseInt(input.value) || 1;
-    const step = parseInt(btn.dataset.step) || 0;
-    val += step;
+    val += parseInt(btn.dataset.step) || 0;
     if (val < 1) val = 1;
     input.value = val;
     input.dispatchEvent(new Event('change'));
   });
-</script>
 
-<!-- 3. Spinner / button disable during HTMX submit -->
-<script>
+  // Spinner / disable button during submit.
   document.body.addEventListener('htmx:beforeRequest', function (evt) {
     if (evt.detail.elt.id === 'sale-form' && evt.detail.target.id === 'result') {
       document.getElementById('submit-indicator').classList.remove('d-none');
@@ -160,15 +230,12 @@
       document.getElementById('complete-sale-btn').disabled = false;
     }
   });
-</script>
 
-<!-- 4. Barcode scanning -->
-<script>
+  // Barcode scanning.
   (function () {
     let html5QrCode = null;
     const scanBtn = document.getElementById('scan-btn');
     if (!scanBtn) return;
-
     scanBtn.addEventListener('click', function () {
       const container = document.getElementById('scanner-container');
       if (container.style.display === 'none') {
@@ -186,12 +253,9 @@
         });
       }
     });
-
     function onScanSuccess(decodedText) {
       htmx.ajax('POST', "{% url 'barcode_scan' %}", {
-        values: { barcode: decodedText },
-        target: '#items',
-        swap: 'beforeend'
+        values: { barcode: decodedText }, target: '#items', swap: 'beforeend',
       });
       html5QrCode.stop().then(() => {
         document.getElementById('scanner-container').style.display = 'none';
@@ -199,6 +263,15 @@
       });
     }
   })();
+
+  // Item count.
+  document.body.addEventListener('htmx:afterSwap', function (evt) {
+    if (evt.detail.target.id === 'items' || evt.detail.target.id === 'sale-form') {
+      const count = document.querySelectorAll('#items .item-row').length;
+      const badge = document.getElementById('item-count');
+      if (badge) badge.textContent = count;
+    }
+  });
 </script>
 
 {% endblock %}

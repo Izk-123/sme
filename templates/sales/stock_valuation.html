@@ -1,31 +1,27 @@
-<<<<<<< HEAD
 {% extends "base/base.html" %}
 {% load money %}
 {% block page_title %}Stock Valuation{% endblock %}
 {% block content %}
 
-{% comment %}
-  Two totals side by side. Which one matters depends on what the owner is
-  doing:
-
-    Cost value    — what the stock on the shelf cost to buy. Use this for
-                    "how much cash is tied up in inventory". Conservative.
-    Retail value  — what it would bring in if all sold at list price.
-                    Optimistic; ignores markdowns, damage, and shrinkage.
-
-  The old version showed only retail, which overstates the stock's worth
-  on the books. Showing both lets an owner see the projected margin at a
-  glance (retail − cost) without needing a separate report.
-{% endcomment %}
+{% if missing_cost_count > 0 %}
+  <div class="alert alert-warning d-flex align-items-start gap-2 mb-3">
+    <i class="bi bi-exclamation-triangle-fill mt-1"></i>
+    <div>
+      <strong>{{ missing_cost_count }} product{{ missing_cost_count|pluralize }}</strong>
+      ha{{ missing_cost_count|pluralize:"s,ve" }} no cost recorded.
+      Their cost value is excluded from the total, and profit on their
+      sales will be overstated.
+      <a href="{% url 'inventory_list' %}">Set cost prices</a>.
+    </div>
+  </div>
+{% endif %}
 
 <div class="row g-3 mb-4">
   <div class="col-md-6 col-lg-4">
     <div class="card h-100">
       <div class="card-body d-flex justify-content-between align-items-center">
         <div>
-          <div class="text-muted small text-uppercase fw-semibold" style="letter-spacing: 0.6px;">
-            Value at cost
-          </div>
+          <div class="text-muted small text-uppercase fw-semibold">Value at cost</div>
           <div class="h3 mb-1 fw-bold" style="color: var(--cf-deep-teal);">
             {% money total_cost_value %}
           </div>
@@ -43,11 +39,9 @@
     <div class="card h-100">
       <div class="card-body d-flex justify-content-between align-items-center">
         <div>
-          <div class="text-muted small text-uppercase fw-semibold" style="letter-spacing: 0.6px;">
-            Value at retail
-          </div>
+          <div class="text-muted small text-uppercase fw-semibold">Value at retail</div>
           <div class="h3 mb-1 fw-bold" style="color: var(--cf-flow-teal);">
-            {% money total_value %}
+            {% money total_retail_value %}
           </div>
           <div class="text-muted small">If all sold at current prices</div>
         </div>
@@ -63,9 +57,7 @@
     <div class="card h-100">
       <div class="card-body d-flex justify-content-between align-items-center">
         <div>
-          <div class="text-muted small text-uppercase fw-semibold" style="letter-spacing: 0.6px;">
-            Products in stock
-          </div>
+          <div class="text-muted small text-uppercase fw-semibold">Products in stock</div>
           <div class="h3 mb-1 fw-bold">{{ product_count }}</div>
           <div class="text-muted small">Distinct items</div>
         </div>
@@ -81,7 +73,7 @@
 <div class="card">
   <div class="card-body">
     {% if products %}
-      <table class="table table-hover datatable table-stack">
+      <table class="table table-hover table-stack">
         <thead>
           <tr>
             <th>Product</th>
@@ -108,13 +100,10 @@
               </td>
               <td class="money">{% money product.price %}</td>
               <td class="money">
-                {% if product.cost_value is not None %}
-                  {% money product.cost_value %}
-                {% else %}
-                  <span class="text-muted">—</span>
-                {% endif %}
+                {% if product.cost_value is not None %}{% money product.cost_value %}
+                {% else %}<span class="text-muted">—</span>{% endif %}
               </td>
-              <td class="money">{% money product.total_value %}</td>
+              <td class="money">{% money product.retail_value %}</td>
             </tr>
           {% endfor %}
         </tbody>
@@ -122,7 +111,7 @@
           <tr style="border-top: 2px solid var(--border-color);">
             <th colspan="4" class="text-end">Totals</th>
             <th class="money" style="color: var(--cf-deep-teal);">{% money total_cost_value %}</th>
-            <th class="money" style="color: var(--cf-flow-teal);">{% money total_value %}</th>
+            <th class="money" style="color: var(--cf-flow-teal);">{% money total_retail_value %}</th>
           </tr>
         </tfoot>
       </table>
@@ -133,140 +122,4 @@
   </div>
 </div>
 
-=======
-{% extends "base/base.html" %}
-{% load money %}
-{% block page_title %}Stock Valuation{% endblock %}
-{% block content %}
-
-{% comment %}
-  Two totals side by side. Which one matters depends on what the owner is
-  doing:
-
-    Cost value    — what the stock on the shelf cost to buy. Use this for
-                    "how much cash is tied up in inventory". Conservative.
-    Retail value  — what it would bring in if all sold at list price.
-                    Optimistic; ignores markdowns, damage, and shrinkage.
-
-  The old version showed only retail, which overstates the stock's worth
-  on the books. Showing both lets an owner see the projected margin at a
-  glance (retail − cost) without needing a separate report.
-{% endcomment %}
-
-<div class="row g-3 mb-4">
-  <div class="col-md-6 col-lg-4">
-    <div class="card h-100">
-      <div class="card-body d-flex justify-content-between align-items-center">
-        <div>
-          <div class="text-muted small text-uppercase fw-semibold" style="letter-spacing: 0.6px;">
-            Value at cost
-          </div>
-          <div class="h3 mb-1 fw-bold" style="color: var(--cf-deep-teal);">
-            {% money total_cost_value %}
-          </div>
-          <div class="text-muted small">What this stock cost to buy</div>
-        </div>
-        <div class="rounded-circle d-flex align-items-center justify-content-center"
-             style="width: 52px; height: 52px; background: var(--cf-mist); color: var(--cf-deep-teal); font-size: 1.4rem;">
-          <i class="bi bi-wallet2"></i>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div class="col-md-6 col-lg-4">
-    <div class="card h-100">
-      <div class="card-body d-flex justify-content-between align-items-center">
-        <div>
-          <div class="text-muted small text-uppercase fw-semibold" style="letter-spacing: 0.6px;">
-            Value at retail
-          </div>
-          <div class="h3 mb-1 fw-bold" style="color: var(--cf-flow-teal);">
-            {% money total_value %}
-          </div>
-          <div class="text-muted small">If all sold at current prices</div>
-        </div>
-        <div class="rounded-circle d-flex align-items-center justify-content-center"
-             style="width: 52px; height: 52px; background: var(--cf-flow-teal-soft); color: var(--cf-flow-teal); font-size: 1.4rem;">
-          <i class="bi bi-box-seam"></i>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div class="col-md-12 col-lg-4">
-    <div class="card h-100">
-      <div class="card-body d-flex justify-content-between align-items-center">
-        <div>
-          <div class="text-muted small text-uppercase fw-semibold" style="letter-spacing: 0.6px;">
-            Products in stock
-          </div>
-          <div class="h3 mb-1 fw-bold">{{ product_count }}</div>
-          <div class="text-muted small">Distinct items</div>
-        </div>
-        <div class="rounded-circle d-flex align-items-center justify-content-center"
-             style="width: 52px; height: 52px; background: var(--cf-mist); color: var(--cf-deep-teal); font-size: 1.4rem;">
-          <i class="bi bi-list-check"></i>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<div class="card">
-  <div class="card-body">
-    {% if products %}
-      <table class="table table-hover datatable table-stack">
-        <thead>
-          <tr>
-            <th>Product</th>
-            <th>Qty</th>
-            <th>Unit Cost</th>
-            <th>Unit Price</th>
-            <th>Value at Cost</th>
-            <th>Value at Retail</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for product in products %}
-            <tr>
-              <td class="fw-bold">{{ product.name }}</td>
-              <td>{{ product.stock_quantity }}</td>
-              <td class="money">
-                {% if product.cost_price %}
-                  {% money product.cost_price %}
-                {% else %}
-                  <span class="text-danger small" title="No cost recorded — profit figures will treat this as pure margin">
-                    <i class="bi bi-exclamation-triangle me-1"></i>Missing
-                  </span>
-                {% endif %}
-              </td>
-              <td class="money">{% money product.price %}</td>
-              <td class="money">
-                {% if product.cost_value is not None %}
-                  {% money product.cost_value %}
-                {% else %}
-                  <span class="text-muted">—</span>
-                {% endif %}
-              </td>
-              <td class="money">{% money product.total_value %}</td>
-            </tr>
-          {% endfor %}
-        </tbody>
-        <tfoot>
-          <tr style="border-top: 2px solid var(--border-color);">
-            <th colspan="4" class="text-end">Totals</th>
-            <th class="money" style="color: var(--cf-deep-teal);">{% money total_cost_value %}</th>
-            <th class="money" style="color: var(--cf-flow-teal);">{% money total_value %}</th>
-          </tr>
-        </tfoot>
-      </table>
-    {% else %}
-      {% url 'product_add' as add_url %}
-      {% include "components/_empty_state.html" with icon="bi-box-seam" title="No products to value" message="Add products and stock so ChumaFlow can tell you what your inventory is worth." action_url=add_url action_label="Add your first product" %}
-    {% endif %}
-  </div>
-</div>
-
->>>>>>> e3b67a5 (new files)
 {% endblock %}
